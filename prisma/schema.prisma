@@ -1,0 +1,290 @@
+// Smart Meeting & Attendance Logger — data model
+// Derived from Smart meeting.md (PRD v1.0). See ../IMPLEMENTATION_PLAN.md section 2.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Enums ───────────────────────────────────────────────────────────────────
+
+/// Ministry role hierarchy (PRD §7 RBAC).
+enum MinistryRole {
+  MINISTER
+  PERMANENT_SECRETARY
+  DEPUTY_MINISTER
+  DEPUTY_SECRETARY
+  ADMIN
+}
+
+enum EventType {
+  MEETING
+  CONFERENCE
+  APPOINTMENT
+}
+
+/// Letter / invitation color category (PRD §6.5).
+enum ColorCategory {
+  RED // urgent / cabinet
+  AMBER // internal
+  GREEN // routine
+}
+
+/// Meeting classification tier (PRD §6.2).
+enum Classification {
+  PUBLIC
+  RESTRICTED
+}
+
+enum CheckInMethod {
+  QR
+  MANUAL
+  GEO
+}
+
+enum InviteStatus {
+  INVITED
+  CONFIRMED
+  DECLINED
+}
+
+enum RecordingStatus {
+  UPLOADED
+  PROCESSING
+  TRANSCRIBED
+  FAILED
+}
+
+enum MinutesStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ActionItemStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+// ── Core models ─────────────────────────────────────────────────────────────
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  passwordHash  String? // for credential/OTP fallback
+  role          MinistryRole @default(DEPUTY_SECRETARY)
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  organizedEvents Event[]         @relation("EventOrganizer")
+  attendeeOf      EventAttendee[]
+  attendances     Attendance[]
+  actionItems     ActionItem[]    @relation("ActionItemOwner")
+  auditLogs       AuditLog[]
+  accounts        Account[]
+  sessions        Session[]
+}
+
+model Event {
+  id             String         @id @default(cuid())
+  title          String
+  description    String?
+  type           EventType      @default(MEETING)
+  startAt        DateTime
+  endAt          DateTime
+  venueName      String?
+  venueLat       Float?
+  venueLng       Float?
+  geofenceRadius Int            @default(100) // meters (PRD §6.6)
+  colorCategory  ColorCategory? // PRD §6.5
+  classification Classification @default(PUBLIC) // PRD §6.2
+  organizerId    String
+  organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  attendees   EventAttendee[]
+  attendances Attendance[]
+  letters     Letter[]
+  recordings  Recording[]
+  minutes     Minutes?
+  qrTokens    QRToken[]
+
+  @@index([startAt])
+  @@index([organizerId])
+}
+
+model EventAttendee {
+  id            String       @id @default(cuid())
+  eventId       String
+  event         Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id])
+  externalName  String? // external guest without an account
+  externalEmail String?
+  status        InviteStatus @default(INVITED)
+  createdAt     DateTime     @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+}
+
+model Attendance {
+  id               String        @id @default(cuid())
+  eventId          String
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id])
+  externalName     String?
+  checkInAt        DateTime      @default(now())
+  method           CheckInMethod @default(QR)
+  lat              Float?
+  lng              Float?
+  gpsAccuracy      Float? // raw accuracy in meters (PRD §6.6 anti-spoofing)
+  withinGeofence   Boolean?
+  mockLocationFlag Boolean       @default(false)
+  ipAddress        String?
+  createdAt        DateTime      @default(now())
+
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Letter {
+  id            String        @id @default(cuid())
+  eventId       String
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  colorCategory ColorCategory @default(GREEN)
+  title         String
+  body          String // rich-text / HTML
+  pdfUrl        String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([eventId])
+}
+
+model Recording {
+  id             String          @id @default(cuid())
+  eventId        String
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  fileUrl        String
+  durationSec    Int?
+  classification Classification  @default(PUBLIC)
+  status         RecordingStatus @default(UPLOADED)
+  createdAt      DateTime        @default(now())
+
+  transcript Transcript?
+
+  @@index([eventId])
+}
+
+model Transcript {
+  id          String    @id @default(cuid())
+  recordingId String    @unique
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  provider    String? // e.g. "openai-whisper"
+  segments    Json // [{ speaker, start, end, text }]
+  createdAt   DateTime  @default(now())
+}
+
+model Minutes {
+  id           String        @id @default(cuid())
+  eventId      String        @unique
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  body         String        @default("")
+  summary      String?
+  status       MinutesStatus @default(DRAFT)
+  approvedById String?
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  actionItems ActionItem[]
+}
+
+model ActionItem {
+  id        String           @id @default(cuid())
+  minutesId String
+  minutes   Minutes          @relation(fields: [minutesId], references: [id], onDelete: Cascade)
+  title     String
+  ownerId   String?
+  owner     User?            @relation("ActionItemOwner", fields: [ownerId], references: [id])
+  dueDate   DateTime?
+  status    ActionItemStatus @default(TODO)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([minutesId])
+  @@index([ownerId])
+}
+
+/// Append-only audit trail (PRD §7).
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String // e.g. "CHECK_IN", "PUBLISH_MINUTES"
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+/// Dynamic / rotating signed QR token for check-in (PRD §6.1).
+model QRToken {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}
+
+// ── Auth.js (NextAuth) models ───────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

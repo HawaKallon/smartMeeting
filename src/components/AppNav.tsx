@@ -1,0 +1,62 @@
+import Link from "next/link";
+import { signOut } from "@/auth";
+import { ROLE_LABELS, canManageEvents } from "@/lib/roles";
+import type { MinistryRole } from "@/generated/prisma/enums";
+
+export function AppNav({
+  user,
+}: {
+  user: { name?: string | null; email: string; role: MinistryRole };
+}) {
+  const isAdmin = canManageEvents(user.role);
+
+  return (
+    <header className="border-b bg-white">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <nav className="flex items-center gap-6">
+          <Link href="/" className="font-semibold text-gray-900">
+            Smart Meeting
+          </Link>
+          <Link href="/calendar" className="text-sm text-gray-600 hover:text-gray-900">
+            Calendar
+          </Link>
+          {isAdmin ? (
+            <>
+              <Link
+                href="/events/new"
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                New Event
+              </Link>
+              <Link
+                href="/attendance"
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Attendance
+              </Link>
+            </>
+          ) : null}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <span className="text-right text-xs leading-tight">
+            <span className="block font-medium text-gray-900">
+              {user.name ?? user.email}
+            </span>
+            <span className="block text-gray-500">{ROLE_LABELS[user.role]}</span>
+          </span>
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/login" });
+            }}
+          >
+            <button className="rounded-md border px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50">
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+    </header>
+  );
+}
