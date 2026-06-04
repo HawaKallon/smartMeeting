@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
-import { requireRole } from "@/lib/guard";
+import { requireStaffRole } from "@/lib/guard";
+import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { getActiveToken } from "@/lib/checkin";
 import { RefreshOnExpiry } from "./RefreshOnExpiry";
@@ -12,7 +13,7 @@ export default async function CheckInCodePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireRole("ADMIN");
+  await requireStaffRole();
 
   const event = await prisma.event.findUnique({ where: { id } });
   if (!event) notFound();
@@ -31,8 +32,10 @@ export default async function CheckInCodePage({
   );
 
   return (
-    <div className="mx-auto max-w-md text-center">
-      <h1 className="text-2xl font-semibold text-gray-900">{event.title}</h1>
+    <div className="mx-auto max-w-md space-y-4">
+      <BackButton href={`/events/${id}`} label={event.title} />
+      <div className="text-center">
+      <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
       <p className="mt-1 text-sm text-gray-500">Scan to check in</p>
 
       <div className="mt-6 inline-block rounded-xl border bg-white p-4 shadow-sm">
@@ -46,6 +49,7 @@ export default async function CheckInCodePage({
       </p>
 
       <RefreshOnExpiry secondsLeft={secondsLeft} />
+      </div>
     </div>
   );
 }

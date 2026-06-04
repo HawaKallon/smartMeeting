@@ -1,0 +1,77 @@
+{
+  "node": {
+    "0040fd6e9162cf1ff0ce3d57d3facc4c8cc1909b84": {
+      "workers": {
+        "app/(app)/events/[id]/minutes/page": {
+          "moduleId": 65729,
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "web/src/components/Sidebar.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "web/src/components/Sidebar.tsx"
+    },
+    "6014c30b415b986fcb02145a3e47f27870a1360e85": {
+      "workers": {
+        "app/(app)/events/[id]/minutes/page": {
+          "moduleId": 65729,
+          "async": true,
+          "exportedName": "saveMinutesDraft",
+          "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+        }
+      },
+      "exportedName": "saveMinutesDraft",
+      "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+    },
+    "60569be7e51208f88053a8340ca56943c9185fbae6": {
+      "workers": {
+        "app/(app)/events/[id]/minutes/page": {
+          "moduleId": 65729,
+          "async": true,
+          "exportedName": "addActionItem",
+          "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+        }
+      },
+      "exportedName": "addActionItem",
+      "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+    },
+    "6047cfed75a2408397ebd8778f041f77e89ac7d8f3": {
+      "workers": {
+        "app/(app)/events/[id]/minutes/page": {
+          "moduleId": 65729,
+          "async": true,
+          "exportedName": "updateActionItem",
+          "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+        }
+      },
+      "exportedName": "updateActionItem",
+      "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+    },
+    "40d278f5d7c9248bd382e54202ee7c45088774f184": {
+      "workers": {
+        "app/(app)/events/[id]/minutes/page": {
+          "moduleId": 65729,
+          "async": true,
+          "exportedName": "deleteActionItem",
+          "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+        }
+      },
+      "exportedName": "deleteActionItem",
+      "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+    },
+    "60c2afe95b2d1fe90fbba212c9bc3c8f5192c3a700": {
+      "workers": {
+        "app/(app)/events/[id]/minutes/page": {
+          "moduleId": 65729,
+          "async": true,
+          "exportedName": "publishMinutes",
+          "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+        }
+      },
+      "exportedName": "publishMinutes",
+      "filename": "web/src/app/(app)/events/[id]/minutes/actions.ts"
+    }
+  },
+  "edge": {}
+}

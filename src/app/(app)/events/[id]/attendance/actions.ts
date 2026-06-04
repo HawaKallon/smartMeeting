@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertRole } from "@/lib/guard";
+import { assertStaffRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 
 const ManualSchema = z.object({
@@ -13,7 +13,7 @@ const ManualSchema = z.object({
 });
 
 export async function manualCheckIn(formData: FormData) {
-  const admin = await assertRole("ADMIN");
+  const admin = await assertStaffRole();
 
   const parsed = ManualSchema.safeParse({
     eventId: formData.get("eventId"),

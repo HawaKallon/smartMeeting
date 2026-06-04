@@ -23,3 +23,13 @@ export async function assertRole(...roles: MinistryRole[]) {
   if (!roles.includes(session.user.role)) throw new Error("FORBIDDEN");
   return session.user;
 }
+
+/** Page guard: Admin Staff (ministry ops) or Admin (tech team). */
+export async function requireStaffRole() {
+  return requireRole("ADMIN_STAFF", "ADMIN");
+}
+
+/** Action guard: Admin Staff (ministry ops) or Admin (tech team). */
+export async function assertStaffRole() {
+  return assertRole("ADMIN_STAFF", "ADMIN");
+}

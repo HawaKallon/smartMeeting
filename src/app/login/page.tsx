@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 import { signIn, auth } from "@/auth";
 
 export default async function LoginPage({
@@ -15,7 +16,16 @@ export default async function LoginPage({
     const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
     const cb = String(formData.get("callbackUrl") || "/");
-    await signIn("credentials", { email, password, redirectTo: cb });
+    try {
+      await signIn("credentials", { email, password, redirectTo: cb });
+    } catch (error) {
+      if (error instanceof AuthError) {
+        const params = new URLSearchParams({ error: error.type });
+        if (cb && cb !== "/") params.set("callbackUrl", cb);
+        redirect(`/login?${params}`);
+      }
+      throw error; // re-throw NEXT_REDIRECT so Next.js handles the success redirect
+    }
   }
 
   return (

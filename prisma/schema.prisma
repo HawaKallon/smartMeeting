@@ -18,6 +18,7 @@ enum MinistryRole {
   PERMANENT_SECRETARY
   DEPUTY_MINISTER
   DEPUTY_SECRETARY
+  ADMIN_STAFF
   ADMIN
 }
 
@@ -70,6 +71,20 @@ enum ActionItemStatus {
   DONE
 }
 
+enum RoomBookingPurpose {
+  MEETING
+  TRAINING
+  CONFERENCE
+  WORKSHOP
+  INTERVIEW
+  OTHER
+}
+
+enum RoomBookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
 // ── Core models ─────────────────────────────────────────────────────────────
 
 model User {
@@ -87,7 +102,9 @@ model User {
   attendeeOf      EventAttendee[]
   attendances     Attendance[]
   actionItems     ActionItem[]    @relation("ActionItemOwner")
+  minutesApproved Minutes[]       @relation("MinutesApprover")
   auditLogs       AuditLog[]
+  roomBookings    RoomBooking[]   @relation("RoomBookings")
   accounts        Account[]
   sessions        Session[]
 }
@@ -105,8 +122,10 @@ model Event {
   geofenceRadius Int            @default(100) // meters (PRD §6.6)
   colorCategory  ColorCategory? // PRD §6.5
   classification Classification @default(PUBLIC) // PRD §6.2
+  roomId         String?
   organizerId    String
   organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
+  room           Room?          @relation("EventRoom", fields: [roomId], references: [id])
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -203,6 +222,7 @@ model Minutes {
   summary      String?
   status       MinutesStatus @default(DRAFT)
   approvedById String?
+  approver     User?         @relation("MinutesApprover", fields: [approvedById], references: [id])
   publishedAt  DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -251,6 +271,45 @@ model QRToken {
   createdAt DateTime @default(now())
 
   @@index([eventId])
+}
+
+// ── Room Booking models ─────────────────────────────────────────────────────
+
+model Room {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  location  String
+  capacity  Int
+  amenities String[] // e.g., ["Projector", "Whiteboard"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings RoomBooking[]
+  events   Event[]      @relation("EventRoom")
+
+  @@index([location])
+}
+
+model RoomBooking {
+  id           String               @id @default(cuid())
+  roomId       String
+  userId       String
+  startTime    DateTime
+  endTime      DateTime
+  purpose      RoomBookingPurpose
+  attendeeCount Int?
+  notes        String?
+  status       RoomBookingStatus    @default(CONFIRMED)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation("RoomBookings", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, startTime, endTime])
+  @@index([userId])
+  @@index([roomId])
+  @@index([startTime])
 }
 
 // ── Auth.js (NextAuth) models ───────────────────────────────────────────────

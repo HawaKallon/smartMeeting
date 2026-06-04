@@ -5,7 +5,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertRole } from "@/lib/guard";
+import { assertStaffRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { transcribeFile } from "@/lib/transcription";
 
@@ -16,7 +16,7 @@ const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 export type UploadResult = { ok: true; recordingId: string } | { ok: false; error: string };
 
 export async function uploadRecording(formData: FormData): Promise<UploadResult> {
-  const admin = await assertRole("ADMIN");
+  const admin = await assertStaffRole();
 
   const eventId = String(formData.get("eventId") ?? "");
   const file = formData.get("file");

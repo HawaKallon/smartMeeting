@@ -1,0 +1,3 @@
+module.exports=[20709,a=>a.a(async(b,c)=>{try{var d=a.i(56584),e=b([d]);[d]=e.then?(await e)():e,a.s([]),c()}catch(a){c(a)}},!1),83119,a=>a.a(async(b,c)=>{try{var d=a.i(20709),e=a.i(56584),f=b([d,e]);[d,e]=f.then?(await f)():f,a.s(["0040fd6e9162cf1ff0ce3d57d3facc4c8cc1909b84",()=>e.$$RSC_SERVER_ACTION_0]),c()}catch(a){c(a)}},!1)];
+
+//# sourceMappingURL=web_src__next-internal_server_app_%28app%29_attendance_page_actions_1a-a893.js.map

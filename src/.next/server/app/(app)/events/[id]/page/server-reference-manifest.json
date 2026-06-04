@@ -1,0 +1,41 @@
+{
+  "node": {
+    "0040fd6e9162cf1ff0ce3d57d3facc4c8cc1909b84": {
+      "workers": {
+        "app/(app)/events/[id]/page": {
+          "moduleId": 31358,
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "web/src/components/Sidebar.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "web/src/components/Sidebar.tsx"
+    },
+    "40a392bdaab7492ca8c044bee3b2859df75e8bf875": {
+      "workers": {
+        "app/(app)/events/[id]/page": {
+          "moduleId": 31358,
+          "async": true,
+          "exportedName": "uploadRecording",
+          "filename": "web/src/app/(app)/events/[id]/recordings/actions.ts"
+        }
+      },
+      "exportedName": "uploadRecording",
+      "filename": "web/src/app/(app)/events/[id]/recordings/actions.ts"
+    },
+    "60aaf6e0918f0bbe417ed66f0189b84fac1c122a4b": {
+      "workers": {
+        "app/(app)/events/[id]/page": {
+          "moduleId": 31358,
+          "async": true,
+          "exportedName": "selfRsvp",
+          "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+        }
+      },
+      "exportedName": "selfRsvp",
+      "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+    }
+  },
+  "edge": {}
+}

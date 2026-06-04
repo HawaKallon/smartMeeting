@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/guard";
-import { AppNav } from "@/components/AppNav";
+import { Sidebar } from "@/components/Sidebar";
+import { Topbar } from "@/components/Topbar";
 
 export default async function AppLayout({
   children,
@@ -9,9 +10,12 @@ export default async function AppLayout({
   const user = await requireUser();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppNav user={user} />
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar user={user} />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Topbar user={user} />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ export const MINISTRY_ROLES = [
   "PERMANENT_SECRETARY",
   "DEPUTY_MINISTER",
   "DEPUTY_SECRETARY",
+  "ADMIN_STAFF",
   "ADMIN",
 ] as const;
 
@@ -15,12 +16,16 @@ export const ROLE_LABELS: Record<MinistryRole, string> = {
   PERMANENT_SECRETARY: "Permanent Secretary",
   DEPUTY_MINISTER: "Deputy Minister",
   DEPUTY_SECRETARY: "Deputy Secretary",
+  ADMIN_STAFF: "Admin Staff",
   ADMIN: "Admin",
 };
 
-/** Roles that can create/manage events, letters, users, attendance (PRD §7 Admin). */
+/**
+ * Operational staff: create/manage events, letters, attendance.
+ * Includes both Admin Staff (ministry ops) and Admin (tech team).
+ */
 export function canManageEvents(role: MinistryRole | undefined): boolean {
-  return role === "ADMIN";
+  return role === "ADMIN_STAFF" || role === "ADMIN";
 }
 
 /** Roles that can approve/route minutes (PRD §7 PS, DS). */
@@ -28,12 +33,13 @@ export function canApproveMinutes(role: MinistryRole | undefined): boolean {
   return role === "PERMANENT_SECRETARY" || role === "DEPUTY_SECRETARY";
 }
 
-/** Roles that may view ministry-wide schedule (everyone except own-only roles). */
+/** Roles that may view ministry-wide schedule. */
 export function canViewMinistrySchedule(role: MinistryRole | undefined): boolean {
   return (
     role === "MINISTER" ||
     role === "PERMANENT_SECRETARY" ||
     role === "DEPUTY_SECRETARY" ||
+    role === "ADMIN_STAFF" ||
     role === "ADMIN"
   );
 }

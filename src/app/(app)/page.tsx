@@ -1,78 +1,219 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { ROLE_LABELS, canManageEvents, canViewMinistrySchedule } from "@/lib/roles";
+import { canManageEvents, canViewMinistrySchedule } from "@/lib/roles";
+import { COLOR_META } from "@/lib/colors";
+import {
+  CalendarDays, CheckSquare, Users, TrendingUp,
+  ArrowUpRight, PlusCircle, ClipboardList,
+} from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import type { ColorCategory } from "@/generated/prisma/enums";
 
 export default async function Dashboard() {
   const user = await requireUser();
-  const isAdmin = canManageEvents(user.role);
+  const isStaff = canManageEvents(user.role);
+  const canViewAll = canViewMinistrySchedule(user.role);
 
   const now = new Date();
-  const upcoming = await prisma.event.findMany({
-    where: canViewMinistrySchedule(user.role)
-      ? { startAt: { gte: now } }
-      : { startAt: { gte: now }, organizerId: user.id },
-    orderBy: { startAt: "asc" },
-    take: 5,
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(startOfDay.getTime() + 86_400_000);
+
+  const [upcoming, todayCount, myItems, pendingRsvps] = await Promise.all([
+    prisma.event.findMany({
+      where: canViewAll
+        ? { startAt: { gte: startOfDay } }
+        : { startAt: { gte: startOfDay }, organizerId: user.id },
+      orderBy: { startAt: "asc" },
+      take: 10,
+      select: {
+        id: true, title: true, startAt: true,
+        venueName: true, type: true, colorCategory: true,
+        _count: { select: { attendances: true } },
+      },
+    }),
+    prisma.event.count({
+      where: canViewAll
+        ? { startAt: { gte: startOfDay, lt: tomorrow } }
+        : { startAt: { gte: startOfDay, lt: tomorrow }, organizerId: user.id },
+    }),
+    prisma.actionItem.count({ where: { ownerId: user.id, status: { in: ["TODO", "IN_PROGRESS"] } } }),
+    prisma.eventAttendee.count({ where: { userId: user.id, status: "INVITED" } }),
+  ]);
+
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = user.name?.split(" ")[0] ?? user.email.split("@")[0];
+
+  const dateLabel = now.toLocaleDateString("en-GB", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Welcome, {user.name ?? user.email}
-        </h1>
-        <p className="text-sm text-gray-500">
-          Signed in as {ROLE_LABELS[user.role]}
-        </p>
-      </div>
+    <div className="space-y-6">
+      <BackButton href="/" label="Home" />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card href="/calendar" title="Calendar" desc="View all scheduled meetings & events" />
-        {isAdmin ? (
-          <>
-            <Card href="/events/new" title="New Event" desc="Create a meeting or conference" />
-            <Card href="/attendance" title="Attendance" desc="Reports & manual check-in" />
-          </>
-        ) : null}
-      </div>
-
-      <section>
-        <h2 className="mb-3 text-lg font-medium text-gray-900">Upcoming</h2>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-gray-500">No upcoming events.</p>
-        ) : (
-          <ul className="divide-y rounded-lg border bg-white">
-            {upcoming.map((e) => (
-              <li key={e.id} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <Link
-                    href={`/events/${e.id}`}
-                    className="font-medium text-gray-900 hover:underline"
-                  >
-                    {e.title}
-                  </Link>
-                  <p className="text-xs text-gray-500">
-                    {e.startAt.toLocaleString()} · {e.venueName ?? "No venue"}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
+      {/* Page header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">
+            {greeting}, {firstName}! 👋
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">{dateLabel}</p>
+        </div>
+        {isStaff && (
+          <div className="flex gap-2">
+            <Link
+              href="/events/new"
+              className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Event
+            </Link>
+            <Link
+              href="/attendance"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Reports
+            </Link>
+          </div>
         )}
-      </section>
+      </div>
+
+      {/* Stat cards — Square UI exact structure */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={<CalendarDays className="h-5 w-5 text-blue-500" />}
+          label="Upcoming Events"
+          value={upcoming.length}
+          sub="scheduled ahead"
+          href="/calendar"
+        />
+        <StatCard
+          icon={<TrendingUp className="h-5 w-5 text-orange-500" />}
+          label="Events Today"
+          value={todayCount}
+          sub="happening today"
+        />
+        <StatCard
+          icon={<CheckSquare className="h-5 w-5 text-emerald-500" />}
+          label="My Open Tasks"
+          value={myItems}
+          sub="action items pending"
+          href="/kanban"
+        />
+        <StatCard
+          icon={<Users className="h-5 w-5 text-violet-500" />}
+          label="Pending RSVPs"
+          value={pendingRsvps}
+          sub="awaiting your response"
+        />
+      </div>
+
+      {/* Upcoming events table */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+          <h2 className="text-sm font-semibold text-foreground">Upcoming Events</h2>
+          <Link
+            href="/calendar"
+            className="flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            View all <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        {upcoming.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/20" />
+            <p className="mt-3 text-sm text-muted-foreground">No upcoming events scheduled.</p>
+            {isStaff && (
+              <Link
+                href="/events/new"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
+              >
+                <PlusCircle className="h-4 w-4" /> Create first event
+              </Link>
+            )}
+          </div>
+        ) : (
+          <table className="w-full caption-bottom text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                {["Event", "Date & Time", "Venue", "Type", "Check-ins", ""].map((h) => (
+                  <th key={h} className="px-5 py-3 text-left text-xs font-medium text-muted-foreground">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {upcoming.map((e, i) => {
+                const isToday = e.startAt >= startOfDay && e.startAt < tomorrow;
+                return (
+                  <tr
+                    key={e.id}
+                    className={`transition-colors hover:bg-muted/30 ${i < upcoming.length - 1 ? "border-b border-border/50" : ""}`}
+                  >
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        {e.colorCategory ? (
+                          <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${COLOR_META[e.colorCategory as ColorCategory].dot}`} />
+                        ) : (
+                          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-muted-foreground/30" />
+                        )}
+                        <span className="font-medium text-foreground">{e.title}</span>
+                        {isToday && (
+                          <span className="rounded-md bg-blue-500/15 px-1.5 py-0.5 text-xs font-medium text-blue-400">Today</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {e.startAt.toLocaleString("en-GB", {
+                        weekday: "short", month: "short", day: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">{e.venueName ?? "—"}</td>
+                    <td className="px-5 py-3">
+                      <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground capitalize">
+                        {e.type.toLowerCase()}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 font-medium text-foreground">{e._count.attendances}</td>
+                    <td className="px-5 py-3">
+                      <Link href={`/events/${e.id}`} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                        Open →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
 
-function Card({ href, title, desc }: { href: string; title: string; desc: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-lg border bg-white p-5 shadow-sm transition hover:border-gray-400"
-    >
-      <h3 className="font-medium text-gray-900">{title}</h3>
-      <p className="mt-1 text-sm text-gray-500">{desc}</p>
-    </Link>
+function StatCard({
+  icon, label, value, sub, href,
+}: {
+  icon: React.ReactNode; label: string; value: number; sub: string; href?: string;
+}) {
+  const inner = (
+    <div className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/20">
+      <div className="flex items-start justify-between">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted">
+          {icon}
+        </div>
+        {href && <ArrowUpRight className="h-4 w-4 text-muted-foreground/30" />}
+      </div>
+      <p className="mt-3 text-2xl font-medium text-foreground">{value}</p>
+      <p className="mt-0.5 text-sm text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground/60">{sub}</p>
+    </div>
   );
+  return href ? <Link href={href}>{inner}</Link> : inner;
 }

@@ -2,9 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canManageEvents } from "@/lib/roles";
+import { canManageEvents, canApproveMinutes } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
 import { Uploader } from "./recordings/Uploader";
+import { MeetingRecorder } from "./recordings/MeetingRecorder";
+import { RsvpButtons } from "./RsvpButtons";
+import { BackButton } from "@/components/BackButton";
+import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Music } from "lucide-react";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
 
@@ -31,129 +35,261 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const isAdmin = canManageEvents(user.role);
+  const canViewMinutes = isAdmin || canApproveMinutes(user.role);
+
+  const myInvite = await prisma.eventAttendee.findUnique({
+    where: { eventId_userId: { eventId: id, userId: user.id } },
+    select: { id: true, status: true },
+  });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
+      <BackButton href="/" label="Dashboard" />
+
+      {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{event.title}</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {event.type} · organized by {event.organizer.name ?? event.organizer.email}
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-foreground">{event.title}</h1>
+          <p className="mt-2 flex items-center gap-2 text-muted-foreground">
+            <span className="capitalize">{event.type.toLowerCase()}</span> •
+            <span>By {event.organizer.name ?? event.organizer.email}</span>
           </p>
         </div>
-        {event.colorCategory ? (
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${COLOR_META[event.colorCategory].badge}`}
-          >
-            {COLOR_META[event.colorCategory].label}
-          </span>
-        ) : null}
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Link
+              href={`/events/${id}/edit`}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </Link>
+          )}
+          <button className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+        </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border bg-white p-5 text-sm">
-        <Row label="Starts">{event.startAt.toLocaleString()}</Row>
-        <Row label="Ends">{event.endAt.toLocaleString()}</Row>
-        <Row label="Venue">{event.venueName ?? "—"}</Row>
-        <Row label="Classification">{event.classification}</Row>
-        <Row label="Geofence">
-          {event.venueLat != null && event.venueLng != null
-            ? `${event.venueLat.toFixed(5)}, ${event.venueLng.toFixed(5)} (±${event.geofenceRadius}m)`
-            : "No coordinates set"}
-        </Row>
-        <Row label="Checked in">{event._count.attendances}</Row>
-      </dl>
+      {/* Info Grid */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <InfoCard
+          icon={<Calendar className="h-5 w-5" />}
+          label="Start"
+          value={event.startAt.toLocaleString("en-GB", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        />
+        <InfoCard
+          icon={<Calendar className="h-5 w-5" />}
+          label="End"
+          value={event.endAt.toLocaleString("en-GB", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        />
+        <InfoCard
+          icon={<MapPin className="h-5 w-5" />}
+          label="Venue"
+          value={event.venueName ?? "Not specified"}
+        />
+        <InfoCard
+          icon={<Users className="h-5 w-5" />}
+          label="Attendance"
+          value={`${event._count.attendances}/${event._count.attendees} checked in`}
+        />
+      </div>
 
-      {event.description ? (
-        <div className="rounded-lg border bg-white p-5">
-          <h2 className="mb-2 text-sm font-medium text-gray-700">Description</h2>
-          <p className="whitespace-pre-wrap text-sm text-gray-600">{event.description}</p>
+      {/* Description */}
+      {event.description && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Description</h2>
+          <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
+            {event.description}
+          </p>
         </div>
-      ) : null}
+      )}
 
-      <div className="rounded-lg border bg-white p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-gray-700">
-            Recordings &amp; transcript
+      {/* RSVP Section */}
+      {myInvite && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Your RSVP</h2>
+          <RsvpButtons eventId={id} currentStatus={myInvite.status} />
+        </div>
+      )}
+
+      {/* Recordings & Transcripts */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+            <Music className="h-4 w-4" />
+            Recordings
           </h2>
-          {event.classification === "RESTRICTED" ? (
-            <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-              Restricted — local transcription tier (Phase 3)
+          {event.classification === "RESTRICTED" && (
+            <span className="rounded-lg bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-400">
+              Restricted
             </span>
-          ) : null}
+          )}
         </div>
 
-        {isAdmin ? (
-          <div className="mb-4">
+        {isAdmin && (
+          <div className="mb-4 space-y-3 pb-4 border-b border-border">
+            <MeetingRecorder eventId={event.id} />
             <Uploader eventId={event.id} />
           </div>
-        ) : null}
+        )}
 
         {event.recordings.length === 0 ? (
-          <p className="text-sm text-gray-500">No recordings uploaded yet.</p>
+          <div className="text-center py-8">
+            <Music className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <p className="mt-2 text-sm text-muted-foreground">No recordings uploaded yet</p>
+          </div>
         ) : (
-          <ul className="space-y-4">
+          <div className="space-y-4">
             {event.recordings.map((r) => {
               const segments = (r.transcript?.segments as Segment[] | null) ?? [];
               return (
-                <li key={r.id} className="rounded-md border p-3">
-                  <div className="mb-2 flex items-center justify-between text-xs text-gray-500">
-                    <span>
-                      {r.createdAt.toLocaleString()} · {r.status}
-                      {r.transcript?.provider ? ` · ${r.transcript.provider}` : ""}
-                    </span>
+                <div key={r.id} className="rounded-lg border border-border/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      {r.createdAt.toLocaleDateString()} at {r.createdAt.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        r.status === "TRANSCRIBED"
+                          ? "bg-green-500/10 text-green-400"
+                          : r.status === "FAILED"
+                            ? "bg-red-500/10 text-red-400"
+                            : "bg-blue-500/10 text-blue-400"
+                      }`}>
+                        {r.status}
+                      </span>
+                    </div>
                   </div>
-                  <audio controls preload="none" className="mb-2 w-full">
+
+                  <audio controls preload="none" className="w-full h-8">
                     <source src={r.fileUrl} />
                   </audio>
+
                   {segments.length > 0 ? (
-                    <div className="max-h-60 space-y-1 overflow-y-auto rounded bg-gray-50 p-3 text-sm">
+                    <div className="max-h-64 overflow-y-auto rounded-lg bg-muted/30 p-3 space-y-2 text-xs">
                       {segments.map((s, i) => (
-                        <p key={i}>
-                          <span className="font-medium text-gray-700">{s.speaker}:</span>{" "}
-                          <span className="text-gray-600">{s.text}</span>
-                        </p>
+                        <div key={i} className="space-y-0.5">
+                          <p className="font-medium text-blue-400">{s.speaker}</p>
+                          <p className="text-muted-foreground leading-relaxed">{s.text}</p>
+                        </div>
                       ))}
                     </div>
                   ) : r.status === "FAILED" ? (
-                    <p className="text-sm text-red-600">Transcription failed.</p>
+                    <p className="text-xs text-red-400">Transcription failed</p>
                   ) : (
-                    <p className="text-sm text-gray-500">Transcribing…</p>
+                    <p className="text-xs text-muted-foreground">Transcribing...</p>
                   )}
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
 
-      {isAdmin ? (
-        <div className="rounded-lg border bg-white p-5">
-          <h2 className="mb-3 text-sm font-medium text-gray-700">Admin</h2>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/events/${event.id}/checkin-code`}
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-            >
-              Check-in QR
-            </Link>
-            <Link
-              href={`/events/${event.id}/attendance`}
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-            >
-              Attendance & manual check-in
-            </Link>
+      {/* Admin Actions */}
+      {(isAdmin || canViewMinutes) && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Actions
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {isAdmin ? (
+              <>
+                <ActionButton
+                  href={`/events/${id}/attendees`}
+                  icon={<Users className="h-4 w-4" />}
+                  label="Attendees"
+                />
+                <ActionButton
+                  href={`/events/${id}/letters`}
+                  icon={<FileText className="h-4 w-4" />}
+                  label="Letters"
+                />
+                <ActionButton
+                  href={`/events/${id}/checkin-code`}
+                  icon={<Zap className="h-4 w-4" />}
+                  label="Check-in QR"
+                />
+                <ActionButton
+                  href={`/events/${id}/attendance`}
+                  icon={<Users className="h-4 w-4" />}
+                  label="Attendance"
+                />
+                <ActionButton
+                  href={`/events/${id}/report`}
+                  icon={<FileText className="h-4 w-4" />}
+                  label="Write Report"
+                />
+              </>
+            ) : null}
+            {canViewMinutes ? (
+              <ActionButton
+                href={`/events/${id}/minutes`}
+                icon={<FileText className="h-4 w-4" />}
+                label="Meeting Minutes"
+              />
+            ) : null}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-gray-400">{label}</dt>
-      <dd className="mt-0.5 text-gray-900">{children}</dd>
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="text-muted-foreground">{icon}</div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      </div>
+      <p className="text-sm font-semibold text-foreground">{value}</p>
     </div>
+  );
+}
+
+function ActionButton({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 hover:bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors"
+    >
+      {icon}
+      {label}
+    </Link>
   );
 }

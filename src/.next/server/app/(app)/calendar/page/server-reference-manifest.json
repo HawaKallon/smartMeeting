@@ -1,0 +1,17 @@
+{
+  "node": {
+    "0040fd6e9162cf1ff0ce3d57d3facc4c8cc1909b84": {
+      "workers": {
+        "app/(app)/calendar/page": {
+          "moduleId": 41577,
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "web/src/components/Sidebar.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "web/src/components/Sidebar.tsx"
+    }
+  },
+  "edge": {}
+}

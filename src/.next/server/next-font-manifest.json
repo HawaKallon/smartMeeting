@@ -1,0 +1,67 @@
+{
+  "app": {
+    "[project]/web/src/app/(app)/attendance/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/calendar/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/events/[id]/attendance/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/events/[id]/attendees/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/events/[id]/checkin-code/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/events/[id]/letters/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/events/[id]/minutes/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/events/[id]/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/events/new/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/kanban/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/(app)/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/_not-found/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/checkin/[token]/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/forbidden/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ],
+    "[project]/web/src/app/login/page": [
+      "static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+      "static/media/797e433ab948586e-s.p.0w5z4e7s8jfe5.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

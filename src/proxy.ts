@@ -1,8 +1,15 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import authConfig from "./auth.config";
 
 // PRD §7 — gate the app behind authentication. (Next 16: middleware → proxy.)
 // Fine-grained role checks live in server actions / page guards (lib/guard.ts).
+//
+// Uses a Prisma-free NextAuth instance so the Edge middleware never imports
+// Node.js-only modules (@prisma/client, pg, bcrypt). The JWT is verified with
+// the shared authConfig; no DB lookup happens here.
+
+const { auth } = NextAuth(authConfig);
 
 const PUBLIC_PREFIXES = ["/login", "/checkin", "/api/auth"];
 

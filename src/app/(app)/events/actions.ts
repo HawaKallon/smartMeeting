@@ -4,9 +4,10 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { assertRole } from "@/lib/guard";
+import { assertStaffRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { hasVenueConflict } from "@/lib/events";
+import { sendInviteEmail } from "@/lib/email";
 
 const EventSchema = z
   .object({
@@ -33,7 +34,7 @@ export async function createEvent(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const user = await assertRole("ADMIN");
+  const user = await assertStaffRole();
 
   const parsed = EventSchema.safeParse({
     title: formData.get("title"),
@@ -87,6 +88,41 @@ export async function createEvent(
     entityId: event.id,
     metadata: { title: event.title },
   });
+
+  // Handle invitees added at creation time.
+  const inviteesRaw = formData.get("invitees");
+  if (inviteesRaw) {
+    type Invite = { email: string; name?: string };
+    let invites: Invite[] = [];
+    try { invites = JSON.parse(String(inviteesRaw)); } catch { /* ignore */ }
+
+    const organizerName = user.name ?? user.email;
+
+    await Promise.allSettled(
+      invites.map(async (invite) => {
+        // Match to a registered user if possible.
+        const existing = await prisma.user.findUnique({
+          where: { email: invite.email.toLowerCase() },
+          select: { id: true, name: true, email: true },
+        });
+
+        await prisma.eventAttendee.create({
+          data: existing
+            ? { eventId: event.id, userId: existing.id, status: "INVITED" }
+            : { eventId: event.id, externalEmail: invite.email, externalName: invite.name ?? invite.email, status: "INVITED" },
+        });
+
+        await sendInviteEmail({
+          to: invite.email,
+          toName: existing?.name ?? invite.name ?? invite.email,
+          eventTitle: event.title,
+          startAt: event.startAt,
+          venueName: event.venueName,
+          organizerName,
+        }).catch((err) => console.error("[invite email]", err));
+      }),
+    );
+  }
 
   revalidatePath("/calendar");
   revalidatePath("/");

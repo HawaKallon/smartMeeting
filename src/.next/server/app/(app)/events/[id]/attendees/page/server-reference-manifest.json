@@ -1,0 +1,77 @@
+{
+  "node": {
+    "0040fd6e9162cf1ff0ce3d57d3facc4c8cc1909b84": {
+      "workers": {
+        "app/(app)/events/[id]/attendees/page": {
+          "moduleId": 38703,
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "web/src/components/Sidebar.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "web/src/components/Sidebar.tsx"
+    },
+    "40863d8e75669826540a9b4da54b3cbcdf2a3750c5": {
+      "workers": {
+        "app/(app)/events/[id]/attendees/page": {
+          "moduleId": 38703,
+          "async": true,
+          "exportedName": "removeInvite",
+          "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+        }
+      },
+      "exportedName": "removeInvite",
+      "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+    },
+    "60145c29a4d8008fb9464349a39523abb255d6e690": {
+      "workers": {
+        "app/(app)/events/[id]/attendees/page": {
+          "moduleId": 38703,
+          "async": true,
+          "exportedName": "inviteExternal",
+          "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+        }
+      },
+      "exportedName": "inviteExternal",
+      "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+    },
+    "608daa9527a0c014af2a2c963fc0aebc3937643da4": {
+      "workers": {
+        "app/(app)/events/[id]/attendees/page": {
+          "moduleId": 38703,
+          "async": true,
+          "exportedName": "updateAttendeeStatus",
+          "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+        }
+      },
+      "exportedName": "updateAttendeeStatus",
+      "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+    },
+    "60aaf6e0918f0bbe417ed66f0189b84fac1c122a4b": {
+      "workers": {
+        "app/(app)/events/[id]/attendees/page": {
+          "moduleId": 38703,
+          "async": true,
+          "exportedName": "selfRsvp",
+          "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+        }
+      },
+      "exportedName": "selfRsvp",
+      "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+    },
+    "60be01c000dc74249a50e546e0da295e4580c7a958": {
+      "workers": {
+        "app/(app)/events/[id]/attendees/page": {
+          "moduleId": 38703,
+          "async": true,
+          "exportedName": "inviteUser",
+          "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+        }
+      },
+      "exportedName": "inviteUser",
+      "filename": "web/src/app/(app)/events/[id]/attendees/actions.ts"
+    }
+  },
+  "edge": {}
+}

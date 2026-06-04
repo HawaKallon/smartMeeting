@@ -1,0 +1,29 @@
+{
+  "node": {
+    "0040fd6e9162cf1ff0ce3d57d3facc4c8cc1909b84": {
+      "workers": {
+        "app/(app)/kanban/page": {
+          "moduleId": 28529,
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "web/src/components/Sidebar.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "web/src/components/Sidebar.tsx"
+    },
+    "40008f2c6536a5fc8726599d0cc6de9401d45630a6": {
+      "workers": {
+        "app/(app)/kanban/page": {
+          "moduleId": 28529,
+          "async": true,
+          "exportedName": "changeItemStatus",
+          "filename": "web/src/app/(app)/kanban/actions.ts"
+        }
+      },
+      "exportedName": "changeItemStatus",
+      "filename": "web/src/app/(app)/kanban/actions.ts"
+    }
+  },
+  "edge": {}
+}

@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { MinistryRole } from "@/generated/prisma/enums";
+import authConfig from "./auth.config";
 
 // PRD §6.1 / §7 — authentication + role-aware session.
 // Phase 1 uses credentials (email + password) with a JWT session carrying the
@@ -23,8 +24,7 @@ declare module "next-auth" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -51,20 +51,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as { role: MinistryRole }).role;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as MinistryRole;
-      }
-      return session;
-    },
-  },
 });

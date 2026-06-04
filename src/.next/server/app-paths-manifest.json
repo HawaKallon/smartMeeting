@@ -1,0 +1,23 @@
+{
+  "/(app)/attendance/page": "app/(app)/attendance/page.js",
+  "/(app)/calendar/page": "app/(app)/calendar/page.js",
+  "/(app)/events/[id]/attendance/page": "app/(app)/events/[id]/attendance/page.js",
+  "/(app)/events/[id]/attendees/page": "app/(app)/events/[id]/attendees/page.js",
+  "/(app)/events/[id]/checkin-code/page": "app/(app)/events/[id]/checkin-code/page.js",
+  "/(app)/events/[id]/letters/page": "app/(app)/events/[id]/letters/page.js",
+  "/(app)/events/[id]/minutes/page": "app/(app)/events/[id]/minutes/page.js",
+  "/(app)/events/[id]/page": "app/(app)/events/[id]/page.js",
+  "/(app)/events/new/page": "app/(app)/events/new/page.js",
+  "/(app)/kanban/page": "app/(app)/kanban/page.js",
+  "/(app)/page": "app/(app)/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/cron/reminders/route": "app/api/cron/reminders/route.js",
+  "/api/letters/[letterId]/pdf/route": "app/api/letters/[letterId]/pdf/route.js",
+  "/checkin/[token]/page": "app/checkin/[token]/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/forbidden/page": "app/forbidden/page.js",
+  "/login/page": "app/login/page.js",
+  "/uploads/[name]/route": "app/uploads/[name]/route.js"
+}

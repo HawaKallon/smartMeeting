@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useRef, KeyboardEvent } from "react";
 import { createEvent, type ActionState } from "../actions";
 
-const field = "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
-const label = "block text-sm font-medium text-gray-700";
+const field = "mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
+const label = "block text-sm font-medium text-foreground/80";
+
+type Invite = { email: string; name?: string };
 
 export function EventForm() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
@@ -12,8 +14,36 @@ export function EventForm() {
     undefined,
   );
 
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [inputVal, setInputVal] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function addInvite(raw: string) {
+    const email = raw.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    if (invites.find((i) => i.email === email)) return;
+    setInvites((prev) => [...prev, { email }]);
+    setInputVal("");
+  }
+
+  function removeInvite(email: string) {
+    setInvites((prev) => prev.filter((i) => i.email !== email));
+  }
+
+  function onInviteKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      addInvite(inputVal);
+    } else if (e.key === "Backspace" && inputVal === "" && invites.length > 0) {
+      setInvites((prev) => prev.slice(0, -1));
+    }
+  }
+
   return (
     <form action={formAction} className="space-y-5">
+      {/* Pass invites as JSON */}
+      <input type="hidden" name="invitees" value={JSON.stringify(invites)} />
+
       {state?.error ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.error}
@@ -89,10 +119,50 @@ export function EventForm() {
         </select>
       </div>
 
+      {/* ── Invite attendees ── */}
+      <div>
+        <label className={label}>Invite attendees</label>
+        <p className="mt-0.5 text-xs text-gray-400">
+          Type an email and press Enter, comma, or space to add. Invite emails are sent on creation.
+        </p>
+        {/* Chip container */}
+        <div
+          className="mt-1 flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-md border border-gray-300 px-2 py-1.5 focus-within:border-gray-900 cursor-text"
+          onClick={() => inputRef.current?.focus()}
+        >
+          {invites.map((inv) => (
+            <span
+              key={inv.email}
+              className="flex items-center gap-1 rounded-full bg-[#0f2444] px-2.5 py-0.5 text-xs font-medium text-white"
+            >
+              {inv.email}
+              <button
+                type="button"
+                onClick={() => removeInvite(inv.email)}
+                className="ml-0.5 text-blue-200 hover:text-white"
+                aria-label={`Remove ${inv.email}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onKeyDown={onInviteKeyDown}
+            onBlur={() => addInvite(inputVal)}
+            placeholder={invites.length === 0 ? "email@ministry.gov…" : ""}
+            className="min-w-[180px] flex-1 bg-transparent text-sm outline-none"
+          />
+        </div>
+      </div>
+
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+        className="rounded-md bg-[#0f2444] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a3a5c] disabled:opacity-50"
       >
         {pending ? "Creating…" : "Create event"}
       </button>

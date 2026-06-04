@@ -1,0 +1,30 @@
+import type { NextAuthConfig } from "next-auth";
+import type { MinistryRole } from "@/generated/prisma/enums";
+
+// Edge-compatible auth config — no Node.js-only imports (no Prisma, no bcrypt).
+// Used by the middleware (proxy.ts) to verify JWT sessions without touching the DB.
+// The Credentials provider (Prisma DB lookup) is added in auth.ts for server-side use.
+
+const authConfig: NextAuthConfig = {
+  session: { strategy: "jwt" },
+  pages: { signIn: "/login" },
+  providers: [],
+  callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as unknown as { role: MinistryRole }).role;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        (session.user as { id: string }).id = token.id as string;
+        (session.user as { role: MinistryRole }).role = token.role as MinistryRole;
+      }
+      return session;
+    },
+  },
+};
+
+export default authConfig;

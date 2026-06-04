@@ -1,0 +1,17 @@
+{
+  "node": {
+    "405288caf9cf34ecb9c096689131f0d6c09377596b": {
+      "workers": {
+        "app/checkin/[token]/page": {
+          "moduleId": 29892,
+          "async": true,
+          "exportedName": "submitCheckIn",
+          "filename": "web/src/app/checkin/actions.ts"
+        }
+      },
+      "exportedName": "submitCheckIn",
+      "filename": "web/src/app/checkin/actions.ts"
+    }
+  },
+  "edge": {}
+}

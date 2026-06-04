@@ -1,0 +1,53 @@
+{
+  "node": {
+    "0040fd6e9162cf1ff0ce3d57d3facc4c8cc1909b84": {
+      "workers": {
+        "app/(app)/events/[id]/letters/page": {
+          "moduleId": 62910,
+          "async": true,
+          "exportedName": "$$RSC_SERVER_ACTION_0",
+          "filename": "web/src/components/Sidebar.tsx"
+        }
+      },
+      "exportedName": "$$RSC_SERVER_ACTION_0",
+      "filename": "web/src/components/Sidebar.tsx"
+    },
+    "4039c4779eaccd16db67e7875fd205276cf72fd3af": {
+      "workers": {
+        "app/(app)/events/[id]/letters/page": {
+          "moduleId": 62910,
+          "async": true,
+          "exportedName": "deleteLetter",
+          "filename": "web/src/app/(app)/events/[id]/letters/actions.ts"
+        }
+      },
+      "exportedName": "deleteLetter",
+      "filename": "web/src/app/(app)/events/[id]/letters/actions.ts"
+    },
+    "601bb440ad739dd0695341bef2a64d4e20fd974493": {
+      "workers": {
+        "app/(app)/events/[id]/letters/page": {
+          "moduleId": 62910,
+          "async": true,
+          "exportedName": "updateLetter",
+          "filename": "web/src/app/(app)/events/[id]/letters/actions.ts"
+        }
+      },
+      "exportedName": "updateLetter",
+      "filename": "web/src/app/(app)/events/[id]/letters/actions.ts"
+    },
+    "60a6c56d44a6f4893b43127435d9a5d8820b6acc74": {
+      "workers": {
+        "app/(app)/events/[id]/letters/page": {
+          "moduleId": 62910,
+          "async": true,
+          "exportedName": "createLetter",
+          "filename": "web/src/app/(app)/events/[id]/letters/actions.ts"
+        }
+      },
+      "exportedName": "createLetter",
+      "filename": "web/src/app/(app)/events/[id]/letters/actions.ts"
+    }
+  },
+  "edge": {}
+}
