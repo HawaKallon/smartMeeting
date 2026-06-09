@@ -7,8 +7,86 @@ import { assertRole, assertStaffRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
 import { sendMinutesSms, sendActionItemSms } from "@/lib/sms";
+import { summarizeMeeting } from "@/lib/llm";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
+
+type Segment = { speaker: string; start: number; end: number; text: string };
+
+// ── Generate Minutes Summary (AI) ────────────────────────────────────────────
+
+const GenerateSummarySchema = z.object({
+  eventId: z.string().min(1),
+});
+
+export type GenerateSummaryState =
+  | { ok: true; summary: string }
+  | { error: string }
+  | undefined;
+
+export async function generateMinutesSummary(
+  _prev: GenerateSummaryState,
+  formData: FormData,
+): Promise<GenerateSummaryState> {
+  const admin = await assertStaffRole();
+
+  const parsed = GenerateSummarySchema.safeParse({
+    eventId: formData.get("eventId"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const { eventId } = parsed.data;
+
+  const existing = await prisma.minutes.findUnique({ where: { eventId } });
+  if (existing?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
+
+  // Pull the latest transcribed recording's transcript (same shape as the minutes page).
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: {
+      recordings: {
+        where: { status: "TRANSCRIBED" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { transcript: { select: { segments: true } } },
+      },
+    },
+  });
+  if (!event) return { error: "Event not found." };
+
+  const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
+  if (segments.length === 0) return { error: "No transcript available to summarize yet." };
+
+  const transcriptText = segments.map((s) => `${s.speaker}: ${s.text}`).join("\n");
+
+  let summary: string;
+  try {
+    const { summary: overview, keyPoints } = await summarizeMeeting(transcriptText);
+    const points = keyPoints.length
+      ? `\n\nKey points:\n${keyPoints.map((p) => `- ${p}`).join("\n")}`
+      : "";
+    summary = `${overview}${points}`.trim();
+  } catch (err) {
+    return { error: `Summary generation failed: ${(err as Error).message}` };
+  }
+
+  const minutes = await prisma.minutes.upsert({
+    where: { eventId },
+    create: { eventId, body: transcriptText, summary },
+    update: { summary },
+  });
+
+  await audit({
+    actorId: admin.id,
+    action: "GENERATE_MINUTES_SUMMARY",
+    entityType: "Minutes",
+    entityId: minutes.id,
+    metadata: { eventId, segmentCount: segments.length },
+  });
+
+  revalidatePath(`/events/${eventId}/minutes`);
+  return { ok: true, summary };
+}
 
 // ── Save Minutes Draft ───────────────────────────────────────────────────────
 
