@@ -41,11 +41,11 @@ export default async function RoomsPage() {
           <p className="mt-1 text-sm text-muted-foreground">Book conference rooms and spaces</p>
         </div>
         <Link
-          href="/rooms/book"
+          href="/events/new"
           className="flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          New Booking
+          Create Event with Room
         </Link>
       </div>
 

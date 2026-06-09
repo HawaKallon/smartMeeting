@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
@@ -28,12 +29,17 @@ export async function createRoom(
       ? amenitiesStr.split(",").map((a) => a.trim())
       : [];
 
+    const latitude = formData.get("latitude") as string;
+    const longitude = formData.get("longitude") as string;
+
     const room = await prisma.room.create({
       data: {
         name,
         location,
         capacity,
         amenities,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
       },
     });
 
@@ -45,6 +51,7 @@ export async function createRoom(
       metadata: { name, location, capacity },
     });
 
+    revalidatePath("/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to create room:", err);

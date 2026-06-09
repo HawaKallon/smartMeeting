@@ -20,14 +20,17 @@ export default async function EditEventPage({
       description: true,
       type: true,
       classification: true,
-      venueName: true,
-      venueLat: true,
-      venueLng: true,
+      roomId: true,
       geofenceRadius: true,
       startAt: true,
       endAt: true,
       colorCategory: true,
     },
+  });
+
+  const rooms = await prisma.room.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, location: true, capacity: true },
   });
 
   if (!event) notFound();
@@ -40,8 +43,8 @@ export default async function EditEventPage({
         <p className="mt-1 text-sm text-muted-foreground">Update event details</p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6 max-w-2xl">
-        <EditEventForm event={event} />
+      <div className="rounded-xl border border-border bg-card p-6">
+        <EditEventForm event={event} rooms={rooms} />
       </div>
     </div>
   );

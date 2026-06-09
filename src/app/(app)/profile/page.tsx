@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { ROLE_LABELS } from "@/lib/roles";
 import { Mail, Shield, Calendar } from "lucide-react";
+import { EditProfileForm } from "./EditProfileForm";
 
 export default async function ProfilePage() {
   const user = await requireUser();
@@ -60,6 +61,12 @@ export default async function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Edit Profile Section */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Edit Profile</h3>
+        <EditProfileForm initialName={user.name || ""} />
       </div>
 
       {/* Settings sections */}
