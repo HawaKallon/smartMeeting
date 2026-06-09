@@ -33,7 +33,7 @@ export async function inviteUser(
   const [event, user] = await Promise.all([
     prisma.event.findUnique({
       where: { id: eventId },
-      select: { title: true, startAt: true, venueName: true, organizer: { select: { name: true, email: true } } },
+      select: { title: true, startAt: true, venueName: true, roomId: true, organizer: { select: { name: true, email: true } } },
     }),
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } }),
   ]);
@@ -57,6 +57,16 @@ export async function inviteUser(
     metadata: { eventId, userId },
   });
 
+  // Fetch room name if assigned
+  let roomName: string | null = null;
+  if (event.roomId) {
+    const room = await prisma.room.findUnique({
+      where: { id: event.roomId },
+      select: { name: true },
+    });
+    roomName = room?.name ?? null;
+  }
+
   // Send invite email if user has an email address.
   await sendInviteEmail({
     to: user.email,
@@ -64,6 +74,7 @@ export async function inviteUser(
     eventTitle: event.title,
     startAt: event.startAt,
     venueName: event.venueName,
+    roomName: roomName,
     organizerName: event.organizer.name ?? event.organizer.email,
   }).catch((err) => console.error("[email] invite failed:", err));
 
@@ -97,7 +108,7 @@ export async function inviteExternal(
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { title: true, startAt: true, venueName: true, organizer: { select: { name: true, email: true } } },
+    select: { title: true, startAt: true, venueName: true, roomId: true, organizer: { select: { name: true, email: true } } },
   });
   if (!event) return { error: "Event not found." };
 
@@ -119,12 +130,23 @@ export async function inviteExternal(
   });
 
   if (externalEmail) {
+    // Fetch room name if assigned
+    let roomName: string | null = null;
+    if (event.roomId) {
+      const room = await prisma.room.findUnique({
+        where: { id: event.roomId },
+        select: { name: true },
+      });
+      roomName = room?.name ?? null;
+    }
+
     await sendInviteEmail({
       to: externalEmail,
       toName: externalName,
       eventTitle: event.title,
       startAt: event.startAt,
       venueName: event.venueName,
+      roomName: roomName,
       organizerName: event.organizer.name ?? event.organizer.email,
     }).catch((err) => console.error("[email] invite failed:", err));
   }

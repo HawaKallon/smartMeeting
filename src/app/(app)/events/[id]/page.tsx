@@ -24,6 +24,7 @@ export default async function EventDetailPage({
     where: { id },
     include: {
       organizer: { select: { name: true, email: true } },
+      room: { select: { id: true, name: true, location: true, capacity: true } },
       attendances: { orderBy: { checkInAt: "desc" } },
       recordings: {
         orderBy: { createdAt: "desc" },
@@ -98,8 +99,8 @@ export default async function EventDetailPage({
         />
         <InfoCard
           icon={<MapPin className="h-5 w-5" />}
-          label="Venue"
-          value={event.venueName ?? "Not specified"}
+          label="Room"
+          value={event.room ? `${event.room.name} (${event.room.location})` : "Not assigned"}
         />
         <InfoCard
           icon={<Users className="h-5 w-5" />}

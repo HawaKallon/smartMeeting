@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { inviteUser, inviteExternal, type ActionState } from "./actions";
+import { Users, Mail } from "lucide-react";
 
 type User = { id: string; name: string | null; email: string };
 
@@ -10,9 +11,8 @@ interface Props {
   uninvitedUsers: User[];
 }
 
-const field =
-  "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
-const label = "block text-sm font-medium text-gray-700";
+const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
+const label = "block text-sm font-medium text-foreground/80";
 
 export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
   const [tab, setTab] = useState<"user" | "external">("user");
@@ -27,27 +27,31 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
   );
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-4 text-sm font-medium text-gray-700">Add Attendee</h2>
-
+    <div className="space-y-4">
       {/* Tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="flex gap-2 border-b border-border">
         <button
           type="button"
           onClick={() => setTab("user")}
-          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            tab === "user" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "user"
+              ? "border-b-2 border-foreground text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
+          <Users className="h-4 w-4" />
           Ministry User
         </button>
         <button
           type="button"
           onClick={() => setTab("external")}
-          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            tab === "external" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "external"
+              ? "border-b-2 border-foreground text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
+          <Mail className="h-4 w-4" />
           External Guest
         </button>
       </div>
@@ -57,16 +61,20 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
           <input type="hidden" name="eventId" value={eventId} />
 
           {userState?.error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{userState.error}</p>
+            <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
+              {userState.error}
+            </div>
           )}
           {userState?.ok && (
-            <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">Invited.</p>
+            <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
+              ✅ User invited
+            </div>
           )}
 
           <div>
             <label className={label}>Select staff member</label>
             {uninvitedUsers.length === 0 ? (
-              <p className="mt-1 text-sm text-gray-500">All ministry users are already invited.</p>
+              <p className="mt-1 text-sm text-muted-foreground">All ministry users are already invited.</p>
             ) : (
               <select name="userId" required className={field} defaultValue="">
                 <option value="" disabled>
@@ -85,7 +93,7 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
             <button
               type="submit"
               disabled={userPending}
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors"
             >
               {userPending ? "Inviting…" : "Send Invitation"}
             </button>
@@ -96,15 +104,24 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
           <input type="hidden" name="eventId" value={eventId} />
 
           {extState?.error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{extState.error}</p>
+            <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
+              {extState.error}
+            </div>
           )}
           {extState?.ok && (
-            <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">Guest invited.</p>
+            <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
+              ✅ Guest invited
+            </div>
           )}
 
           <div>
-            <label className={label}>Full name</label>
-            <input name="externalName" required className={field} placeholder="e.g. John Mensah" />
+            <label className={label}>Full name *</label>
+            <input
+              name="externalName"
+              required
+              className={field}
+              placeholder="e.g. Jane Doe"
+            />
           </div>
           <div>
             <label className={label}>Email (optional)</label>
@@ -112,14 +129,14 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
               name="externalEmail"
               type="email"
               className={field}
-              placeholder="for invite notification"
+              placeholder="jane@example.com"
             />
           </div>
 
           <button
             type="submit"
             disabled={extPending}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors"
           >
             {extPending ? "Inviting…" : "Send Invitation"}
           </button>

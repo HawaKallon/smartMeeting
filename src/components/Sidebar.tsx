@@ -37,10 +37,7 @@ export function Sidebar({
             <CalendarDays className="h-4 w-4 text-orange-500" />
             Calendar
           </NavLink>
-          <NavLink href="/rooms">
-            <DoorOpen className="h-4 w-4 text-cyan-500" />
-            Room Booking
-          </NavLink>
+
           <NavLink href="/kanban">
             <KanbanSquare className="h-4 w-4 text-emerald-500" />
             Action Items
@@ -56,6 +53,10 @@ export function Sidebar({
             <NavLink href="/events/new">
               <PlusCircle className="h-4 w-4 text-violet-500" />
               New Event
+            </NavLink>
+            <NavLink href="/events">
+              <CalendarDays className="h-4 w-4 text-cyan-500" />
+              All Events
             </NavLink>
             <NavLink href="/attendance">
               <ClipboardList className="h-4 w-4 text-rose-500" />

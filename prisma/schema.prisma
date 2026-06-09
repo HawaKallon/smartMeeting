@@ -281,6 +281,8 @@ model Room {
   location  String
   capacity  Int
   amenities String[] // e.g., ["Projector", "Whiteboard"]
+  latitude  Float?
+  longitude Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

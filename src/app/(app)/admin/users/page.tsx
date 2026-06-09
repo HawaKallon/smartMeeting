@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/roles";
 import { Mail, Shield, Plus, Trash2 } from "lucide-react";
 import { CreateUserForm } from "./CreateUserForm";
+import { DeleteUserButton } from "./DeleteUserButton";
 
 export default async function AdminUsersPage() {
   const user = await requireUser();
@@ -35,7 +36,7 @@ export default async function AdminUsersPage() {
       </div>
 
       {/* Create User Form */}
-      <div className="rounded-xl border border-border bg-card p-6 max-w-2xl">
+      <div className="rounded-xl border border-border bg-card p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
           <Plus className="h-5 w-5" />
           Create New User
@@ -80,9 +81,7 @@ export default async function AdminUsersPage() {
                     {u.createdAt.toLocaleDateString("en-GB")}
                   </td>
                   <td className="px-6 py-3">
-                    <button className="text-red-400 hover:text-red-300 transition-colors">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <DeleteUserButton userId={u.id} userName={u.name || u.email} />
                   </td>
                 </tr>
               ))}

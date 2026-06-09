@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 // Gracefully degrades when RESEND_API_KEY is not set.
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = "Smart Meeting <noreply@smartmeeting.gov>";
+const FROM = "onboarding@resend.dev"; // Use Resend's default verified sender for testing
 
 function skip(to: string, reason = "RESEND_API_KEY not set") {
   console.warn(`[email] skipping to ${to} — ${reason}`);
@@ -11,10 +11,10 @@ function skip(to: string, reason = "RESEND_API_KEY not set") {
 // ── Attendee Invitation ───────────────────────────────────────────────────────
 
 export async function sendInviteEmail({
-  to, toName, eventTitle, startAt, venueName, organizerName,
+  to, toName, eventTitle, startAt, venueName, roomName, organizerName,
 }: {
   to: string; toName: string; eventTitle: string;
-  startAt: Date; venueName: string | null; organizerName: string;
+  startAt: Date; venueName?: string | null; roomName?: string | null; organizerName: string;
 }) {
   if (!resend) return skip(to);
 
@@ -22,6 +22,8 @@ export async function sendInviteEmail({
     weekday: "long", year: "numeric", month: "long", day: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
+
+  const location = roomName || venueName;
 
   await resend.emails.send({
     from: FROM, to,
@@ -31,7 +33,7 @@ export async function sendInviteEmail({
       ``,
       `You have been invited to: ${eventTitle}`,
       `Date  : ${date}`,
-      venueName ? `Venue : ${venueName}` : null,
+      location ? `Location : ${location}` : null,
       `By    : ${organizerName}`,
       ``,
       `Please log in to confirm or decline your attendance.`,

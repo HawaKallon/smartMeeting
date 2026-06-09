@@ -7,6 +7,7 @@ import { COLOR_META } from "@/lib/colors";
 import { deleteLetter } from "./actions";
 import { LetterComposer } from "./LetterComposer";
 import { LetterPanel } from "./LetterPanel";
+import { Plus } from "lucide-react";
 
 export default async function LettersPage({
   params,
@@ -28,22 +29,24 @@ export default async function LettersPage({
   if (!event) notFound();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="space-y-2">
+    <div className="space-y-6">
+      <div>
         <BackButton href={`/events/${id}`} label={event.title} />
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">Letters</h1>
+        <div className="mt-4 flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-foreground">Letters</h1>
           {event.colorCategory && (
             <span className={`rounded-full px-3 py-1 text-xs font-medium ${COLOR_META[event.colorCategory].badge}`}>
               {COLOR_META[event.colorCategory].label}
             </span>
           )}
         </div>
+        <p className="mt-1 text-sm text-muted-foreground">Create and manage event correspondence</p>
       </div>
 
       {/* Existing letters */}
       {event.letters.length > 0 && (
         <div className="space-y-4">
+          <h2 className="text-sm font-semibold text-foreground">Published Letters ({event.letters.length})</h2>
           {event.letters.map((letter) => (
             <LetterPanel
               key={letter.id}
@@ -62,9 +65,10 @@ export default async function LettersPage({
       )}
 
       {/* Compose new letter */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-4 text-sm font-medium text-gray-700">
-          {event.letters.length === 0 ? "Compose first letter" : "Add another letter"}
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Plus className="h-5 w-5" />
+          {event.letters.length === 0 ? "Compose First Letter" : "Add Another Letter"}
         </h2>
         <LetterComposer eventId={id} />
       </div>
