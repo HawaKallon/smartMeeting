@@ -3,6 +3,7 @@
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
+import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -79,5 +80,50 @@ export async function createUser(
   } catch (err) {
     console.error("Failed to create user:", err);
     return { error: "Failed to create user" };
+  }
+}
+
+export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+
+    // Only ADMIN can delete users
+    if (user.role !== "ADMIN") {
+      return { error: "You do not have permission to delete users" };
+    }
+
+    // Prevent self-deletion
+    if (user.id === userId) {
+      return { error: "You cannot delete your own account" };
+    }
+
+    const userToDelete = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true },
+    });
+
+    if (!userToDelete) {
+      return { error: "User not found" };
+    }
+
+    // Delete user (will cascade delete related records due to onDelete: Cascade)
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    // Audit log
+    await audit({
+      actorId: user.id,
+      action: "DELETE_USER",
+      entityType: "User",
+      entityId: userId,
+      metadata: { email: userToDelete.email, name: userToDelete.name },
+    });
+
+    revalidatePath("/admin/users");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to delete user:", err);
+    return { error: "Failed to delete user" };
   }
 }

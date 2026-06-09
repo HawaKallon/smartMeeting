@@ -6,18 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { removeInvite } from "./actions";
 import { AttendeeRow } from "./AttendeeRow";
 import { AddAttendeeForm } from "./AddAttendeeForm";
-
-const STATUS_BADGE = {
-  INVITED: "bg-yellow-100 text-yellow-700",
-  CONFIRMED: "bg-green-100 text-green-700",
-  DECLINED: "bg-red-100 text-red-700",
-};
-
-const STATUS_LABEL = {
-  INVITED: "Invited",
-  CONFIRMED: "Confirmed",
-  DECLINED: "Declined",
-};
+import { Users, Mail, CheckCircle, Clock, XCircle } from "lucide-react";
 
 export default async function AttendeesPage({
   params,
@@ -56,85 +45,130 @@ export default async function AttendeesPage({
   const pending = event.attendees.filter((a) => a.status === "INVITED").length;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="space-y-2">
+      <div>
         <BackButton href={`/events/${id}`} label={event.title} />
-        <h1 className="text-2xl font-bold text-foreground">Attendees</h1>
+        <h1 className="mt-4 text-2xl font-bold text-foreground">Attendees</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Manage event attendees and invitations</p>
       </div>
 
-      {/* Summary */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <Stat label="Confirmed" value={confirmed} color="text-green-600" />
-        <Stat label="Pending" value={pending} color="text-yellow-600" />
-        <Stat label="Declined" value={declined} color="text-red-600" />
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            Confirmed
+          </div>
+          <p className="mt-1 text-2xl font-bold text-foreground">{confirmed}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Clock className="h-4 w-4 text-amber-500" />
+            Pending
+          </div>
+          <p className="mt-1 text-2xl font-bold text-foreground">{pending}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <XCircle className="h-4 w-4 text-red-500" />
+            Declined
+          </div>
+          <p className="mt-1 text-2xl font-bold text-foreground">{declined}</p>
+        </div>
       </div>
 
-      {/* Attendee table */}
-      <div className="rounded-lg border bg-card">
-        <div className="border-b px-5 py-3">
-          <h2 className="text-sm font-medium text-foreground/80">Invite List</h2>
+      {/* Add Attendee Form */}
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Add Attendee
+        </h2>
+        <AddAttendeeForm eventId={id} uninvitedUsers={uninvitedUsers} />
+      </div>
+
+      {/* Attendee List */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="border-b border-border bg-muted/30 px-6 py-3">
+          <h2 className="text-sm font-semibold text-foreground">Invite List</h2>
         </div>
         {event.attendees.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-muted-foreground">No attendees yet.</p>
+          <div className="px-6 py-12 text-center">
+            <Users className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <p className="mt-3 text-sm text-muted-foreground">No attendees yet. Add some to get started.</p>
+          </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-muted-foreground/60">
-              <tr>
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Email</th>
-                <th className="px-4 py-2">Type</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Update</th>
-                <th className="px-4 py-2" />
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Actions
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y">
-              {event.attendees.map((a) => (
-                <tr key={a.id}>
-                  <td className="px-4 py-2 font-medium text-foreground">
-                    {a.user?.name ?? a.externalName ?? "—"}
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {a.user?.email ?? a.externalEmail ?? "—"}
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {a.userId ? "Staff" : "External"}
-                  </td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[a.status]}`}
-                    >
-                      {STATUS_LABEL[a.status]}
-                    </span>
-                  </td>
-                  <AttendeeRow attendeeId={a.id} eventId={id} currentStatus={a.status} removeAction={removeInvite} />
-                </tr>
-              ))}
+            <tbody>
+              {event.attendees.map((a, idx) => {
+                const statusConfig = {
+                  INVITED: { bg: "bg-amber-500/10", text: "text-amber-400", label: "Invited" },
+                  CONFIRMED: { bg: "bg-green-500/10", text: "text-green-400", label: "Confirmed" },
+                  DECLINED: { bg: "bg-red-500/10", text: "text-red-400", label: "Declined" },
+                };
+                const status = statusConfig[a.status as keyof typeof statusConfig];
+
+                return (
+                  <tr
+                    key={a.id}
+                    className={`transition-colors hover:bg-muted/20 ${idx < event.attendees.length - 1 ? "border-b border-border/50" : ""}`}
+                  >
+                    <td className="px-6 py-3">
+                      <span className="font-medium text-foreground">
+                        {a.user?.name ?? a.externalName ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">
+                      {a.user?.email ?? a.externalEmail ?? "—"}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className="text-xs text-muted-foreground">
+                        {a.userId ? "Internal" : "External"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${status.bg} ${status.text}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <form action={removeInvite}>
+                        <input type="hidden" name="attendeeId" value={a.id} />
+                        <input type="hidden" name="eventId" value={id} />
+                        <button
+                          type="submit"
+                          className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
-
-      {/* Add attendee form */}
-      <AddAttendeeForm eventId={id} uninvitedUsers={uninvitedUsers} />
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div className="rounded-lg border bg-card p-4 text-center">
-      <p className={`text-2xl font-semibold ${color}`}>{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
     </div>
   );
 }

@@ -15,10 +15,7 @@ export async function updateEvent(
     const description = formData.get("description") as string;
     const startAt = new Date(formData.get("startAt") as string);
     const endAt = new Date(formData.get("endAt") as string);
-    const venueName = formData.get("venueName") as string;
-    const venueLat = formData.get("venueLat") ? parseFloat(formData.get("venueLat") as string) : null;
-    const venueLng = formData.get("venueLng") ? parseFloat(formData.get("venueLng") as string) : null;
-    const geofenceRadius = parseInt(formData.get("geofenceRadius") as string) || 50;
+    const roomId = (formData.get("roomId") as string) || null;
     const type = formData.get("type") as string;
     const classification = formData.get("classification") as string;
 
@@ -35,6 +32,30 @@ export async function updateEvent(
       return { error: "You do not have permission to edit this event" };
     }
 
+    if (endAt <= startAt) {
+      return { error: "End time must be after start time" };
+    }
+
+    // Check room availability if room selected
+    if (roomId) {
+      const roomConflict = await prisma.roomBooking.findFirst({
+        where: {
+          roomId,
+          status: "CONFIRMED",
+          OR: [
+            {
+              startTime: { lt: endAt },
+              endTime: { gt: startAt },
+            },
+          ],
+        },
+      });
+
+      if (roomConflict) {
+        return { error: "Selected room is already booked for this time." };
+      }
+    }
+
     await prisma.event.update({
       where: { id: eventId },
       data: {
@@ -42,10 +63,7 @@ export async function updateEvent(
         description,
         startAt,
         endAt,
-        venueName,
-        venueLat,
-        venueLng,
-        geofenceRadius,
+        roomId,
         type: type as any,
         classification: classification as any,
       },

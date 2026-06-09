@@ -22,27 +22,27 @@ export default async function Dashboard() {
   const [upcoming, todayCount, myItems, pendingRsvps] = await Promise.all([
     prisma.event.findMany({
       where: canViewAll
-        ? { startAt: { gte: startOfDay } }
-        : { startAt: { gte: startOfDay }, organizerId: user.id },
+        ? { endAt: { gt: now } }
+        : { endAt: { gt: now }, organizerId: user.id },
       orderBy: { startAt: "asc" },
       take: 10,
       select: {
-        id: true, title: true, startAt: true,
-        venueName: true, type: true, colorCategory: true,
-        _count: { select: { attendances: true } },
+        id: true, title: true, startAt: true, endAt: true,
+        room: { select: { name: true, location: true } },
+        type: true, colorCategory: true,
+        _count: { select: { attendances: true, attendees: true } },
       },
     }),
     prisma.event.count({
       where: canViewAll
-        ? { startAt: { gte: startOfDay, lt: tomorrow } }
-        : { startAt: { gte: startOfDay, lt: tomorrow }, organizerId: user.id },
+        ? { startAt: { gte: startOfDay, lt: tomorrow }, endAt: { gt: now } }
+        : { startAt: { gte: startOfDay, lt: tomorrow }, endAt: { gt: now }, organizerId: user.id },
     }),
     prisma.actionItem.count({ where: { ownerId: user.id, status: { in: ["TODO", "IN_PROGRESS"] } } }),
     prisma.eventAttendee.count({ where: { userId: user.id, status: "INVITED" } }),
   ]);
 
-  const hour = now.getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  
   const firstName = user.name?.split(" ")[0] ?? user.email.split("@")[0];
 
   const dateLabel = now.toLocaleDateString("en-GB", {
@@ -57,7 +57,7 @@ export default async function Dashboard() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">
-            {greeting}, {firstName}! 👋
+            Welcome, {firstName}! 👋
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{dateLabel}</p>
         </div>
@@ -174,7 +174,9 @@ export default async function Dashboard() {
                         hour: "2-digit", minute: "2-digit",
                       })}
                     </td>
-                    <td className="px-5 py-3 text-muted-foreground">{e.venueName ?? "—"}</td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {e.room ? `${e.room.name} (${e.room.location})` : "—"}
+                    </td>
                     <td className="px-5 py-3">
                       <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground capitalize">
                         {e.type.toLowerCase()}

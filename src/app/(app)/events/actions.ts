@@ -22,6 +22,7 @@ const EventSchema = z
     geofenceRadius: z.coerce.number().int().positive().max(10000).default(100),
     colorCategory: z.enum(["RED", "AMBER", "GREEN"]).optional(),
     classification: z.enum(["PUBLIC", "RESTRICTED"]).default("PUBLIC"),
+    roomId: z.string().optional(),
   })
   .refine((d) => d.endAt > d.startAt, {
     message: "End time must be after start time",
@@ -48,6 +49,7 @@ export async function createEvent(
     geofenceRadius: formData.get("geofenceRadius") || 100,
     colorCategory: formData.get("colorCategory") || undefined,
     classification: formData.get("classification") || "PUBLIC",
+    roomId: formData.get("roomId") || undefined,
   });
 
   if (!parsed.success) {
@@ -64,6 +66,36 @@ export async function createEvent(
     return { error: `Venue "${data.venueName}" is already booked for that time.` };
   }
 
+  // Check room availability if room selected
+  if (data.roomId) {
+    // Check for ANY conflicting events on the same room first
+    const eventConflict = await prisma.event.findFirst({
+      where: {
+        roomId: data.roomId,
+        startAt: { lt: data.endAt },
+        endAt: { gt: data.startAt },
+      },
+    });
+
+    if (eventConflict) {
+      return { error: "Another event is already scheduled in this room at this time." };
+    }
+
+    // Check room bookings
+    const roomConflict = await prisma.roomBooking.findFirst({
+      where: {
+        roomId: data.roomId,
+        status: "CONFIRMED",
+        startTime: { lt: data.endAt },
+        endTime: { gt: data.startAt },
+      },
+    });
+
+    if (roomConflict) {
+      return { error: "Room is already booked for this time." };
+    }
+  }
+
   const event = await prisma.event.create({
     data: {
       title: data.title,
@@ -77,6 +109,7 @@ export async function createEvent(
       geofenceRadius: data.geofenceRadius,
       colorCategory: data.colorCategory,
       classification: data.classification,
+      roomId: data.roomId || null,
       organizerId: user.id,
     },
   });
@@ -98,6 +131,16 @@ export async function createEvent(
 
     const organizerName = user.name ?? user.email;
 
+    // Fetch room info if assigned
+    let roomName: string | null = null;
+    if (event.roomId) {
+      const room = await prisma.room.findUnique({
+        where: { id: event.roomId },
+        select: { name: true },
+      });
+      roomName = room?.name ?? null;
+    }
+
     await Promise.allSettled(
       invites.map(async (invite) => {
         // Match to a registered user if possible.
@@ -112,14 +155,20 @@ export async function createEvent(
             : { eventId: event.id, externalEmail: invite.email, externalName: invite.name ?? invite.email, status: "INVITED" },
         });
 
-        await sendInviteEmail({
-          to: invite.email,
-          toName: existing?.name ?? invite.name ?? invite.email,
-          eventTitle: event.title,
-          startAt: event.startAt,
-          venueName: event.venueName,
-          organizerName,
-        }).catch((err) => console.error("[invite email]", err));
+        try {
+          await sendInviteEmail({
+            to: invite.email,
+            toName: existing?.name ?? invite.name ?? invite.email,
+            eventTitle: event.title,
+            startAt: event.startAt,
+            venueName: event.venueName,
+            roomName: roomName,
+            organizerName,
+          });
+          console.log(`[email] Invite sent to ${invite.email}`);
+        } catch (err) {
+          console.error(`[email] Failed to send invite to ${invite.email}:`, err);
+        }
       }),
     );
   }
@@ -127,4 +176,67 @@ export async function createEvent(
   revalidatePath("/calendar");
   revalidatePath("/");
   redirect(`/events/${event.id}`);
+}
+
+export async function checkRoomAvailability(
+  roomId: string,
+  startAt: string,
+  endAt: string,
+  excludeEventId?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const start = new Date(startAt);
+    const end = new Date(endAt);
+
+    if (!roomId || isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return { ok: true };
+    }
+
+    if (end <= start) {
+      return { ok: false, error: "End time must be after start time" };
+    }
+
+    // Check room bookings
+    const roomConflict = await prisma.roomBooking.findFirst({
+      where: {
+        roomId,
+        status: "CONFIRMED",
+        OR: [
+          {
+            startTime: { lt: end },
+            endTime: { gt: start },
+          },
+        ],
+      },
+    });
+
+    if (roomConflict) {
+      return { ok: false, error: "Room is already booked for this time" };
+    }
+
+    // Check event conflicts
+    const eventWhere: any = {
+      roomId,
+      startAt: { lt: end },
+      endAt: { gt: start },
+    };
+    
+    // Exclude current event if updating
+    if (excludeEventId) {
+      eventWhere.id = { not: excludeEventId };
+    }
+
+    const eventConflict = await prisma.event.findFirst({
+      where: eventWhere,
+    });
+
+    if (eventConflict) {
+      return { ok: false, error: "Room is already scheduled for an event at this time" };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("Room availability check failed:", err);
+    return { ok: false, error: "Failed to check room availability" };
+  }
 }
