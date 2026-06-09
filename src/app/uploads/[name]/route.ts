@@ -10,6 +10,10 @@ const MIME: Record<string, string> = {
   ".m4a": "audio/mp4",
   ".webm": "audio/webm",
   ".ogg": "audio/ogg",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
 };
 
 // Serve uploaded audio to authenticated users only (PRD §7 — recordings are
