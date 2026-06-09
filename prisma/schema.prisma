@@ -98,6 +98,15 @@ model User {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
+  // Preferences
+  emailNotifications        Boolean @default(true)
+  meetingReminders          Boolean @default(true)
+  actionItemNotifications   Boolean @default(true)
+  theme                     String  @default("dark") // dark, light, auto
+  compactMode               Boolean @default(false)
+  sessionTimeout            Int     @default(30) // minutes
+  autoDeleteRecordings      Boolean @default(false)
+
   organizedEvents Event[]         @relation("EventOrganizer")
   attendeeOf      EventAttendee[]
   attendances     Attendance[]

@@ -30,20 +30,20 @@ export function Sidebar({
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         <NavSection label="Main">
           <NavLink href="/">
-            <LayoutDashboard className="h-4 w-4 text-blue-500" />
+            <LayoutDashboard className="h-4 w-4 text-white" />
             Dashboard
           </NavLink>
           <NavLink href="/calendar">
-            <CalendarDays className="h-4 w-4 text-orange-500" />
+            <CalendarDays className="h-4 w-4 text-white" />
             Calendar
           </NavLink>
 
           <NavLink href="/kanban">
-            <KanbanSquare className="h-4 w-4 text-emerald-500" />
+            <KanbanSquare className="h-4 w-4 text-white" />
             Action Items
           </NavLink>
           <NavLink href="/notifications">
-            <Bell className="h-4 w-4 text-amber-500" />
+            <Bell className="h-4 w-4 text-white" />
             Notifications
           </NavLink>
         </NavSection>
@@ -51,19 +51,19 @@ export function Sidebar({
         {isStaff && (
           <NavSection label="Management">
             <NavLink href="/events/new">
-              <PlusCircle className="h-4 w-4 text-violet-500" />
+              <PlusCircle className="h-4 w-4 text-white" />
               New Event
             </NavLink>
             <NavLink href="/events">
-              <CalendarDays className="h-4 w-4 text-cyan-500" />
+              <CalendarDays className="h-4 w-4 text-white" />
               All Events
             </NavLink>
             <NavLink href="/attendance">
-              <ClipboardList className="h-4 w-4 text-rose-500" />
+              <ClipboardList className="h-4 w-4 text-white" />
               Attendance
             </NavLink>
             <NavLink href="/reports">
-              <BarChart3 className="h-4 w-4 text-cyan-500" />
+              <BarChart3 className="h-4 w-4 text-white" />
               Reports
             </NavLink>
           </NavSection>
@@ -71,31 +71,31 @@ export function Sidebar({
 
         <NavSection label="System">
           <NavLink href="/profile">
-            <User className="h-4 w-4 text-purple-500" />
+            <User className="h-4 w-4 text-white" />
             Profile
           </NavLink>
           {user.role === "ADMIN" && (
             <>
               <NavLink href="/admin/users">
-                <Users className="h-4 w-4 text-red-500" />
+                <Users className="h-4 w-4 text-white" />
                 Manage Users
               </NavLink>
               <NavLink href="/admin/rooms">
-                <Building2 className="h-4 w-4 text-yellow-500" />
+                <Building2 className="h-4 w-4 text-white" />
                 Manage Rooms
               </NavLink>
               <NavLink href="/admin/activity">
-                <Activity className="h-4 w-4 text-green-500" />
+                <Activity className="h-4 w-4 text-white" />
                 Activity Log
               </NavLink>
             </>
           )}
           <NavLink href="/help">
-            <HelpCircle className="h-4 w-4 text-sky-500" />
+            <HelpCircle className="h-4 w-4 text-white" />
             Help &amp; Centre
           </NavLink>
           <NavLink href="/settings">
-            <Settings className="h-4 w-4 text-muted-foreground" />
+            <Settings className="h-4 w-4 text-white" />
             Settings
           </NavLink>
         </NavSection>
