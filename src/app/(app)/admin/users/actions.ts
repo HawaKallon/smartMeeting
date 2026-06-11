@@ -4,14 +4,21 @@ import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
-import { Resend } from "resend";
+import { sendWelcomeEmail } from "@/lib/email";
+import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
+import type { MinistryRole } from "@/generated/prisma/enums";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Generates a readable temporary password for first-time login (PRD §6.1).
+function generateTempPassword(): string {
+  // 12 url-safe chars, then strip ambiguous separators.
+  return randomBytes(12).toString("base64url").replace(/[-_]/g, "").slice(0, 12);
+}
 
 export async function createUser(
   _: unknown,
   formData: FormData,
-): Promise<{ ok?: boolean; error?: string }> {
+): Promise<{ ok?: boolean; emailSent?: boolean; error?: string }> {
   try {
     const user = await requireUser();
 
@@ -21,7 +28,8 @@ export async function createUser(
     }
 
     const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
+    // Normalize to match how auth.ts looks users up at login (lowercase + trim).
+    const email = (formData.get("email") as string)?.toLowerCase().trim();
     const role = formData.get("role") as string;
 
     if (!name || !email || !role) {
@@ -37,35 +45,23 @@ export async function createUser(
       return { error: "User with this email already exists" };
     }
 
+    // Issue a temporary password so the user can log in on first use (PRD §6.1).
+    const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
     // Create user
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
-        role: role as any,
+        role: role as MinistryRole,
+        passwordHash,
       },
     });
 
-    // Send welcome email
-    try {
-      await resend.emails.send({
-        from: "Smart Meeting <noreply@smartmeeting.gov>",
-        to: email,
-        subject: "Welcome to Smart Meeting",
-        html: `
-          <h2>Welcome to Smart Meeting</h2>
-          <p>Hello ${name},</p>
-          <p>Your account has been created and is ready to use. You can now log in with your email address.</p>
-          <p><a href="${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login" style="background-color: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Log In to Smart Meeting</a></p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p>You'll be asked to sign in using your credentials. If you don't have a password, contact your administrator.</p>
-          <p>Best regards,<br>Smart Meeting Team</p>
-        `,
-      });
-    } catch (emailErr) {
-      console.error("Failed to send email:", emailErr);
-      // Continue even if email fails
-    }
+    // Send welcome email (with temp password) via the shared, verified-domain sender
+    const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login`;
+    const emailSent = await sendWelcomeEmail({ to: email, toName: name, loginUrl, tempPassword });
 
     // Audit log
     await audit({
@@ -73,10 +69,11 @@ export async function createUser(
       action: "CREATE_USER",
       entityType: "User",
       entityId: newUser.id,
-      metadata: { name, email, role },
+      metadata: { name, email, role, emailSent },
     });
 
-    return { ok: true };
+    revalidatePath("/admin/users");
+    return { ok: true, emailSent };
   } catch (err) {
     console.error("Failed to create user:", err);
     return { error: "Failed to create user" };
