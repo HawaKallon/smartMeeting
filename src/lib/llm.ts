@@ -114,16 +114,26 @@ export async function extractActionItems(text: string): Promise<string[]> {
  * Generate meeting summary with key points
  */
 export async function summarizeMeeting(transcript: string): Promise<{ summary: string; keyPoints: string[] }> {
-  const summaryPrompt = `Summarize this meeting in 2-3 sentences:\n\n${transcript}`;
-  const summary = await generateText(summaryPrompt);
+  const summaryPrompt = `You are a meeting summarizer. Read ONLY the meeting notes provided below and write a concise 2-3 sentence summary of what was actually discussed. Do not make up or infer anything not explicitly in the notes.
 
-  const pointsPrompt = `List 3-5 key points from this meeting:\n\n${transcript}`;
+MEETING NOTES:
+${transcript}
+
+SUMMARY (2-3 sentences):`;
+  const summary = await generateText(summaryPrompt).then((s) => s.trim());
+
+  const pointsPrompt = `You are a meeting notes analyzer. Read ONLY the meeting notes provided below. Extract ONLY the actual key points, decisions, or important information that are explicitly mentioned. Do not invent, hallucinate, or assume any additional points. Return as a numbered list with only real points from the notes.
+
+MEETING NOTES:
+${transcript}
+
+KEY POINTS (numbered list, only actual points from the notes):`;
   const pointsResponse = await generateText(pointsPrompt);
   const keyPoints = pointsResponse
     .split("\n")
     .filter((line) => line.trim())
     .map((line) => line.replace(/^[-•*]\s*/, "").replace(/^\d+\.\s*/, "").trim())
-    .filter((point) => point.length > 0);
+    .filter((point) => point.length > 0 && point.length < 300);
 
   return { summary, keyPoints };
 }

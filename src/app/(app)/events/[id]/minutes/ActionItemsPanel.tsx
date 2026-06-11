@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Plus, Edit2, Trash2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { addActionItem, updateActionItem, deleteActionItem, type ActionState } from "./actions";
 
 type Item = {
@@ -23,7 +24,7 @@ interface Props {
 }
 
 const field =
-  "w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-900 focus:outline-none";
+  "w-full rounded-md border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1";
 
 const STATUS_LABELS: Record<Item["status"], string> = {
   TODO: "To Do",
@@ -31,10 +32,16 @@ const STATUS_LABELS: Record<Item["status"], string> = {
   DONE: "Done",
 };
 
+const STATUS_ICON: Record<Item["status"], React.ReactNode> = {
+  TODO: <AlertCircle className="h-4 w-4" />,
+  IN_PROGRESS: <Clock className="h-4 w-4" />,
+  DONE: <CheckCircle2 className="h-4 w-4" />,
+};
+
 const STATUS_BADGE: Record<Item["status"], string> = {
-  TODO: "bg-gray-100 text-gray-600",
-  IN_PROGRESS: "bg-blue-100 text-blue-700",
-  DONE: "bg-green-100 text-green-700",
+  TODO: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  IN_PROGRESS: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  DONE: "bg-green-500/10 text-green-400 border border-green-500/20",
 };
 
 function userLabel(u: User) {
@@ -60,168 +67,161 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
   return (
     <div className="space-y-4">
       {items.length === 0 && !showAdd ? (
-        <p className="text-sm text-gray-500">No action items yet.</p>
+        <div className="rounded-lg bg-secondary/30 p-6 text-center">
+          <p className="text-sm text-muted-foreground">No action items yet.</p>
+        </div>
       ) : items.length > 0 ? (
-        <table className="w-full overflow-hidden rounded-lg border text-sm">
-          <thead className="bg-gray-50 text-left text-xs uppercase text-gray-400">
-            <tr>
-              <th className="px-3 py-2">Title</th>
-              <th className="px-3 py-2">Owner</th>
-              <th className="px-3 py-2">Due</th>
-              <th className="px-3 py-2">Status</th>
-              {showActions ? <th className="px-3 py-2" /> : null}
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {items.map((item) =>
-              editingId === item.id ? (
-                <tr key={item.id}>
-                  <td colSpan={showActions ? 5 : 4} className="px-3 py-3">
-                    <form action={editAction} className="space-y-3">
+        <div className="space-y-2">
+          {items.map((item) =>
+            editingId === item.id ? (
+              <div key={item.id} className="rounded-lg border border-border bg-secondary/50 p-4 space-y-3">
+                <form action={editAction} className="space-y-3">
+                  <input type="hidden" name="itemId" value={item.id} />
+                  <input type="hidden" name="minutesId" value={minutesId} />
+                  <input type="hidden" name="eventId" value={eventId} />
+
+                  {editState?.error ? (
+                    <div className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
+                      {editState.error}
+                    </div>
+                  ) : editState?.ok ? (
+                    <div className="rounded bg-green-500/10 px-2 py-1 text-xs text-green-400">
+                      ✓ Saved.
+                    </div>
+                  ) : null}
+
+                  <div className="grid gap-3">
+                    <input
+                      name="title"
+                      defaultValue={item.title}
+                      required
+                      className={field}
+                      placeholder="Action item title"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <select
+                        name="ownerId"
+                        defaultValue={item.owner?.id ?? ""}
+                        className={field}
+                      >
+                        <option value="">No owner</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {userLabel(u)}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        name="dueDate"
+                        type="date"
+                        defaultValue={item.dueDate ?? ""}
+                        className={field}
+                      />
+                    </div>
+                    <select name="status" defaultValue={item.status} className={field}>
+                      <option value="TODO">To Do</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="DONE">Done</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={editPending}
+                      className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {editPending ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-secondary transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div
+                key={item.id}
+                className="rounded-lg border border-border/50 bg-secondary/20 p-4 flex items-start justify-between gap-4 hover:bg-secondary/30 transition-colors"
+              >
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5">
+                      {STATUS_ICON[item.status]}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{item.title}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
+                        {item.owner && (
+                          <span className="rounded-full bg-sidebar-primary/10 px-2.5 py-1 text-sidebar-primary">
+                            {userLabel(item.owner)}
+                          </span>
+                        )}
+                        {item.dueDate && (
+                          <span className="rounded-full bg-muted/50 px-2.5 py-1 text-muted-foreground">
+                            Due: {new Date(item.dueDate + "T00:00:00").toLocaleDateString()}
+                          </span>
+                        )}
+                        <span className={`rounded-full px-2.5 py-1 font-medium ${STATUS_BADGE[item.status]}`}>
+                          {STATUS_LABELS[item.status]}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {showActions ? (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(item.id)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                      title="Edit"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <form action={deleteActionItem} className="inline">
                       <input type="hidden" name="itemId" value={item.id} />
                       <input type="hidden" name="minutesId" value={minutesId} />
                       <input type="hidden" name="eventId" value={eventId} />
-
-                      {editState?.error ? (
-                        <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">
-                          {editState.error}
-                        </p>
-                      ) : editState?.ok ? (
-                        <p className="rounded bg-green-50 px-2 py-1 text-xs text-green-700">
-                          Saved.
-                        </p>
-                      ) : null}
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2">
-                          <input
-                            name="title"
-                            defaultValue={item.title}
-                            required
-                            className={field}
-                            placeholder="Action item title"
-                          />
-                        </div>
-                        <div>
-                          <select
-                            name="ownerId"
-                            defaultValue={item.owner?.id ?? ""}
-                            className={field}
-                          >
-                            <option value="">No owner</option>
-                            {users.map((u) => (
-                              <option key={u.id} value={u.id}>
-                                {userLabel(u)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <input
-                            name="dueDate"
-                            type="date"
-                            defaultValue={item.dueDate ?? ""}
-                            className={field}
-                          />
-                        </div>
-                        <div>
-                          <select name="status" defaultValue={item.status} className={field}>
-                            <option value="TODO">To Do</option>
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="DONE">Done</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          type="submit"
-                          disabled={editPending}
-                          className="rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-                        >
-                          {editPending ? "Saving…" : "Save"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(null)}
-                          className="rounded border px-3 py-1.5 text-xs hover:bg-gray-50"
-                        >
-                          Close
-                        </button>
-                      </div>
+                      <button
+                        type="submit"
+                        className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </form>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id}>
-                  <td className="px-3 py-2">{item.title}</td>
-                  <td className="px-3 py-2 text-gray-500">
-                    {item.owner ? userLabel(item.owner) : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-gray-500">
-                    {item.dueDate
-                      ? new Date(item.dueDate + "T00:00:00").toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[item.status]}`}
-                    >
-                      {STATUS_LABELS[item.status]}
-                    </span>
-                  </td>
-                  {showActions ? (
-                    <td className="px-3 py-2">
-                      <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(item.id)}
-                          className="text-xs text-gray-500 hover:text-gray-900"
-                        >
-                          Edit
-                        </button>
-                        <form action={deleteActionItem}>
-                          <input type="hidden" name="itemId" value={item.id} />
-                          <input type="hidden" name="minutesId" value={minutesId} />
-                          <input type="hidden" name="eventId" value={eventId} />
-                          <button
-                            type="submit"
-                            className="text-xs text-red-500 hover:text-red-700"
-                          >
-                            Delete
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  ) : null}
-                </tr>
-              ),
-            )}
-          </tbody>
-        </table>
+                  </div>
+                ) : null}
+              </div>
+            ),
+          )}
+        </div>
       ) : null}
 
       {showActions ? (
         <div>
           {showAdd ? (
-            <form action={addAction} className="space-y-3 rounded-lg border p-4">
+            <form action={addAction} className="space-y-3 rounded-lg border border-border bg-secondary/50 p-4">
               <input type="hidden" name="minutesId" value={minutesId} />
               <input type="hidden" name="eventId" value={eventId} />
 
               {addState?.error ? (
-                <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">
+                <div className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
                   {addState.error}
-                </p>
+                </div>
               ) : null}
 
-              <div>
-                <input
-                  name="title"
-                  required
-                  className={field}
-                  placeholder="Action item title"
-                />
-              </div>
+              <input
+                name="title"
+                required
+                className={field}
+                placeholder="Action item title"
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <select name="ownerId" defaultValue="" className={field}>
@@ -239,14 +239,14 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                 <button
                   type="submit"
                   disabled={addPending}
-                  className="rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                  className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                   {addPending ? "Adding…" : "Add item"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAdd(false)}
-                  className="rounded border px-3 py-1.5 text-xs hover:bg-gray-50"
+                  className="rounded border border-border px-3 py-1.5 text-xs text-foreground hover:bg-secondary transition-colors"
                 >
                   Cancel
                 </button>
@@ -256,9 +256,10 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
+              className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors"
             >
-              + Add action item
+              <Plus size={16} />
+              Add action item
             </button>
           )}
         </div>

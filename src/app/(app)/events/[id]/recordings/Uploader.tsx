@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Upload } from "lucide-react";
 import { uploadRecording } from "./actions";
 
 export function Uploader({ eventId }: { eventId: string }) {
@@ -26,16 +27,17 @@ export function Uploader({ eventId }: { eventId: string }) {
         name="file"
         accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg"
         required
-        className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-sm file:text-white hover:file:bg-gray-800"
+        className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
       />
       {error ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
       ) : null}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+        className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
       >
+        <Upload size={16} />
         {pending ? "Uploading & transcribing…" : "Upload audio"}
       </button>
     </form>
