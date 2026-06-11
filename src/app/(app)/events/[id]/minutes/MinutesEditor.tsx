@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Sparkles } from "lucide-react";
 import {
   saveMinutesDraft,
   generateMinutesSummary,
@@ -9,8 +10,8 @@ import {
 } from "./actions";
 
 const field =
-  "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
-const label = "block text-sm font-medium text-gray-700";
+  "mt-1 w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1";
+const label = "block text-sm font-medium text-foreground";
 
 interface Props {
   eventId: string;
@@ -41,18 +42,29 @@ export function MinutesEditor({ eventId, body, summary, published }: Props) {
 
   if (published) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
-          <p className={label}>Body</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{body || "—"}</p>
+          <p className={`${label} mb-2`}>Meeting Notes</p>
+          <div className="rounded-lg bg-secondary/30 p-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+              {body || "—"}
+            </p>
+          </div>
         </div>
         {summary ? (
           <div>
-            <p className={label}>Summary</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{summary}</p>
+            <p className={`${label} mb-2`}>Summary</p>
+            <div className="rounded-lg bg-secondary/30 p-4">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                {summary}
+              </p>
+            </div>
           </div>
         ) : null}
-        <p className="text-xs text-gray-400 italic">Published — locked for editing.</p>
+        <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 p-3">
+          <div className="h-2 w-2 rounded-full bg-yellow-500" />
+          <p className="text-xs text-yellow-400">Published — locked for editing.</p>
+        </div>
       </div>
     );
   }
@@ -65,60 +77,65 @@ export function MinutesEditor({ eventId, body, summary, published }: Props) {
         <input type="hidden" name="eventId" value={eventId} />
       </form>
 
-      <form action={formAction} className="space-y-4">
+      <form action={formAction} className="space-y-5">
         <input type="hidden" name="eventId" value={eventId} />
 
-      {state?.error ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
-      ) : state?.ok ? (
-        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">Draft saved.</p>
-      ) : null}
-
-      <div>
-        <label className={label}>Body</label>
-        <textarea
-          name="body"
-          rows={16}
-          defaultValue={body}
-          className={field}
-          placeholder="Enter meeting minutes…"
-        />
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between">
-          <label className={label}>Summary (optional)</label>
-          <button
-            type="submit"
-            form="generate-summary"
-            disabled={generating}
-            className="rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            {generating ? "Generating…" : "Generate from transcript"}
-          </button>
-        </div>
-        {genState && "error" in genState ? (
-          <p className="mt-1 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {genState.error}
-          </p>
+        {state?.error ? (
+          <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {state.error}
+          </div>
+        ) : state?.ok ? (
+          <div className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-400">
+            ✓ Draft saved.
+          </div>
         ) : null}
-        <textarea
-          name="summary"
-          rows={3}
-          value={summaryText}
-          onChange={(e) => setSummaryText(e.target.value)}
-          className={field}
-          placeholder="Brief summary of key decisions, or generate one from the transcript…"
-        />
-      </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-      >
-        {pending ? "Saving…" : "Save draft"}
-      </button>
+        <div>
+          <label className={label}>Meeting Notes</label>
+          <textarea
+            name="body"
+            rows={12}
+            defaultValue={body}
+            className={field}
+            placeholder="Enter meeting minutes…"
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className={label}>Summary (optional)</label>
+            <button
+              type="submit"
+              form="generate-summary"
+              disabled={generating}
+              className="flex items-center gap-2 rounded-md border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+            >
+              <Sparkles size={14} />
+              {generating ? "Generating…" : "Generate from transcript"}
+            </button>
+          </div>
+          {genState && "error" in genState ? (
+            <div className="mb-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {genState.error}
+            </div>
+          ) : null}
+          <textarea
+            name="summary"
+            rows={5}
+            value={summaryText}
+            onChange={(e) => setSummaryText(e.target.value)}
+            className={field}
+            placeholder="Brief summary of key decisions, or generate one from the transcript…"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+        >
+          {pending ? "Saving…" : "Save draft"}
+        </button>
       </form>
     </>
   );

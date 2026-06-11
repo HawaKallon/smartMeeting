@@ -40,28 +40,19 @@ export async function generateMinutesSummary(
   const existing = await prisma.minutes.findUnique({ where: { eventId } });
   if (existing?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
-  // Pull the latest transcribed recording's transcript (same shape as the minutes page).
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: {
-      recordings: {
-        where: { status: "TRANSCRIBED" },
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { transcript: { select: { segments: true } } },
-      },
-    },
+  // Pull the meeting notes (body) from the minutes record.
+  const minutes = await prisma.minutes.findUnique({
+    where: { eventId },
+    select: { body: true },
   });
-  if (!event) return { error: "Event not found." };
-
-  const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
-  if (segments.length === 0) return { error: "No transcript available to summarize yet." };
-
-  const transcriptText = segments.map((s) => `${s.speaker}: ${s.text}`).join("\n");
+  if (!minutes) return { error: "No meeting notes found to summarize." };
+  if (!minutes.body || minutes.body.trim().length === 0) {
+    return { error: "Meeting notes are empty. Please add notes before generating a summary." };
+  }
 
   let summary: string;
   try {
-    const { summary: overview, keyPoints } = await summarizeMeeting(transcriptText);
+    const { summary: overview, keyPoints } = await summarizeMeeting(minutes.body);
     const points = keyPoints.length
       ? `\n\nKey points:\n${keyPoints.map((p) => `- ${p}`).join("\n")}`
       : "";
@@ -70,18 +61,17 @@ export async function generateMinutesSummary(
     return { error: `Summary generation failed: ${(err as Error).message}` };
   }
 
-  const minutes = await prisma.minutes.upsert({
+  const updatedMinutes = await prisma.minutes.update({
     where: { eventId },
-    create: { eventId, body: transcriptText, summary },
-    update: { summary },
+    data: { summary },
   });
 
   await audit({
     actorId: admin.id,
     action: "GENERATE_MINUTES_SUMMARY",
     entityType: "Minutes",
-    entityId: minutes.id,
-    metadata: { eventId, segmentCount: segments.length },
+    entityId: updatedMinutes.id,
+    metadata: { eventId },
   });
 
   revalidatePath(`/events/${eventId}/minutes`);
