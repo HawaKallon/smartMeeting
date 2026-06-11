@@ -20,6 +20,47 @@ function logError(to: string, subject: string, err: unknown) {
   }
 }
 
+// ── Welcome / New User Invitation ─────────────────────────────────────────────
+
+export async function sendWelcomeEmail({
+  to, toName, loginUrl, tempPassword,
+}: {
+  to: string; toName: string; loginUrl: string; tempPassword: string;
+}): Promise<boolean> {
+  if (!resend) {
+    skip(to, `RESEND_API_KEY not set`);
+    return false;
+  }
+  if (!FROM || FROM === "noreply@resend.dev") {
+    skip(to, `EMAIL_FROM not properly configured in .env`);
+    return false;
+  }
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM, to,
+      subject: "Welcome to Smart Meeting",
+      html: `
+        <h2>Welcome to Smart Meeting</h2>
+        <p>Hello ${toName},</p>
+        <p>Your account has been created and is ready to use. Sign in with the temporary credentials below, then change your password from your profile.</p>
+        <p style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;">
+          <strong>Email:</strong> ${to}<br>
+          <strong>Temporary password:</strong> <code style="font-size:15px;">${tempPassword}</code>
+        </p>
+        <p><a href="${loginUrl}" style="background-color: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Log In to Smart Meeting</a></p>
+        <p>For your security, please change this temporary password after your first login.</p>
+        <p>Best regards,<br>Smart Meeting Team</p>
+      `,
+    });
+    console.log(`[email] sent welcome to ${to}:`, result.data?.id);
+    return true;
+  } catch (err) {
+    logError(to, "Welcome to Smart Meeting", err);
+    return false;
+  }
+}
+
 // ── Attendee Invitation ───────────────────────────────────────────────────────
 
 export async function sendInviteEmail({
@@ -58,7 +99,7 @@ export async function sendInviteEmail({
         `Please log in to confirm or decline your attendance.`,
       ].filter(Boolean).join("\n"),
     });
-    console.log(`[email] sent invite to ${to}:`, result.id);
+    console.log(`[email] sent invite to ${to}:`, result.data?.id);
   } catch (err) {
     logError(to, `Invitation: ${eventTitle}`, err);
   }
@@ -90,7 +131,7 @@ export async function sendMinutesEmail({
         `View minutes: ${minutesUrl}`,
       ].filter(Boolean).join("\n"),
     });
-    console.log(`[email] sent minutes to ${to}:`, result.id);
+    console.log(`[email] sent minutes to ${to}:`, result.data?.id);
   } catch (err) {
     logError(to, `Minutes Published: ${eventTitle}`, err);
   }
@@ -128,7 +169,7 @@ export async function sendActionItemEmail({
         `View details: ${minutesUrl}`,
       ].join("\n"),
     });
-    console.log(`[email] sent action item to ${to}:`, result.id);
+    console.log(`[email] sent action item to ${to}:`, result.data?.id);
   } catch (err) {
     logError(to, `Action Item Assigned: ${title}`, err);
   }
