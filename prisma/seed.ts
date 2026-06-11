@@ -17,18 +17,21 @@ const USERS: { email: string; name: string; role: MinistryRole }[] = [
 ];
 
 async function main() {
-  const passwordHash = await bcrypt.hash("password123", 10);
+  const defaultPasswordHash = await bcrypt.hash("password123", 10);
+  const adminPasswordHash = await bcrypt.hash("password8888", 10);
 
   for (const u of USERS) {
+    const passwordHash = u.role === "ADMIN" ? adminPasswordHash : defaultPasswordHash;
     await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, role: u.role },
+      update: { name: u.name, role: u.role, passwordHash },
       create: { email: u.email, name: u.name, role: u.role, passwordHash },
     });
     console.log(`✓ ${u.role.padEnd(20)} ${u.email}`);
   }
 
-  console.log("\nAll users share password: password123");
+  console.log("\nDefault password: password123");
+  console.log("Admin password: password8888");
 }
 
 main()

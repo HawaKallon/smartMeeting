@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 // Gracefully degrades when RESEND_API_KEY is not set.
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
+const FROM = process.env.EMAIL_FROM || "noreply@resend.dev";
 
 function skip(to: string, reason = "RESEND_API_KEY not set") {
   console.warn(`[email] skipping to ${to} — ${reason}`);
@@ -10,6 +10,14 @@ function skip(to: string, reason = "RESEND_API_KEY not set") {
 
 function logError(to: string, subject: string, err: unknown) {
   console.error(`[email] failed to send "${subject}" to ${to}:`, err);
+
+  // Log more details for debugging
+  if (err instanceof Error) {
+    console.error(`[email] error details:`, {
+      message: err.message,
+      stack: err.stack,
+    });
+  }
 }
 
 // ── Attendee Invitation ───────────────────────────────────────────────────────
@@ -20,7 +28,13 @@ export async function sendInviteEmail({
   to: string; toName: string; eventTitle: string;
   startAt: Date; venueName?: string | null; roomName?: string | null; organizerName: string;
 }) {
-  if (!resend) return skip(to);
+  if (!resend) {
+    return skip(to, `RESEND_API_KEY not set. Configure it in .env`);
+  }
+
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured. Set EMAIL_FROM in .env to your verified Resend domain`);
+  }
 
   const date = startAt.toLocaleString("en-GB", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -30,7 +44,7 @@ export async function sendInviteEmail({
   const location = roomName || venueName;
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM, to,
       subject: `Invitation: ${eventTitle}`,
       text: [
@@ -44,6 +58,7 @@ export async function sendInviteEmail({
         `Please log in to confirm or decline your attendance.`,
       ].filter(Boolean).join("\n"),
     });
+    console.log(`[email] sent invite to ${to}:`, result.id);
   } catch (err) {
     logError(to, `Invitation: ${eventTitle}`, err);
   }
@@ -57,10 +72,13 @@ export async function sendMinutesEmail({
   to: string; toName: string; eventTitle: string;
   eventDate: string; summary: string | null; minutesUrl: string;
 }) {
-  if (!resend) return skip(to);
+  if (!resend) return skip(to, `RESEND_API_KEY not set`);
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured in .env`);
+  }
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM, to,
       subject: `Minutes Published: ${eventTitle}`,
       text: [
@@ -72,6 +90,7 @@ export async function sendMinutesEmail({
         `View minutes: ${minutesUrl}`,
       ].filter(Boolean).join("\n"),
     });
+    console.log(`[email] sent minutes to ${to}:`, result.id);
   } catch (err) {
     logError(to, `Minutes Published: ${eventTitle}`, err);
   }
@@ -85,14 +104,17 @@ export async function sendActionItemEmail({
   to: string; toName: string; title: string;
   eventTitle: string; dueDate: Date | null; minutesUrl: string;
 }) {
-  if (!resend) return skip(to);
+  if (!resend) return skip(to, `RESEND_API_KEY not set`);
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured in .env`);
+  }
 
   const due = dueDate
     ? dueDate.toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
     : "No deadline set";
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM, to,
       subject: `Action Item Assigned: ${title}`,
       text: [
@@ -106,6 +128,7 @@ export async function sendActionItemEmail({
         `View details: ${minutesUrl}`,
       ].join("\n"),
     });
+    console.log(`[email] sent action item to ${to}:`, result.id);
   } catch (err) {
     logError(to, `Action Item Assigned: ${title}`, err);
   }

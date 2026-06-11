@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn, auth } from "@/auth";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default async function LoginPage({
   searchParams,
@@ -29,15 +30,15 @@ export default async function LoginPage({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-sm rounded-xl border bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">Ministry Sign In</h1>
-        <p className="mt-1 text-sm text-gray-500">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-lg">
+        <h1 className="text-2xl font-semibold text-foreground">Ministry Sign In</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Smart Meeting &amp; Attendance Logger
         </p>
 
         {error ? (
-          <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             Invalid email or password.
           </p>
         ) : null}
@@ -45,30 +46,30 @@ export default async function LoginPage({
         <form action={login} className="mt-6 space-y-4">
           <input type="hidden" name="callbackUrl" value={callbackUrl ?? "/"} />
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium text-foreground">Email</label>
             <input
               name="email"
               type="email"
               required
               autoComplete="email"
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               Password
             </label>
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
-            />
+            <div className="mt-1">
+              <PasswordInput
+                name="password"
+                autoComplete="current-password"
+                required
+              />
+            </div>
           </div>
           <button
             type="submit"
-            className="w-full rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Sign in
           </button>

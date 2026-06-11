@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Send } from "lucide-react";
 import { publishMinutes, type ActionState } from "./actions";
 
 interface Props {
@@ -19,13 +20,16 @@ export function PublishButton({ minutesId, eventId }: Props) {
       <input type="hidden" name="minutesId" value={minutesId} />
       <input type="hidden" name="eventId" value={eventId} />
       {state?.error ? (
-        <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+        <div className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {state.error}
+        </div>
       ) : null}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+        className="flex items-center gap-2 rounded-md bg-sidebar-primary px-4 py-2 text-sm font-medium text-white hover:bg-sidebar-primary/90 disabled:opacity-50 transition-colors"
       >
+        <Send size={16} />
         {pending ? "Publishing…" : "Publish & Distribute"}
       </button>
     </form>

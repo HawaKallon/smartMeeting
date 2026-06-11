@@ -8,6 +8,7 @@ import { Uploader } from "./recordings/Uploader";
 import { MeetingRecorder } from "./recordings/MeetingRecorder";
 import { RsvpButtons } from "./RsvpButtons";
 import { BackButton } from "@/components/BackButton";
+import { AudioPlayer } from "@/components/AudioPlayer";
 import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Music } from "lucide-react";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
@@ -179,9 +180,7 @@ export default async function EventDetailPage({
                     </div>
                   </div>
 
-                  <audio controls preload="none" className="w-full h-8">
-                    <source src={r.fileUrl} />
-                  </audio>
+                  <AudioPlayer src={r.fileUrl} durationSec={r.durationSec} />
 
                   {segments.length > 0 ? (
                     <div className="max-h-64 overflow-y-auto rounded-lg bg-muted/30 p-3 space-y-2 text-xs">

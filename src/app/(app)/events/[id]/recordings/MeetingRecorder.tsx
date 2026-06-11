@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Mic, Pause, Play, Square } from "lucide-react";
 import { uploadRecording } from "./actions";
 
 type RecordState = "idle" | "recording" | "paused" | "uploading" | "done" | "error";
@@ -118,58 +119,65 @@ export function MeetingRecorder({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5">
-      <p className="mb-3 text-sm font-medium text-gray-700">Record Meeting Audio</p>
+    <div className="rounded-lg border border-border bg-card p-6">
+      <p className="mb-4 text-sm font-medium text-foreground">Record Meeting Audio</p>
 
       {state === "idle" && (
         <button
           type="button"
           onClick={startRecording}
-          className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          className="flex items-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-white hover:bg-destructive/90 transition-colors"
         >
-          <span className="h-2.5 w-2.5 rounded-full bg-white" />
+          <Mic size={18} />
           Start Recording
         </button>
       )}
 
       {(state === "recording" || state === "paused") && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            {state === "recording" && (
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-red-600">
-                <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
-                REC {formatTime(elapsed)}
-              </span>
-            )}
-            {state === "paused" && (
-              <span className="text-sm font-semibold text-yellow-600">
-                ⏸ PAUSED {formatTime(elapsed)}
-              </span>
-            )}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between rounded-md bg-secondary/50 p-3">
+            <div className="flex items-center gap-3">
+              {state === "recording" && (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-destructive" />
+                  <span className="text-sm font-semibold text-destructive">Recording</span>
+                </span>
+              )}
+              {state === "paused" && (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
+                  <span className="text-sm font-semibold text-yellow-500">Paused</span>
+                </span>
+              )}
+            </div>
+            <span className="font-mono text-sm font-semibold text-foreground">{formatTime(elapsed)}</span>
           </div>
           <div className="flex gap-2">
             {state === "recording" ? (
               <button
                 type="button"
                 onClick={pauseRecording}
-                className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-100"
+                className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors"
               >
+                <Pause size={16} />
                 Pause
               </button>
             ) : (
               <button
                 type="button"
                 onClick={resumeRecording}
-                className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-100"
+                className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors"
               >
+                <Play size={16} />
                 Resume
               </button>
             )}
             <button
               type="button"
               onClick={stopRecording}
-              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+              className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
+              <Square size={16} />
               Stop & Upload
             </button>
           </div>
@@ -177,29 +185,40 @@ export function MeetingRecorder({ eventId }: { eventId: string }) {
       )}
 
       {state === "uploading" && (
-        <p className="text-sm text-gray-600">Uploading & transcribing… please wait.</p>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+          <p className="text-sm text-muted-foreground">Uploading & transcribing… please wait.</p>
+        </div>
       )}
 
       {state === "done" && (
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-green-700">Recording uploaded and transcription started.</p>
-          <button type="button" onClick={reset} className="text-xs text-gray-500 hover:text-gray-900 underline">
-            Record again
+        <div className="space-y-2 rounded-md bg-green-500/10 p-3">
+          <p className="text-sm text-green-400">✓ Recording uploaded and transcription started.</p>
+          <button
+            type="button"
+            onClick={reset}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Record another
           </button>
         </div>
       )}
 
       {state === "error" && (
-        <div className="space-y-2">
-          <p className="text-sm text-red-700">{error ?? "Upload failed."}</p>
-          <button type="button" onClick={reset} className="text-xs text-gray-500 underline">
+        <div className="space-y-2 rounded-md bg-destructive/10 p-3">
+          <p className="text-sm text-destructive">{error ?? "Upload failed."}</p>
+          <button
+            type="button"
+            onClick={reset}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
             Try again
           </button>
         </div>
       )}
 
       {error && state === "idle" && (
-        <p className="mt-2 text-sm text-red-700">{error}</p>
+        <p className="mt-2 rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</p>
       )}
     </div>
   );
