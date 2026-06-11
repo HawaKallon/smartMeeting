@@ -18,9 +18,15 @@ export function CreateUserForm() {
       )}
 
       {state?.ok && (
-        <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
-          User created and invitation email sent
-        </div>
+        state.emailSent ? (
+          <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
+            User created and invitation email sent
+          </div>
+        ) : (
+          <div className="rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-400">
+            User created — but the invitation email could not be sent. Check email configuration.
+          </div>
+        )
       )}
 
       <div className="grid grid-cols-2 gap-4">
