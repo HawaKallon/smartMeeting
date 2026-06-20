@@ -245,7 +245,7 @@ export function EventForm({ rooms }: { rooms: Room[] }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-[#0f2444] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a3a5c] disabled:opacity-50"
+        className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
       >
         {pending ? "Creating…" : "Create event"}
       </button>

@@ -27,8 +27,8 @@ function ToggleSwitch({
         disabled={disabled}
         className="sr-only peer"
       />
-      <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-blue-500 transition-colors peer-disabled:opacity-50"></div>
-      <span className="absolute left-1 top-0.5 h-5 w-5 bg-white rounded-full peer-checked:translate-x-5 transition-transform peer-disabled:opacity-50"></span>
+      <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-sidebar-primary transition-colors peer-disabled:opacity-50"></div>
+      <span className="absolute left-1 top-0.5 h-5 w-5 bg-card rounded-full peer-checked:translate-x-5 transition-transform peer-disabled:opacity-50"></span>
     </label>
   );
 }
@@ -183,7 +183,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
             <p className="text-sm font-medium text-foreground mb-2">Storage Usage</p>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500" style={{ width: "45%" }}></div>
+                <div className="h-full bg-sidebar-primary" style={{ width: "45%" }}></div>
               </div>
               <span className="text-xs text-muted-foreground">4.5 GB / 10 GB</span>
             </div>
@@ -216,7 +216,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isPending ? "Saving..." : "Save All Settings"}
         </button>
