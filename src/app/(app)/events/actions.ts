@@ -67,6 +67,7 @@ export async function createEvent(
   }
 
   // Check room availability if room selected
+  let room = null;
   if (data.roomId) {
     // Check for ANY conflicting events on the same room first
     const eventConflict = await prisma.event.findFirst({
@@ -94,7 +95,17 @@ export async function createEvent(
     if (roomConflict) {
       return { error: "Room is already booked for this time." };
     }
+
+    // Fetch room to copy coordinates if not already set on the event.
+    room = await prisma.room.findUnique({
+      where: { id: data.roomId },
+      select: { latitude: true, longitude: true },
+    });
   }
+
+  // Copy room coordinates to event geofence if room has them and event doesn't.
+  const venueLat = data.venueLat ?? (room?.latitude || null);
+  const venueLng = data.venueLng ?? (room?.longitude || null);
 
   const event = await prisma.event.create({
     data: {
@@ -104,8 +115,8 @@ export async function createEvent(
       startAt: data.startAt,
       endAt: data.endAt,
       venueName: data.venueName,
-      venueLat: data.venueLat,
-      venueLng: data.venueLng,
+      venueLat,
+      venueLng,
       geofenceRadius: data.geofenceRadius,
       colorCategory: data.colorCategory,
       classification: data.classification,
