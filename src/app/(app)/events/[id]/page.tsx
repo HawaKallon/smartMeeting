@@ -45,11 +45,11 @@ export default async function EventDetailPage({
   });
 
   return (
-    <div className="flex flex-col min-h-screen gap-6">
+    <div className="flex flex-col h-full gap-6">
       <BackButton href="/" label="Dashboard" />
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-shrink-0">
         <div className="flex-1">
           <h1 className="text-3xl font-bold text-foreground">{event.title}</h1>
           <p className="mt-2 flex items-center gap-2 text-muted-foreground">
@@ -75,7 +75,7 @@ export default async function EventDetailPage({
       </div>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 flex-shrink-0">
         <InfoCard
           icon={<Calendar className="h-5 w-5" />}
           label="Start"
@@ -112,7 +112,7 @@ export default async function EventDetailPage({
 
       {/* Description */}
       {event.description && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-card p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Description</h2>
           <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
             {event.description}
@@ -122,7 +122,7 @@ export default async function EventDetailPage({
 
       {/* RSVP Section */}
       {myInvite && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Your RSVP</h2>
           <RsvpButtons eventId={id} currentStatus={myInvite.status} />
         </div>
@@ -205,12 +205,9 @@ export default async function EventDetailPage({
         </div>
       )}
 
-      {/* Spacer to push controls to bottom */}
-      <div className="flex-1" />
-
       {/* Admin Actions */}
       {(isAdmin || canViewMinutes) && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Actions
