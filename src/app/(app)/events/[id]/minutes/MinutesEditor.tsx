@@ -111,7 +111,7 @@ export function MinutesEditor({ eventId, body, summary, published }: Props) {
               className="flex items-center gap-2 rounded-md border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
             >
               <Sparkles size={14} />
-              {generating ? "Generating…" : "Generate from transcript"}
+              {generating ? "Generating…" : "Generate summary"}
             </button>
           </div>
           {genState && "error" in genState ? (
@@ -125,7 +125,7 @@ export function MinutesEditor({ eventId, body, summary, published }: Props) {
             value={summaryText}
             onChange={(e) => setSummaryText(e.target.value)}
             className={field}
-            placeholder="Brief summary of key decisions, or generate one from the transcript…"
+            placeholder="Brief summary of key decisions, or generate one from your notes…"
           />
         </div>
 
