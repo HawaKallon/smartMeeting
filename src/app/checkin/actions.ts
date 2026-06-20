@@ -10,7 +10,6 @@ import { withinGeofence } from "@/lib/geo";
 
 const CheckInSchema = z.object({
   token: z.string().min(1),
-  name: z.string().optional(),
   lat: z.coerce.number().optional(),
   lng: z.coerce.number().optional(),
   accuracy: z.coerce.number().optional(),
@@ -24,7 +23,6 @@ export type CheckInResult =
 export async function submitCheckIn(formData: FormData): Promise<CheckInResult> {
   const parsed = CheckInSchema.safeParse({
     token: formData.get("token"),
-    name: formData.get("name") || undefined,
     lat: formData.get("lat") || undefined,
     lng: formData.get("lng") || undefined,
     accuracy: formData.get("accuracy") || undefined,
@@ -40,11 +38,18 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
 
   const event = resolved.event;
 
-  // Identify the attendee: logged-in user, else external name.
+  // Require login and verify the user is on the invite list.
   const session = await auth();
-  const userId = session?.user?.id ?? null;
-  if (!userId && !data.name) {
-    return { ok: false, error: "Please sign in or enter your name to check in." };
+  const userId = session?.user?.id;
+  if (!userId) {
+    return { ok: false, error: "Please sign in to check in." };
+  }
+
+  const invite = await prisma.eventAttendee.findUnique({
+    where: { eventId_userId: { eventId: event.id, userId } },
+  });
+  if (!invite) {
+    return { ok: false, error: "You are not on the invite list for this meeting." };
   }
 
   // Geofence verdict (PRD §6.6) when both device + venue coords are present.
@@ -87,7 +92,6 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     data: {
       eventId: event.id,
       userId,
-      externalName: userId ? null : data.name,
       method: data.lat != null ? "GEO" : "QR",
       lat: data.lat,
       lng: data.lng,
@@ -105,6 +109,11 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     entityId: attendance.id,
     metadata: { eventId: event.id, method: attendance.method, withinGeofence: within },
   });
+
+  // Revalidate event pages so attendee list and counts reflect the check-in.
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath(`/events/${event.id}/attendees`);
+  revalidatePath(`/events/${event.id}`);
 
   return { ok: true, withinGeofence: within, eventTitle: event.title };
 }
