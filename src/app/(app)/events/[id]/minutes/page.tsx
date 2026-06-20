@@ -81,11 +81,11 @@ export default async function MinutesPage({
   }));
 
   return (
-    <div className="flex flex-col min-h-screen gap-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
+        <div>
           <BackButton href={`/events/${id}`} label={event.title} />
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+          <h1 className="mt-4 text-3xl font-bold text-foreground flex items-center gap-3">
             <FileText className="h-8 w-8 text-sidebar-primary" />
             Meeting Minutes
           </h1>
@@ -180,9 +180,6 @@ export default async function MinutesPage({
           )}
         </div>
       </div>
-
-      {/* Spacer to push controls to bottom */}
-      <div className="flex-1" />
 
       {/* Action Items Section */}
       <div className="rounded-lg border border-border bg-card p-6">
