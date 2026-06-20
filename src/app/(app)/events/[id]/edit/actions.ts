@@ -37,6 +37,7 @@ export async function updateEvent(
     }
 
     // Check room availability if room selected
+    let room = null;
     if (roomId) {
       const roomConflict = await prisma.roomBooking.findFirst({
         where: {
@@ -54,19 +55,32 @@ export async function updateEvent(
       if (roomConflict) {
         return { error: "Selected room is already booked for this time." };
       }
+
+      // Fetch room to copy coordinates.
+      room = await prisma.room.findUnique({
+        where: { id: roomId },
+        select: { latitude: true, longitude: true },
+      });
+    }
+
+    // Copy room coordinates to event if room has them.
+    const updateData: any = {
+      title,
+      description,
+      startAt,
+      endAt,
+      roomId,
+      type: type as any,
+      classification: classification as any,
+    };
+    if (room?.latitude != null && room?.longitude != null) {
+      updateData.venueLat = room.latitude;
+      updateData.venueLng = room.longitude;
     }
 
     await prisma.event.update({
       where: { id: eventId },
-      data: {
-        title,
-        description,
-        startAt,
-        endAt,
-        roomId,
-        type: type as any,
-        classification: classification as any,
-      },
+      data: updateData,
     });
 
     await audit({
