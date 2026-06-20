@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { requireStaffRole } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
-import { manualCheckIn } from "./actions";
+import { ManualCheckInForm } from "./ManualCheckInForm";
+import { Users, CheckCircle } from "lucide-react";
 
 export default async function AttendancePage({
   params,
@@ -15,6 +16,10 @@ export default async function AttendancePage({
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
+      attendees: {
+        where: { userId: { not: null } },
+        select: { userId: true, user: { select: { id: true, name: true, email: true } } },
+      },
       attendances: {
         include: { user: { select: { name: true, email: true } } },
         orderBy: { checkInAt: "desc" },
@@ -23,95 +28,95 @@ export default async function AttendancePage({
   });
   if (!event) notFound();
 
-  const users = await prisma.user.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true },
-  });
+  // Build list of invitees not yet checked in.
+  const checkedInUserIds = new Set(event.attendances.map((a) => a.userId).filter(Boolean));
+  const invitedUsers = event.attendees
+    .filter((a) => a.user && !checkedInUserIds.has(a.user.id))
+    .map((a) => ({
+      id: a.user!.id,
+      name: a.user!.name,
+      email: a.user!.email,
+    }));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="space-y-2">
         <BackButton href={`/events/${id}`} label={event.title} />
-        <h1 className="text-2xl font-bold text-foreground">Attendance</h1>
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+          <Users className="h-8 w-8 text-sidebar-primary" />
+          Attendance
+        </h1>
       </div>
 
-      <section className="rounded-xl border border-gray-200 bg-card p-5">
-        <h2 className="mb-3 text-sm font-medium text-foreground/80">
-          Manual check-in (fallback)
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          Manual check-in
         </h2>
-        <form action={manualCheckIn} className="flex flex-wrap items-end gap-3">
-          <input type="hidden" name="eventId" value={event.id} />
-          <div>
-            <label className="block text-xs text-muted-foreground">Registered user</label>
-            <select name="userId" className="mt-1 rounded-md border px-2 py-1.5 text-sm">
-              <option value="">— select —</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name ?? u.email}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground">or external guest</label>
-            <input
-              name="externalName"
-              placeholder="Full name"
-              className="mt-1 rounded-md border px-2 py-1.5 text-sm"
-            />
-          </div>
-          <button className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800">
-            Check in
-          </button>
-        </form>
-      </section>
+        <ManualCheckInForm eventId={id} invitedUsers={invitedUsers} />
+      </div>
 
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-foreground/80">
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />
           Checked in ({event.attendances.length})
         </h2>
         {event.attendances.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No one has checked in yet.</p>
+          <div className="text-center py-8">
+            <CheckCircle className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <p className="mt-3 text-sm text-muted-foreground">No one has checked in yet.</p>
+          </div>
         ) : (
-          <table className="w-full overflow-hidden rounded-xl border border-gray-200 bg-card text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-muted-foreground/60">
-              <tr>
-                <th className="px-3 py-2">Attendee</th>
-                <th className="px-3 py-2">Time</th>
-                <th className="px-3 py-2">Method</th>
-                <th className="px-3 py-2">Geofence</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {event.attendances.map((a) => (
-                <tr key={a.id}>
-                  <td className="px-3 py-2 text-foreground">
-                    {a.user?.name ?? a.user?.email ?? a.externalName ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">
-                    {a.checkInAt.toLocaleTimeString()}
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">{a.method}</td>
-                  <td className="px-3 py-2">
-                    {a.withinGeofence === null ? (
-                      <span className="text-muted-foreground/60">n/a</span>
-                    ) : a.withinGeofence ? (
-                      <span className="text-green-600">inside</span>
-                    ) : (
-                      <span className="text-red-600">outside</span>
-                    )}
-                    {a.mockLocationFlag ? (
-                      <span className="ml-1 text-amber-600" title="Mock location flagged">
-                        ⚠
-                      </span>
-                    ) : null}
-                  </td>
+          <div className="overflow-hidden rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30">
+                <tr className="border-b border-border">
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Attendee
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Check-in Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Method
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Geofence
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {event.attendances.map((a) => (
+                  <tr key={a.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-6 py-3 text-foreground font-medium">
+                      {a.user?.name ?? a.user?.email ?? a.externalName ?? "—"}
+                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">
+                      {a.checkInAt.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">
+                      {a.method === "QR" ? "QR Code" : a.method === "GEO" ? "Geolocation" : "Manual"}
+                    </td>
+                    <td className="px-6 py-3">
+                      {a.withinGeofence === null ? (
+                        <span className="text-muted-foreground/60">n/a</span>
+                      ) : a.withinGeofence ? (
+                        <span className="text-green-400">✓ Inside</span>
+                      ) : (
+                        <span className="text-red-400">✗ Outside</span>
+                      )}
+                      {a.mockLocationFlag ? (
+                        <span className="ml-2 text-amber-400" title="Mock location flagged">
+                          ⚠
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

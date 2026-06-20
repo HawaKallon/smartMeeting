@@ -12,46 +12,71 @@ const ManualSchema = z.object({
   externalName: z.string().optional(),
 });
 
-export async function manualCheckIn(formData: FormData) {
-  const admin = await assertStaffRole();
+export type ActionState = { ok?: true; error?: string } | undefined;
 
-  const parsed = ManualSchema.safeParse({
-    eventId: formData.get("eventId"),
-    userId: formData.get("userId") || undefined,
-    externalName: formData.get("externalName") || undefined,
-  });
-  if (!parsed.success) throw new Error("Invalid input");
-  const { eventId, userId, externalName } = parsed.data;
+export async function manualCheckIn(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const admin = await assertStaffRole();
 
-  if (!userId && !externalName) throw new Error("Select a user or enter a name");
-
-  // Avoid duplicate manual check-ins for the same registered user.
-  if (userId) {
-    const existing = await prisma.attendance.findFirst({
-      where: { eventId, userId },
+    const parsed = ManualSchema.safeParse({
+      eventId: formData.get("eventId"),
+      userId: formData.get("userId") || undefined,
+      externalName: formData.get("externalName") || undefined,
     });
-    if (existing) {
-      revalidatePath(`/events/${eventId}/attendance`);
-      return;
+    if (!parsed.success) return { error: "Invalid input" };
+    const { eventId, userId, externalName } = parsed.data;
+
+    if (!userId && !externalName) {
+      return { error: "Select a user or enter a name" };
     }
+
+    // For registered users, verify they are invited to the event.
+    if (userId) {
+      const invite = await prisma.eventAttendee.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+      });
+      if (!invite) {
+        return { error: "This user is not on the invite list for this event." };
+      }
+
+      // Avoid duplicate manual check-ins for the same registered user.
+      const existing = await prisma.attendance.findFirst({
+        where: { eventId, userId },
+      });
+      if (existing) {
+        revalidatePath(`/events/${eventId}/attendance`);
+        return { ok: true };
+      }
+    }
+
+    const attendance = await prisma.attendance.create({
+      data: {
+        eventId,
+        userId: userId ?? null,
+        externalName: userId ? null : externalName,
+        method: "MANUAL",
+      },
+    });
+
+    await audit({
+      actorId: admin.id,
+      action: "MANUAL_CHECK_IN",
+      entityType: "Attendance",
+      entityId: attendance.id,
+      metadata: { eventId, userId, externalName },
+    });
+
+    // Revalidate all relevant pages so check-in shows everywhere.
+    revalidatePath(`/events/${eventId}/attendance`);
+    revalidatePath(`/events/${eventId}/attendees`);
+    revalidatePath(`/events/${eventId}`);
+
+    return { ok: true };
+  } catch (err) {
+    console.error("Manual check-in failed:", err);
+    return { error: "Failed to check in" };
   }
-
-  const attendance = await prisma.attendance.create({
-    data: {
-      eventId,
-      userId: userId ?? null,
-      externalName: userId ? null : externalName,
-      method: "MANUAL",
-    },
-  });
-
-  await audit({
-    actorId: admin.id,
-    action: "MANUAL_CHECK_IN",
-    entityType: "Attendance",
-    entityId: attendance.id,
-    metadata: { eventId, userId, externalName },
-  });
-
-  revalidatePath(`/events/${eventId}/attendance`);
 }
