@@ -4,12 +4,12 @@ import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canManageEvents, canApproveMinutes } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
-import { Uploader } from "./recordings/Uploader";
-import { MeetingRecorder } from "./recordings/MeetingRecorder";
+// import { Uploader } from "./recordings/Uploader";
+// import { MeetingRecorder } from "./recordings/MeetingRecorder";
 import { RsvpButtons } from "./RsvpButtons";
 import { BackButton } from "@/components/BackButton";
-import { AudioPlayer } from "@/components/AudioPlayer";
-import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Music } from "lucide-react";
+// import { AudioPlayer } from "@/components/AudioPlayer";
+import { Calendar, MapPin, Users, Download, Edit, FileText, Zap } from "lucide-react";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
 
@@ -45,11 +45,11 @@ export default async function EventDetailPage({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full gap-6">
       <BackButton href="/" label="Dashboard" />
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-shrink-0">
         <div className="flex-1">
           <h1 className="text-3xl font-bold text-foreground">{event.title}</h1>
           <p className="mt-2 flex items-center gap-2 text-muted-foreground">
@@ -75,7 +75,7 @@ export default async function EventDetailPage({
       </div>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 flex-shrink-0">
         <InfoCard
           icon={<Calendar className="h-5 w-5" />}
           label="Start"
@@ -112,7 +112,7 @@ export default async function EventDetailPage({
 
       {/* Description */}
       {event.description && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-card p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Description</h2>
           <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
             {event.description}
@@ -122,90 +122,92 @@ export default async function EventDetailPage({
 
       {/* RSVP Section */}
       {myInvite && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Your RSVP</h2>
           <RsvpButtons eventId={id} currentStatus={myInvite.status} />
         </div>
       )}
 
-      {/* Recordings & Transcripts */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-            <Music className="h-4 w-4" />
-            Recordings
-          </h2>
-          {event.classification === "RESTRICTED" && (
-            <span className="rounded-lg bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-400">
-              Restricted
-            </span>
+      {/* Recordings & Transcripts — DISABLED FOR NOW */}
+      {false && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+              <Music className="h-4 w-4" />
+              Recordings
+            </h2>
+            {event.classification === "RESTRICTED" && (
+              <span className="rounded-lg bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-400">
+                Restricted
+              </span>
+            )}
+          </div>
+
+          {isAdmin && (
+            <div className="mb-4 space-y-3 pb-4 border-b border-border">
+              {/* <MeetingRecorder eventId={event.id} />
+              <Uploader eventId={event.id} /> */}
+            </div>
+          )}
+
+          {event.recordings.length === 0 ? (
+            <div className="text-center py-8">
+              <Music className="mx-auto h-8 w-8 text-muted-foreground/30" />
+              <p className="mt-2 text-sm text-muted-foreground">No recordings uploaded yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {event.recordings.map((r) => {
+                const segments = (r.transcript?.segments as Segment[] | null) ?? [];
+                return (
+                  <div key={r.id} className="rounded-lg border border-border/50 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        {r.createdAt.toLocaleDateString()} at {r.createdAt.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          r.status === "TRANSCRIBED"
+                            ? "bg-green-500/10 text-green-400"
+                            : r.status === "FAILED"
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-blue-500/10 text-blue-400"
+                        }`}>
+                          {r.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* <AudioPlayer src={r.fileUrl} durationSec={r.durationSec} /> */}
+
+                    {segments.length > 0 ? (
+                      <div className="max-h-64 overflow-y-auto rounded-lg bg-muted/30 p-3 space-y-2 text-xs">
+                        {segments.map((s, i) => (
+                          <div key={i} className="space-y-0.5">
+                            <p className="font-medium text-blue-400">{s.speaker}</p>
+                            <p className="text-muted-foreground leading-relaxed">{s.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : r.status === "FAILED" ? (
+                      <p className="text-xs text-red-400">Transcription failed</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Transcribing...</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
-
-        {isAdmin && (
-          <div className="mb-4 space-y-3 pb-4 border-b border-border">
-            <MeetingRecorder eventId={event.id} />
-            <Uploader eventId={event.id} />
-          </div>
-        )}
-
-        {event.recordings.length === 0 ? (
-          <div className="text-center py-8">
-            <Music className="mx-auto h-8 w-8 text-muted-foreground/30" />
-            <p className="mt-2 text-sm text-muted-foreground">No recordings uploaded yet</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {event.recordings.map((r) => {
-              const segments = (r.transcript?.segments as Segment[] | null) ?? [];
-              return (
-                <div key={r.id} className="rounded-lg border border-border/50 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground">
-                      {r.createdAt.toLocaleDateString()} at {r.createdAt.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        r.status === "TRANSCRIBED"
-                          ? "bg-green-500/10 text-green-400"
-                          : r.status === "FAILED"
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-blue-500/10 text-blue-400"
-                      }`}>
-                        {r.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  <AudioPlayer src={r.fileUrl} durationSec={r.durationSec} />
-
-                  {segments.length > 0 ? (
-                    <div className="max-h-64 overflow-y-auto rounded-lg bg-muted/30 p-3 space-y-2 text-xs">
-                      {segments.map((s, i) => (
-                        <div key={i} className="space-y-0.5">
-                          <p className="font-medium text-blue-400">{s.speaker}</p>
-                          <p className="text-muted-foreground leading-relaxed">{s.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : r.status === "FAILED" ? (
-                    <p className="text-xs text-red-400">Transcription failed</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Transcribing...</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Admin Actions */}
       {(isAdmin || canViewMinutes) && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Actions
