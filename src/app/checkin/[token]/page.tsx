@@ -12,8 +12,8 @@ export default async function CheckInPage({
   const session = await auth();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-sm rounded-xl border bg-white p-6 shadow-sm">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-sm">
         {!resolved ? (
           <Message title="Invalid code" body="This check-in code was not recognized." />
         ) : resolved.expired ? (
@@ -40,8 +40,8 @@ export default async function CheckInPage({
 function Message({ title, body }: { title: string; body: string }) {
   return (
     <div className="text-center">
-      <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
-      <p className="mt-1 text-sm text-gray-500">{body}</p>
+      <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{body}</p>
     </div>
   );
 }
@@ -50,11 +50,11 @@ function LoginPrompt({ token }: { token: string }) {
   const callbackUrl = `/checkin/${token}`;
   return (
     <div className="text-center space-y-4">
-      <h1 className="text-lg font-semibold text-gray-900">Sign in to check in</h1>
-      <p className="text-sm text-gray-500">You must be logged in to check in to this meeting.</p>
+      <h1 className="text-lg font-semibold text-foreground">Sign in to check in</h1>
+      <p className="text-sm text-muted-foreground">You must be logged in to check in to this meeting.</p>
       <a
         href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-        className="inline-block rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        className="inline-block rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
       >
         Sign in
       </a>
