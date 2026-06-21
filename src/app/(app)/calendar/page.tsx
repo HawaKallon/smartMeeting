@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canViewMinistrySchedule } from "@/lib/roles";
+import { canViewMinistrySchedule, canManageEvents } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
 import { BackButton } from "@/components/BackButton";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -68,11 +68,22 @@ export default async function CalendarPage({
     <div className="space-y-6">
       <BackButton href="/" label="Dashboard" />
 
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          View all upcoming events • <span className="text-blue-400">Click any date to see day view</span>
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            View all upcoming events • <span className="text-blue-400">Click any date to see day view</span>
+          </p>
+        </div>
+        {canManageEvents(user.role) && (
+          <Link
+            href="/events/new"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Event
+          </Link>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">

@@ -25,7 +25,7 @@ export async function updateEvent(
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, organizerId: true },
+      select: { id: true, organizerId: true, startAt: true },
     });
 
     if (!event || event.organizerId !== user.id) {
@@ -76,6 +76,10 @@ export async function updateEvent(
     if (room?.latitude != null && room?.longitude != null) {
       updateData.venueLat = room.latitude;
       updateData.venueLng = room.longitude;
+    }
+    // Re-arm the 1h-before reminder if the meeting was rescheduled.
+    if (event.startAt.getTime() !== startAt.getTime()) {
+      updateData.reminderSentAt = null;
     }
 
     await prisma.event.update({
