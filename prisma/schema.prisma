@@ -135,6 +135,7 @@ model Event {
   organizerId    String
   organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
   room           Room?          @relation("EventRoom", fields: [roomId], references: [id])
+  reminderSentAt DateTime? // set once the 1h-before-start reminder has been emailed (idempotency)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
