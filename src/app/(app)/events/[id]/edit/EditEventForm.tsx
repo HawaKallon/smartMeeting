@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateEvent } from "./actions";
+import { DateTimePicker } from "@/components/DateTimePicker";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
@@ -53,23 +54,11 @@ export function EditEventForm({ event, rooms }: { event: any; rooms: Room[] }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={label}>Start Date & Time *</label>
-          <input
-            type="datetime-local"
-            name="startAt"
-            defaultValue={event.startAt?.toISOString().slice(0, 16)}
-            required
-            className={field}
-          />
+          <DateTimePicker name="startAt" defaultValue={event.startAt?.toISOString().slice(0, 16)} required />
         </div>
         <div>
           <label className={label}>End Date & Time *</label>
-          <input
-            type="datetime-local"
-            name="endAt"
-            defaultValue={event.endAt?.toISOString().slice(0, 16)}
-            required
-            className={field}
-          />
+          <DateTimePicker name="endAt" defaultValue={event.endAt?.toISOString().slice(0, 16)} required />
         </div>
       </div>
 

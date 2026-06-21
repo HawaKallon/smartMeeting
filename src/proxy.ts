@@ -11,7 +11,10 @@ import authConfig from "./auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PREFIXES = ["/login", "/checkin", "/api/auth"];
+// /api/cron/* is authenticated in-route by a CRON_SECRET bearer token (called
+// by an external scheduler, never a logged-in session), so it bypasses the
+// login gate here.
+const PUBLIC_PREFIXES = ["/login", "/checkin", "/api/auth", "/api/cron"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
