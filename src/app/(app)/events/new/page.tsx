@@ -12,10 +12,13 @@ export default async function NewEventPage() {
   });
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      <BackButton href="/" label="Dashboard" />
-      <h1 className="text-2xl font-bold text-foreground">New Event</h1>
-      <div className="flex-1 rounded-xl border border-border bg-card p-6 overflow-y-auto">
+    <div className="space-y-6">
+      <div>
+        <BackButton href="/" label="Dashboard" />
+        <h1 className="mt-4 text-3xl font-bold text-foreground">New Event</h1>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card p-6">
         <EventForm rooms={rooms} />
       </div>
     </div>

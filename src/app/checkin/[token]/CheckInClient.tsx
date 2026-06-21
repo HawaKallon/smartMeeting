@@ -58,11 +58,11 @@ export function CheckInClient({
 
   if (result?.ok) {
     return (
-      <div className="rounded-lg bg-green-50 p-5 text-center">
-        <p className="text-lg font-semibold text-green-800">✓ Checked in</p>
-        <p className="mt-1 text-sm text-green-700">{result.eventTitle}</p>
+      <div className="rounded-lg bg-green-500/10 p-5 text-center">
+        <p className="text-lg font-semibold text-green-400">✓ Checked in</p>
+        <p className="mt-1 text-sm text-green-400">{result.eventTitle}</p>
         {result.withinGeofence === true ? (
-          <p className="mt-2 text-xs text-green-600">Location verified at venue.</p>
+          <p className="mt-2 text-xs text-green-400">Location verified at venue.</p>
         ) : null}
       </div>
     );
@@ -71,12 +71,12 @@ export function CheckInClient({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Check in</h1>
-        <p className="text-sm text-gray-500">{eventTitle}</p>
+        <h1 className="text-lg font-semibold text-foreground">Check in</h1>
+        <p className="text-sm text-muted-foreground">{eventTitle}</p>
       </div>
 
       {result && !result.ok ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-400">
           {result.error}
         </p>
       ) : null}
@@ -84,7 +84,7 @@ export function CheckInClient({
       <button
         onClick={handleCheckIn}
         disabled={status !== "idle"}
-        className="w-full rounded-md bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+        className="w-full rounded-md bg-foreground px-4 py-3 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
       >
         {status === "locating"
           ? "Getting location…"
@@ -96,7 +96,7 @@ export function CheckInClient({
       </button>
 
       {hasGeofence ? (
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-muted-foreground">
           This meeting requires you to be physically at the venue.
         </p>
       ) : null}
