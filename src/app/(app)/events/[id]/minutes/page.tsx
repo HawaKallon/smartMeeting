@@ -9,7 +9,7 @@ import { ActionItemsPanel } from "./ActionItemsPanel";
 import { PublishButton } from "./PublishButton";
 import { FileText, CheckCircle, Clock } from "lucide-react";
 
-type Segment = { speaker: string; start: number; end: number; text: string };
+// type Segment = { speaker: string; start: number; end: number; text: string };
 
 export default async function MinutesPage({
   params,
@@ -68,7 +68,8 @@ export default async function MinutesPage({
   const isApprover = canApproveMinutes(user.role);
   const isPublished = minutes.status === "PUBLISHED";
 
-  const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
+  // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
+  const segments: any[] = [];
 
   // Serialize dates for client components.
   const itemsForClient = minutes.actionItems.map((item) => ({
@@ -80,7 +81,7 @@ export default async function MinutesPage({
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col min-h-screen gap-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <BackButton href={`/events/${id}`} label={event.title} />
@@ -111,33 +112,35 @@ export default async function MinutesPage({
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Transcript Section */}
-        <div className="rounded-lg border border-border bg-card p-6 lg:col-span-1">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Transcript
-          </h2>
-          {segments.length > 0 ? (
-            <div className="max-h-[600px] space-y-2 overflow-y-auto rounded-lg bg-secondary/30 p-4">
-              {segments.map((s, i) => (
-                <div key={i} className="space-y-0.5">
-                  <p className="text-xs font-semibold text-sidebar-primary">{s.speaker}</p>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{s.text}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-lg bg-secondary/30 p-4">
-              <p className="text-sm text-muted-foreground">
-                No transcript available. Upload and transcribe a recording first.
-              </p>
-            </div>
-          )}
-        </div>
+      <div className="grid grid-cols-1 gap-6">
+        {/* Transcript Section — DISABLED FOR NOW */}
+        {false && (
+          <div className="rounded-lg border border-border bg-card p-6 lg:col-span-1">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Transcript
+            </h2>
+            {segments.length > 0 ? (
+              <div className="max-h-[600px] space-y-2 overflow-y-auto rounded-lg bg-secondary/30 p-4">
+                {segments.map((s, i) => (
+                  <div key={i} className="space-y-0.5">
+                    <p className="text-xs font-semibold text-sidebar-primary">{s.speaker}</p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg bg-secondary/30 p-4">
+                <p className="text-sm text-muted-foreground">
+                  No transcript available. Upload and transcribe a recording first.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Minutes & Summary Section */}
-        <div className="rounded-lg border border-border bg-card p-6 lg:col-span-2">
+        <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Minutes & Summary
@@ -177,6 +180,9 @@ export default async function MinutesPage({
           )}
         </div>
       </div>
+
+      {/* Spacer to push controls to bottom */}
+      <div className="flex-1" />
 
       {/* Action Items Section */}
       <div className="rounded-lg border border-border bg-card p-6">
