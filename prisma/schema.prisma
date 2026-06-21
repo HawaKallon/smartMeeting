@@ -171,6 +171,7 @@ model Attendance {
   userId           String?
   user             User?         @relation(fields: [userId], references: [id])
   externalName     String?
+  externalEmail    String? // external guest's email — disambiguates same-named guests
   checkInAt        DateTime      @default(now())
   method           CheckInMethod @default(QR)
   lat              Float?

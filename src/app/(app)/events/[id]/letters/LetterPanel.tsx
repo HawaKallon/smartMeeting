@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import { LetterComposer } from "./LetterComposer";
-
-const BADGE: Record<string, string> = {
-  RED:   "bg-red-100 text-red-800",
-  AMBER: "bg-amber-100 text-amber-800",
-  GREEN: "bg-green-100 text-green-800",
-};
-const LABEL: Record<string, string> = {
-  RED: "Urgent / Cabinet", AMBER: "Internal", GREEN: "Routine",
-};
+import { COLOR_META } from "@/lib/colors";
 
 interface LetterData {
   id: string;
@@ -32,8 +24,8 @@ export function LetterPanel({ letter, eventId, deleteAction }: Props) {
 
   if (editing) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-4 text-sm font-medium text-gray-700">Edit letter</h2>
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h2 className="mb-4 text-sm font-medium text-foreground/80">Edit letter</h2>
         <LetterComposer
           eventId={eventId}
           existing={letter}
@@ -44,15 +36,15 @@ export function LetterPanel({ letter, eventId, deleteAction }: Props) {
   }
 
   return (
-    <div className="rounded-lg border bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <div className="flex items-start justify-between px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${BADGE[letter.colorCategory]}`}>
-            {LABEL[letter.colorCategory]}
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COLOR_META[letter.colorCategory].badge}`}>
+            {COLOR_META[letter.colorCategory].label}
           </span>
           <div>
-            <p className="text-sm font-semibold text-gray-900">{letter.title}</p>
-            <p className="text-xs text-gray-400">{letter.createdAt}</p>
+            <p className="text-sm font-semibold text-foreground">{letter.title}</p>
+            <p className="text-xs text-muted-foreground">{letter.createdAt}</p>
           </div>
         </div>
 
@@ -61,13 +53,13 @@ export function LetterPanel({ letter, eventId, deleteAction }: Props) {
             href={`/api/letters/${letter.id}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md border px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-muted/50"
           >
             Download PDF
           </a>
           <button
             onClick={() => setEditing(true)}
-            className="rounded-md border px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-border px-3 py-1.5 text-xs text-foreground/80 hover:bg-muted/50"
           >
             Edit
           </button>
@@ -76,7 +68,7 @@ export function LetterPanel({ letter, eventId, deleteAction }: Props) {
             <input type="hidden" name="eventId" value={eventId} />
             <button
               type="submit"
-              className="rounded-md border px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+              className="rounded-md border border-border px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10"
             >
               Delete
             </button>
@@ -84,16 +76,16 @@ export function LetterPanel({ letter, eventId, deleteAction }: Props) {
         </div>
       </div>
 
-      <div className="border-t px-5 py-3">
+      <div className="border-t border-border px-5 py-3">
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="text-xs text-gray-500 hover:text-gray-900"
+          className="text-xs text-muted-foreground hover:text-foreground"
         >
           {expanded ? "Hide body ▲" : "Show body ▼"}
         </button>
         {expanded && (
-          <p className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{letter.body}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-foreground/80">{letter.body}</p>
         )}
       </div>
     </div>
