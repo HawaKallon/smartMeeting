@@ -12,6 +12,15 @@ export function newToken(): string {
 }
 
 /**
+ * Check-in closes once the meeting's end time has passed. Used to gate both the
+ * public QR/geo flow and the staff manual check-in so no attendance can be
+ * recorded for a meeting that is already over.
+ */
+export function checkInClosed(endAt: Date): boolean {
+  return endAt.getTime() < Date.now();
+}
+
+/**
  * Return a currently-valid token for the event, minting (and pruning) as needed.
  * Called by the admin QR display, which polls so the code rotates.
  */
