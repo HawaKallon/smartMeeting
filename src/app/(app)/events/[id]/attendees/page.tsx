@@ -23,11 +23,18 @@ export default async function AttendeesPage({
       title: true,
       attendees: {
         orderBy: { createdAt: "asc" },
-        include: { user: { select: { name: true, email: true } } },
+        include: { user: { select: { id: true, name: true, email: true } } },
+      },
+      attendances: {
+        select: { userId: true, checkInAt: true, withinGeofence: true, method: true },
       },
     },
   });
   if (!event) notFound();
+
+  const checkinsByUserId = new Map(
+    event.attendances.map((a) => [a.userId, a])
+  );
 
   const invitedUserIds = event.attendees
     .map((a) => a.userId)
@@ -54,7 +61,7 @@ export default async function AttendeesPage({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <CheckCircle className="h-4 w-4 text-green-500" />
@@ -75,6 +82,13 @@ export default async function AttendeesPage({
             Declined
           </div>
           <p className="mt-1 text-2xl font-bold text-foreground">{declined}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <CheckCircle className="h-4 w-4 text-blue-500" />
+            Checked In
+          </div>
+          <p className="mt-1 text-2xl font-bold text-foreground">{event.attendances.length}</p>
         </div>
       </div>
 
@@ -113,6 +127,9 @@ export default async function AttendeesPage({
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Status
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Checked In
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Actions
                 </th>
@@ -126,6 +143,7 @@ export default async function AttendeesPage({
                   DECLINED: { bg: "bg-red-500/10", text: "text-red-400", label: "Declined" },
                 };
                 const status = statusConfig[a.status as keyof typeof statusConfig];
+                const checkin = a.userId ? checkinsByUserId.get(a.userId) : null;
 
                 return (
                   <tr
@@ -149,6 +167,19 @@ export default async function AttendeesPage({
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${status.bg} ${status.text}`}>
                         {status.label}
                       </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      {checkin ? (
+                        <div className="flex items-center gap-2 text-xs text-foreground">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>{checkin.checkInAt.toLocaleString()}</span>
+                          {checkin.withinGeofence === true && (
+                            <span className="ml-1 text-green-400 text-xs">✓ Verified</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="px-6 py-3 text-right">
                       <form action={removeInvite}>
