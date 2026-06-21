@@ -6,15 +6,12 @@ import { submitCheckIn, type CheckInResult } from "../actions";
 export function CheckInClient({
   token,
   eventTitle,
-  needsName,
   hasGeofence,
 }: {
   token: string;
   eventTitle: string;
-  needsName: boolean;
   hasGeofence: boolean;
 }) {
-  const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "locating" | "submitting">("idle");
   const [result, setResult] = useState<CheckInResult | null>(null);
 
@@ -34,7 +31,6 @@ export function CheckInClient({
 
     const fd = new FormData();
     fd.set("token", token);
-    if (name) fd.set("name", name);
 
     if (hasGeofence) {
       setStatus("locating");
@@ -78,15 +74,6 @@ export function CheckInClient({
         <h1 className="text-lg font-semibold text-gray-900">Check in</h1>
         <p className="text-sm text-gray-500">{eventTitle}</p>
       </div>
-
-      {needsName ? (
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your full name"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-        />
-      ) : null}
 
       {result && !result.ok ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
