@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { sendWelcomeEmail } from "@/lib/email";
+import { isGovEmail, GOV_EMAIL_ERROR } from "@/lib/govEmail";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import type { MinistryRole } from "@/generated/prisma/enums";
@@ -34,6 +35,11 @@ export async function createUser(
 
     if (!name || !email || !role) {
       return { error: "All fields are required" };
+    }
+
+    // Platform access is government-only — reject non-.gov.sl emails.
+    if (!isGovEmail(email)) {
+      return { error: GOV_EMAIL_ERROR };
     }
 
     // Check if user exists

@@ -9,11 +9,11 @@ const prisma = new PrismaClient({
 });
 
 const USERS: { email: string; name: string; role: MinistryRole }[] = [
-  { email: "minister@ministry.gov", name: "Hon. Arthur Vance", role: "MINISTER" },
-  { email: "ps@ministry.gov", name: "Permanent Secretary", role: "PERMANENT_SECRETARY" },
-  { email: "deputy.minister@ministry.gov", name: "Deputy Minister", role: "DEPUTY_MINISTER" },
-  { email: "ds@ministry.gov", name: "Deputy Secretary", role: "DEPUTY_SECRETARY" },
-  { email: "admin@ministry.gov", name: "Clara Jenkins (Admin)", role: "ADMIN" },
+  { email: "minister@ministry.gov.sl", name: "Hon. Arthur Vance", role: "MINISTER" },
+  { email: "ps@ministry.gov.sl", name: "Permanent Secretary", role: "PERMANENT_SECRETARY" },
+  { email: "deputy.minister@ministry.gov.sl", name: "Deputy Minister", role: "DEPUTY_MINISTER" },
+  { email: "ds@ministry.gov.sl", name: "Deputy Secretary", role: "DEPUTY_SECRETARY" },
+  { email: "admin@ministry.gov.sl", name: "Clara Jenkins (Admin)", role: "ADMIN" },
 ];
 
 async function main() {
