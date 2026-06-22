@@ -76,10 +76,24 @@ export function Sidebar({
             Profile
           </NavLink>
           {isSuperAdminUser && (
-            <NavLink href="/admin/ministries">
-              <Building2 className="h-4 w-4 text-white" />
-              Manage Ministries
-            </NavLink>
+            <>
+              <NavLink href="/admin">
+                <BarChart3 className="h-4 w-4 text-white" />
+                Platform Overview
+              </NavLink>
+              <NavLink href="/admin/ministries">
+                <Building2 className="h-4 w-4 text-white" />
+                Manage Ministries
+              </NavLink>
+              <NavLink href="/admin/users">
+                <Users className="h-4 w-4 text-white" />
+                Manage Users
+              </NavLink>
+              <NavLink href="/reports">
+                <BarChart3 className="h-4 w-4 text-white" />
+                Reports
+              </NavLink>
+            </>
           )}
           {user.role === "ADMIN" && (
             <>
