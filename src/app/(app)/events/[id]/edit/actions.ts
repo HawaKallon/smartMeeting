@@ -1,90 +1,238 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireStaffRole } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
+import { findSlotConflict, materializeOccurrences } from "@/lib/events";
+import { generateOccurrences, MAX_OCCURRENCES } from "@/lib/recurrence";
+import type {
+  EventType,
+  Classification,
+  RecurrenceFrequency,
+  RecurrenceEndType,
+} from "@/generated/prisma/enums";
+
+type Scope = "THIS" | "FUTURE" | "ALL";
+
+function fmt(d: Date) {
+  return d.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+}
 
 export async function updateEvent(
   _: unknown,
   formData: FormData,
 ): Promise<{ ok?: boolean; error?: string }> {
-  try {
-    const user = await requireStaffRole();
-    const eventId = formData.get("eventId") as string;
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const startAt = new Date(formData.get("startAt") as string);
-    const endAt = new Date(formData.get("endAt") as string);
-    const roomId = (formData.get("roomId") as string) || null;
-    const type = formData.get("type") as string;
-    const classification = formData.get("classification") as string;
+  const user = await requireStaffRole();
+  const eventId = formData.get("eventId") as string;
+  const title = formData.get("title") as string;
+  const description = formData.get("description") as string;
+  const startAt = new Date(formData.get("startAt") as string);
+  const endAt = new Date(formData.get("endAt") as string);
+  const roomId = (formData.get("roomId") as string) || null;
+  const type = formData.get("type") as string;
+  const classification = formData.get("classification") as string;
+  const scope = ((formData.get("editScope") as string) || "THIS") as Scope;
+  const editPattern = formData.get("editPattern") === "true";
 
-    if (!eventId || !title) {
-      return { error: "Event ID and title are required" };
-    }
+  if (!eventId || !title) return { error: "Event ID and title are required" };
+  if (endAt <= startAt) return { error: "End time must be after start time" };
 
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true, organizerId: true, startAt: true },
+  const anchor = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: {
+      id: true,
+      organizerId: true,
+      startAt: true,
+      seriesId: true,
+      venueName: true,
+      venueLat: true,
+      venueLng: true,
+      geofenceRadius: true,
+      colorCategory: true,
+    },
+  });
+  if (!anchor || anchor.organizerId !== user.id) {
+    return { error: "You do not have permission to edit this event" };
+  }
+
+  // ── Change the repeat pattern: regenerate occurrences from the anchor. ──
+  if (editPattern && anchor.seriesId) {
+    const freq = formData.get("recurrenceFreq") as string;
+    if (!freq || freq === "NONE") return { error: "Choose a repeat frequency." };
+    const interval = Math.max(1, parseInt(String(formData.get("recurrenceInterval") ?? "1"), 10) || 1);
+    const endType = formData.get("recurrenceEndType") as string;
+    const count = formData.get("recurrenceCount") ? parseInt(String(formData.get("recurrenceCount")), 10) : undefined;
+    const untilStr = formData.get("recurrenceUntil") as string;
+    const until = untilStr ? new Date(untilStr) : undefined;
+    const patternScope = ((formData.get("patternScope") as string) || "FUTURE") as "FUTURE" | "ALL";
+
+    if (!endType) return { error: "Choose how the repeat ends." };
+    if (endType === "COUNT" && !count) return { error: "Enter how many times it repeats." };
+    if (endType === "UNTIL" && !until) return { error: "Choose an end date for the repeat." };
+
+    const slots = generateOccurrences({
+      startAt,
+      endAt,
+      frequency: freq as RecurrenceFrequency,
+      interval,
+      endType: endType as RecurrenceEndType,
+      count,
+      until,
     });
-
-    if (!event || event.organizerId !== user.id) {
-      return { error: "You do not have permission to edit this event" };
+    if (slots.length === 0) return { error: "This repeat produces no dates — check the end condition." };
+    if (slots.length >= MAX_OCCURRENCES) {
+      return { error: `Too many occurrences (max ${MAX_OCCURRENCES}). Use a nearer end date or fewer repeats.` };
     }
 
-    if (endAt <= startAt) {
-      return { error: "End time must be after start time" };
-    }
-
-    // Check room availability if room selected
     let room = null;
     if (roomId) {
-      const roomConflict = await prisma.roomBooking.findFirst({
-        where: {
-          roomId,
-          status: "CONFIRMED",
-          OR: [
-            {
-              startTime: { lt: endAt },
-              endTime: { gt: startAt },
-            },
-          ],
+      room = await prisma.room.findUnique({ where: { id: roomId }, select: { latitude: true, longitude: true } });
+    }
+
+    // Block on any room clash (siblings in this series don't count).
+    for (const s of slots) {
+      const reason = await findSlotConflict({
+        roomId,
+        venueName: anchor.venueName,
+        startAt: s.startAt,
+        endAt: s.endAt,
+        excludeSeriesId: anchor.seriesId,
+      });
+      if (reason) return { error: `Cannot update — ${fmt(s.startAt)} clashes: ${reason}` };
+    }
+
+    // Carry the current invitee list onto every regenerated occurrence.
+    const attendees = await prisma.eventAttendee.findMany({
+      where: { eventId: anchor.id },
+      select: { userId: true, externalEmail: true, externalName: true },
+    });
+    const invitees = attendees.map((a) => ({
+      email: a.externalEmail ?? "",
+      name: a.externalName ?? "",
+      userId: a.userId,
+    }));
+
+    const base = {
+      title,
+      description,
+      type: type as EventType,
+      classification: classification as Classification,
+      roomId,
+      venueName: anchor.venueName,
+      venueLat: room?.latitude ?? anchor.venueLat,
+      venueLng: room?.longitude ?? anchor.venueLng,
+      geofenceRadius: anchor.geofenceRadius,
+      colorCategory: anchor.colorCategory,
+      organizerId: anchor.organizerId,
+    };
+
+    const deleteWhere =
+      patternScope === "ALL"
+        ? { seriesId: anchor.seriesId }
+        : { seriesId: anchor.seriesId, startAt: { gte: anchor.startAt } };
+
+    const firstId = await prisma.$transaction(async (tx) => {
+      await tx.eventSeries.update({
+        where: { id: anchor.seriesId! },
+        data: {
+          frequency: freq as RecurrenceFrequency,
+          interval,
+          endType: endType as RecurrenceEndType,
+          count: count ?? null,
+          until: until ?? null,
         },
       });
+      await tx.event.deleteMany({ where: deleteWhere });
+      return materializeOccurrences(tx, { slots, seriesId: anchor.seriesId, base, invitees });
+    });
 
-      if (roomConflict) {
-        return { error: "Selected room is already booked for this time." };
-      }
+    await audit({
+      actorId: user.id,
+      action: "UPDATE_EVENT_PATTERN",
+      entityType: "Event",
+      entityId: firstId,
+      metadata: { title, patternScope, frequency: freq, occurrences: slots.length },
+    });
 
-      // Fetch room to copy coordinates.
+    revalidatePath("/calendar");
+    revalidatePath("/");
+    redirect(`/events/${firstId}`);
+  }
+
+  const event = anchor;
+  try {
+
+    // Resolve which occurrences this edit applies to.
+    let targets: { id: string; startAt: Date }[];
+    if (event.seriesId && (scope === "FUTURE" || scope === "ALL")) {
+      targets = await prisma.event.findMany({
+        where: {
+          seriesId: event.seriesId,
+          ...(scope === "FUTURE" ? { startAt: { gte: event.startAt } } : {}),
+        },
+        select: { id: true, startAt: true },
+        orderBy: { startAt: "asc" },
+      });
+    } else {
+      targets = [{ id: event.id, startAt: event.startAt }];
+    }
+
+    // FUTURE/ALL keep each occurrence's own date and only shift the time-of-day;
+    // THIS moves the single occurrence to the submitted date+time.
+    const preserveDates = scope !== "THIS";
+    const durationMs = endAt.getTime() - startAt.getTime();
+
+    let room = null;
+    if (roomId) {
       room = await prisma.room.findUnique({
         where: { id: roomId },
         select: { latitude: true, longitude: true },
       });
     }
 
-    // Copy room coordinates to event if room has them.
-    const updateData: any = {
-      title,
-      description,
-      startAt,
-      endAt,
-      roomId,
-      type: type as any,
-      classification: classification as any,
-    };
-    if (room?.latitude != null && room?.longitude != null) {
-      updateData.venueLat = room.latitude;
-      updateData.venueLng = room.longitude;
-    }
-    // Re-arm the 1h-before reminder if the meeting was rescheduled.
-    if (event.startAt.getTime() !== startAt.getTime()) {
-      updateData.reminderSentAt = null;
+    // Compute new times per target and block on any room clash.
+    const updates: { id: string; startAt: Date; endAt: Date; reschedule: boolean }[] = [];
+    for (const t of targets) {
+      const ns = preserveDates
+        ? new Date(t.startAt.getFullYear(), t.startAt.getMonth(), t.startAt.getDate(), startAt.getHours(), startAt.getMinutes(), 0, 0)
+        : startAt;
+      const ne = preserveDates ? new Date(ns.getTime() + durationMs) : endAt;
+
+      const reason = await findSlotConflict({
+        roomId,
+        venueName: null,
+        startAt: ns,
+        endAt: ne,
+        excludeEventId: t.id,
+        excludeSeriesId: event.seriesId ?? undefined,
+      });
+      if (reason) return { error: `Cannot update — ${fmt(ns)} clashes: ${reason}` };
+
+      updates.push({ id: t.id, startAt: ns, endAt: ne, reschedule: t.startAt.getTime() !== ns.getTime() });
     }
 
-    await prisma.event.update({
-      where: { id: eventId },
-      data: updateData,
+    await prisma.$transaction(async (tx) => {
+      for (const u of updates) {
+        await tx.event.update({
+          where: { id: u.id },
+          data: {
+            title,
+            description,
+            type: type as EventType,
+            classification: classification as Classification,
+            roomId,
+            startAt: u.startAt,
+            endAt: u.endAt,
+            ...(room?.latitude != null && room?.longitude != null
+              ? { venueLat: room.latitude, venueLng: room.longitude }
+              : {}),
+            // Re-arm the 1h-before reminder for any rescheduled occurrence.
+            ...(u.reschedule ? { reminderSentAt: null } : {}),
+          },
+        });
+      }
     });
 
     await audit({
@@ -92,12 +240,53 @@ export async function updateEvent(
       action: "UPDATE_EVENT",
       entityType: "Event",
       entityId: eventId,
-      metadata: { title },
+      metadata: { title, scope, count: updates.length },
     });
 
+    revalidatePath("/calendar");
+    revalidatePath("/");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update event:", err);
     return { error: "Failed to update event" };
+  }
+}
+
+/** Cancel/delete an event, or a scope of its series. Cascades clear per-event data. */
+export async function deleteEvent(
+  eventId: string,
+  scope: Scope = "THIS",
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireStaffRole();
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, organizerId: true, startAt: true, seriesId: true },
+    });
+    if (!event || event.organizerId !== user.id) {
+      return { error: "You do not have permission to cancel this event" };
+    }
+
+    const where =
+      event.seriesId && (scope === "FUTURE" || scope === "ALL")
+        ? { seriesId: event.seriesId, ...(scope === "FUTURE" ? { startAt: { gte: event.startAt } } : {}) }
+        : { id: eventId };
+
+    const res = await prisma.event.deleteMany({ where });
+
+    await audit({
+      actorId: user.id,
+      action: "DELETE_EVENT",
+      entityType: "Event",
+      entityId: eventId,
+      metadata: { scope, count: res.count },
+    });
+
+    revalidatePath("/calendar");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to cancel event:", err);
+    return { error: "Failed to cancel event" };
   }
 }

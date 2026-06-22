@@ -9,7 +9,9 @@ import { COLOR_META } from "@/lib/colors";
 import { RsvpButtons } from "./RsvpButtons";
 import { BackButton } from "@/components/BackButton";
 // import { AudioPlayer } from "@/components/AudioPlayer";
-import { Calendar, MapPin, Users, Download, Edit, FileText, Zap } from "lucide-react";
+import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Repeat } from "lucide-react";
+import { describeRecurrence } from "@/lib/recurrence";
+import { CancelEventButton } from "./CancelEventButton";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
 
@@ -31,6 +33,7 @@ export default async function EventDetailPage({
         orderBy: { createdAt: "desc" },
         include: { transcript: true },
       },
+      series: true,
       _count: { select: { attendees: true, attendances: true } },
     },
   });
@@ -52,9 +55,15 @@ export default async function EventDetailPage({
       <div className="flex items-start justify-between flex-shrink-0">
         <div className="flex-1">
           <h1 className="text-3xl font-bold text-foreground">{event.title}</h1>
-          <p className="mt-2 flex items-center gap-2 text-muted-foreground">
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
             <span className="capitalize">{event.type.toLowerCase()}</span> •
             <span>By {event.organizer.name ?? event.organizer.email}</span>
+            {event.series && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground/80">
+                <Repeat className="h-3 w-3" />
+                {describeRecurrence(event.series)}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -66,6 +75,9 @@ export default async function EventDetailPage({
               <Edit className="h-4 w-4" />
               Edit
             </Link>
+          )}
+          {isAdmin && event.organizerId === user.id && (
+            <CancelEventButton eventId={id} isSeries={!!event.seriesId} />
           )}
           <button className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
             <Download className="h-4 w-4" />

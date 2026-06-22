@@ -4,6 +4,7 @@ import { useActionState, useState, useRef, KeyboardEvent } from "react";
 import { createEvent, type ActionState } from "../actions";
 import { RoomSchedulePreview } from "./RoomSchedulePreview";
 import { DateTimePicker } from "@/components/DateTimePicker";
+import { RecurrenceFields } from "@/components/RecurrenceFields";
 import { X } from "lucide-react";
 
 const field = "mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
@@ -115,6 +116,9 @@ export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?:
           <DateTimePicker name="endAt" value={endAt} onChange={setEndAt} required />
         </div>
       </div>
+
+      {/* Recurrence */}
+      <RecurrenceFields />
 
       {/* Hidden geofence fields */}
       <input type="hidden" name="geofenceRadius" value="100" />
