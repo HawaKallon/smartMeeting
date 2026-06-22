@@ -141,6 +141,7 @@ model User {
   autoDeleteRecordings      Boolean @default(false)
 
   organizedEvents Event[]         @relation("EventOrganizer")
+  coOrganizedEvents Event[]       @relation("EventCoOrganizers")
   eventSeries     EventSeries[]   @relation("SeriesOrganizer")
   attendeeOf      EventAttendee[]
   attendances     Attendance[]
@@ -170,6 +171,7 @@ model Event {
   roomId         String?
   organizerId    String
   organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
+  coOrganizers   User[]         @relation("EventCoOrganizers") // helpers who can also manage the event
   room           Room?          @relation("EventRoom", fields: [roomId], references: [id])
   reminderSentAt DateTime? // set once the 1h-before-start reminder has been emailed (idempotency)
   seriesId       String? // links recurring occurrences to their EventSeries

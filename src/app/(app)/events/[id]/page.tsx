@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canManageEvents, canApproveMinutes } from "@/lib/roles";
+import { canManageEvents, canApproveMinutes, canManageEvent, canReassignEvent } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
+import { ManageCoOrganizers } from "./ManageCoOrganizers";
 // import { Uploader } from "./recordings/Uploader";
 // import { MeetingRecorder } from "./recordings/MeetingRecorder";
 import { RsvpButtons } from "./RsvpButtons";
@@ -27,6 +28,7 @@ export default async function EventDetailPage({
     where: { id },
     include: {
       organizer: { select: { name: true, email: true } },
+      coOrganizers: { select: { id: true, name: true, email: true } },
       room: { select: { id: true, name: true, location: true, capacity: true } },
       attendances: { orderBy: { checkInAt: "desc" } },
       recordings: {
@@ -41,6 +43,29 @@ export default async function EventDetailPage({
 
   const isAdmin = canManageEvents(user.role);
   const canViewMinutes = isAdmin || canApproveMinutes(user.role);
+
+  const coOrganizerIds = event.coOrganizers.map((c) => c.id);
+  const eventPerm = {
+    ministryId: event.ministryId,
+    organizerId: event.organizerId,
+    coOrganizerIds,
+  };
+  const canManage = canManageEvent(user, eventPerm);
+  const canReassign = canReassignEvent(user, eventPerm);
+
+  // Eligible co-organizer candidates: same-ministry users who aren't already
+  // the organizer or a co-organizer (only needed when the viewer can reassign).
+  const candidates = canReassign
+    ? await prisma.user.findMany({
+        where: {
+          ministryId: event.ministryId,
+          role: { not: "SUPER_ADMIN" },
+          id: { notIn: [event.organizerId, ...coOrganizerIds] },
+        },
+        select: { id: true, name: true, email: true },
+        orderBy: [{ name: "asc" }, { email: "asc" }],
+      })
+    : [];
 
   const myInvite = await prisma.eventAttendee.findUnique({
     where: { eventId_userId: { eventId: id, userId: user.id } },
@@ -57,7 +82,11 @@ export default async function EventDetailPage({
           <h1 className="text-3xl font-bold text-foreground">{event.title}</h1>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
             <span className="capitalize">{event.type.toLowerCase()}</span> •
-            <span>By {event.organizer.name ?? event.organizer.email}</span>
+            <span>
+              By {event.organizer.name ?? event.organizer.email}
+              {event.coOrganizers.length > 0 &&
+                ` + ${event.coOrganizers.map((c) => c.name ?? c.email).join(", ")}`}
+            </span>
             {event.series && (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground/80">
                 <Repeat className="h-3 w-3" />
@@ -67,7 +96,7 @@ export default async function EventDetailPage({
           </p>
         </div>
         <div className="flex gap-2">
-          {isAdmin && (
+          {canManage && (
             <Link
               href={`/events/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
@@ -76,7 +105,7 @@ export default async function EventDetailPage({
               Edit
             </Link>
           )}
-          {isAdmin && event.organizerId === user.id && (
+          {canManage && (
             <CancelEventButton eventId={id} isSeries={!!event.seriesId} />
           )}
           <button className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
@@ -121,6 +150,40 @@ export default async function EventDetailPage({
           value={`${event._count.attendances}/${event._count.attendees} checked in`}
         />
       </div>
+
+      {/* Organizers / co-organizers */}
+      {(canReassign || event.coOrganizers.length > 0) && (
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <Users className="h-4 w-4" />
+            Organizers
+          </h2>
+          <p className="mb-4 text-sm text-foreground">
+            <span className="font-medium">{event.organizer.name ?? event.organizer.email}</span>
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              Organizer
+            </span>
+          </p>
+          {canReassign ? (
+            <ManageCoOrganizers
+              eventId={id}
+              coOrganizers={event.coOrganizers}
+              candidates={candidates}
+            />
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {event.coOrganizers.map((c) => (
+                <span
+                  key={c.id}
+                  className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground/80"
+                >
+                  {c.name ?? c.email}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Description */}
       {event.description && (
