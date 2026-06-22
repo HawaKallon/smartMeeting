@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { canViewMinistrySchedule, canManageEvents } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
 import { BackButton } from "@/components/BackButton";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Users, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MapPin, Users, Plus, Repeat } from "lucide-react";
 
 export default async function CalendarDayPage({
   searchParams,
@@ -154,6 +154,9 @@ export default async function CalendarDayPage({
                       <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-400 transition-colors">
                         {event.title}
                       </h3>
+                      {event.seriesId && (
+                        <Repeat className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Recurring" />
+                      )}
                     </div>
 
                     {event.description && (
