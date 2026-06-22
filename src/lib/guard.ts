@@ -35,6 +35,21 @@ export async function assertStaffRole() {
   return assertRole("ADMIN_STAFF", "ADMIN");
 }
 
+/** Page guard: platform super-admin only. */
+export async function requireSuperAdmin() {
+  const user = await requireUser();
+  if (!isSuperAdmin(user.role)) redirect("/forbidden");
+  return user;
+}
+
+/** Action guard: platform super-admin only. */
+export async function assertSuperAdmin() {
+  const session = await auth();
+  if (!session?.user) throw new Error("UNAUTHENTICATED");
+  if (!isSuperAdmin(session.user.role)) throw new Error("FORBIDDEN");
+  return session.user;
+}
+
 /** Scope helper: returns where clause for ministry filtering. Super-admins bypass filtering. */
 export function ministryScope(user: { role: MinistryRole; ministryId: string | null }) {
   if (isSuperAdmin(user.role)) return {};

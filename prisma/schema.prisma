@@ -101,12 +101,13 @@ enum RoomBookingStatus {
 // ── Core models ─────────────────────────────────────────────────────────────
 
 model Ministry {
-  id        String   @id @default(cuid())
-  name      String   @unique // e.g. "Ministry of Health"
-  code      String   @unique // short slug, e.g. "MOH"
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g. "Ministry of Health"
+  code        String   @unique // short slug, e.g. "MOH"
+  emailDomain String?  @unique // gov.sl subdomain that maps logins to this ministry, e.g. "mocti.gov.sl"
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   users        User[]
   events       Event[]
@@ -124,6 +125,7 @@ model User {
   role          MinistryRole @default(DEPUTY_SECRETARY)
   ministryId    String? // null for SUPER_ADMIN users
   ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  active        Boolean      @default(true) // deactivated users cannot log in
   emailVerified DateTime?
   image         String?
   createdAt     DateTime     @default(now())

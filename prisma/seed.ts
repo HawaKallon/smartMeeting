@@ -8,9 +8,11 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const MINISTRIES: { code: string; name: string }[] = [
-  { code: "MOH", name: "Ministry of Health" },
-  { code: "MOE", name: "Ministry of Education" },
+// Each ministry owns a distinct gov.sl subdomain; logins are routed to the
+// ministry whose emailDomain matches the user's email (see src/auth.ts).
+const MINISTRIES: { code: string; name: string; emailDomain: string }[] = [
+  { code: "MOH", name: "Ministry of Health", emailDomain: "moh.gov.sl" },
+  { code: "MOE", name: "Ministry of Education", emailDomain: "moe.gov.sl" },
 ];
 
 const MINISTRY_USERS: {
@@ -19,17 +21,19 @@ const MINISTRY_USERS: {
   role: MinistryRole;
   ministryCode: string;
 }[] = [
-  // MOH
-  { email: "minister@ministry.gov.sl", name: "Hon. Arthur Vance", role: "MINISTER", ministryCode: "MOH" },
-  { email: "ps@ministry.gov.sl", name: "Permanent Secretary", role: "PERMANENT_SECRETARY", ministryCode: "MOH" },
-  { email: "deputy.minister@ministry.gov.sl", name: "Deputy Minister", role: "DEPUTY_MINISTER", ministryCode: "MOH" },
-  { email: "ds@ministry.gov.sl", name: "Deputy Secretary", role: "DEPUTY_SECRETARY", ministryCode: "MOH" },
-  { email: "admin.staff@ministry.gov.sl", name: "John Smith (Admin Staff)", role: "ADMIN_STAFF", ministryCode: "MOH" },
+  // MOH (@moh.gov.sl)
+  { email: "admin@moh.gov.sl", name: "MOH Admin", role: "ADMIN", ministryCode: "MOH" },
+  { email: "minister@moh.gov.sl", name: "Hon. Arthur Vance", role: "MINISTER", ministryCode: "MOH" },
+  { email: "ps@moh.gov.sl", name: "Permanent Secretary", role: "PERMANENT_SECRETARY", ministryCode: "MOH" },
+  { email: "deputy.minister@moh.gov.sl", name: "Deputy Minister", role: "DEPUTY_MINISTER", ministryCode: "MOH" },
+  { email: "ds@moh.gov.sl", name: "Deputy Secretary", role: "DEPUTY_SECRETARY", ministryCode: "MOH" },
+  { email: "admin.staff@moh.gov.sl", name: "John Smith (Admin Staff)", role: "ADMIN_STAFF", ministryCode: "MOH" },
 
-  // MOE
-  { email: "minister.moe@ministry.gov.sl", name: "Dr. Sarah Johnson", role: "MINISTER", ministryCode: "MOE" },
-  { email: "ps.moe@ministry.gov.sl", name: "PS Education", role: "PERMANENT_SECRETARY", ministryCode: "MOE" },
-  { email: "ds.moe@ministry.gov.sl", name: "DS Education", role: "DEPUTY_SECRETARY", ministryCode: "MOE" },
+  // MOE (@moe.gov.sl)
+  { email: "admin@moe.gov.sl", name: "MOE Admin", role: "ADMIN", ministryCode: "MOE" },
+  { email: "minister@moe.gov.sl", name: "Dr. Sarah Johnson", role: "MINISTER", ministryCode: "MOE" },
+  { email: "ps@moe.gov.sl", name: "PS Education", role: "PERMANENT_SECRETARY", ministryCode: "MOE" },
+  { email: "ds@moe.gov.sl", name: "DS Education", role: "DEPUTY_SECRETARY", ministryCode: "MOE" },
 ];
 
 const SUPER_ADMIN_USERS: { email: string; name: string; role: "SUPER_ADMIN" }[] = [
@@ -57,8 +61,8 @@ async function main() {
   for (const m of MINISTRIES) {
     const ministry = await prisma.ministry.upsert({
       where: { code: m.code },
-      update: {},
-      create: { code: m.code, name: m.name },
+      update: { emailDomain: m.emailDomain },
+      create: { code: m.code, name: m.name, emailDomain: m.emailDomain },
     });
     ministryMap[m.code] = ministry.id;
     console.log(`  ✓ ${m.name} (${m.code})`);
