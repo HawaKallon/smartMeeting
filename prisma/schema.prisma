@@ -28,6 +28,18 @@ enum EventType {
   APPOINTMENT
 }
 
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  WEEKDAYS
+  MONTHLY
+}
+
+enum RecurrenceEndType {
+  COUNT
+  UNTIL
+}
+
 /// Letter / invitation color category (PRD §6.5).
 enum ColorCategory {
   RED // urgent / cabinet
@@ -108,6 +120,7 @@ model User {
   autoDeleteRecordings      Boolean @default(false)
 
   organizedEvents Event[]         @relation("EventOrganizer")
+  eventSeries     EventSeries[]   @relation("SeriesOrganizer")
   attendeeOf      EventAttendee[]
   attendances     Attendance[]
   actionItems     ActionItem[]    @relation("ActionItemOwner")
@@ -136,6 +149,8 @@ model Event {
   organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
   room           Room?          @relation("EventRoom", fields: [roomId], references: [id])
   reminderSentAt DateTime? // set once the 1h-before-start reminder has been emailed (idempotency)
+  seriesId       String? // links recurring occurrences to their EventSeries
+  series         EventSeries?   @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -148,6 +163,23 @@ model Event {
 
   @@index([startAt])
   @@index([organizerId])
+  @@index([seriesId])
+}
+
+// PRD §6 — a recurring meeting series. Each occurrence is a full Event row
+// (own check-in/QR/minutes); this record stores the rule that generated them.
+model EventSeries {
+  id          String              @id @default(cuid())
+  frequency   RecurrenceFrequency
+  interval    Int                 @default(1) // every N (days/weeks/months)
+  endType     RecurrenceEndType
+  count       Int? // when endType = COUNT
+  until       DateTime? // when endType = UNTIL
+  organizerId String
+  organizer   User                @relation("SeriesOrganizer", fields: [organizerId], references: [id])
+  createdAt   DateTime            @default(now())
+
+  events Event[]
 }
 
 model EventAttendee {
