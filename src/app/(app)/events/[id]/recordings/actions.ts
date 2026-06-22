@@ -5,7 +5,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole } from "@/lib/guard";
+import { assertStaffRole, ministryScope } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { transcribeFile } from "@/lib/transcription";
 
@@ -28,8 +28,10 @@ export async function uploadRecording(formData: FormData): Promise<UploadResult>
     return { ok: false, error: "File too large (max 100 MB)." };
   }
 
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
-  if (!event) return { ok: false, error: "Event not found." };
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, ...ministryScope(admin) },
+  });
+  if (!event) return { ok: false, error: "Event not found or you don't have access." };
 
   const ext = path.extname(file.name).toLowerCase();
   if (!ALLOWED.includes(ext)) {
@@ -58,6 +60,7 @@ export async function uploadRecording(formData: FormData): Promise<UploadResult>
     entityType: "Recording",
     entityId: recording.id,
     metadata: { eventId, fileName: file.name, bytes: file.size },
+    ministryId: admin.ministryId,
   });
 
   // Transcribe. Done inline here; structured so it can move to a worker/queue
@@ -77,6 +80,7 @@ export async function uploadRecording(formData: FormData): Promise<UploadResult>
       entityType: "Recording",
       entityId: recording.id,
       metadata: { provider, segmentCount: segments.length },
+      ministryId: admin.ministryId,
     });
   } catch (err) {
     await prisma.recording.update({

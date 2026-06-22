@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/guard";
+import { requireUser, assertStaffRole } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 
@@ -10,11 +10,7 @@ export async function createRoom(
   formData: FormData,
 ): Promise<{ ok?: boolean; error?: string }> {
   try {
-    const user = await requireUser();
-
-    if (user.role !== "ADMIN") {
-      return { error: "You do not have permission to create rooms" };
-    }
+    const user = await assertStaffRole();
 
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
@@ -32,8 +28,13 @@ export async function createRoom(
     const latitude = formData.get("latitude") as string;
     const longitude = formData.get("longitude") as string;
 
+    if (!user.ministryId) {
+      return { error: "Cannot create rooms without a ministry context" };
+    }
+
     const room = await prisma.room.create({
       data: {
+        ministryId: user.ministryId,
         name,
         location,
         capacity,
@@ -49,6 +50,7 @@ export async function createRoom(
       entityType: "Room",
       entityId: room.id,
       metadata: { name, location, capacity },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/rooms");

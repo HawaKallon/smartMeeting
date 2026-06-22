@@ -1,6 +1,7 @@
 "use server";
 
 import { requireUser } from "@/lib/guard";
+import { isSuperAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
@@ -23,8 +24,8 @@ export async function createUser(
   try {
     const user = await requireUser();
 
-    // Only ADMIN can create users
-    if (user.role !== "ADMIN") {
+    // Only ADMIN or SUPER_ADMIN can create users
+    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
       return { error: "You do not have permission to create users" };
     }
 
@@ -32,9 +33,21 @@ export async function createUser(
     // Normalize to match how auth.ts looks users up at login (lowercase + trim).
     const email = (formData.get("email") as string)?.toLowerCase().trim();
     const role = formData.get("role") as string;
+    const ministryIdParam = formData.get("ministryId") as string;
 
     if (!name || !email || !role) {
       return { error: "All fields are required" };
+    }
+
+    // Super-admin can choose any ministry; regular admins use their own
+    let targetMinistryId = ministryIdParam;
+    if (!isSuperAdmin(user.role)) {
+      if (!user.ministryId) {
+        return { error: "Cannot create users without a ministry context" };
+      }
+      targetMinistryId = user.ministryId;
+    } else if (!targetMinistryId) {
+      return { error: "Ministry is required" };
     }
 
     // Platform access is government-only — reject non-.gov.sl emails.
@@ -61,6 +74,7 @@ export async function createUser(
         name,
         email,
         role: role as MinistryRole,
+        ministryId: targetMinistryId,
         passwordHash,
       },
     });
@@ -76,6 +90,7 @@ export async function createUser(
       entityType: "User",
       entityId: newUser.id,
       metadata: { name, email, role, emailSent },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/admin/users");
@@ -90,8 +105,8 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
   try {
     const user = await requireUser();
 
-    // Only ADMIN can delete users
-    if (user.role !== "ADMIN") {
+    // Only ADMIN or SUPER_ADMIN can delete users
+    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
       return { error: "You do not have permission to delete users" };
     }
 
@@ -102,11 +117,16 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
 
     const userToDelete = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, ministryId: true },
     });
 
     if (!userToDelete) {
       return { error: "User not found" };
+    }
+
+    // Regular admins can only delete users from their own ministry
+    if (user.role === "ADMIN" && user.ministryId !== userToDelete.ministryId) {
+      return { error: "You can only delete users from your own ministry" };
     }
 
     // Delete user (will cascade delete related records due to onDelete: Cascade)
@@ -121,6 +141,7 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
       entityType: "User",
       entityId: userId,
       metadata: { email: userToDelete.email, name: userToDelete.name },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/admin/users");

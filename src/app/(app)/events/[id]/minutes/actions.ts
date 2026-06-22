@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertRole, assertStaffRole } from "@/lib/guard";
+import { assertRole, assertStaffRole, ministryScope, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
 import { sendMinutesSms, sendActionItemSms } from "@/lib/sms";
@@ -37,12 +37,21 @@ export async function generateMinutesSummary(
 
   const { eventId } = parsed.data;
 
-  const existing = await prisma.minutes.findUnique({ where: { eventId } });
+  // Verify event belongs to user's ministry
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, ...ministryScope(admin) },
+    select: { id: true },
+  });
+  if (!event) return { error: "Event not found or you don't have access." };
+
+  const existing = await prisma.minutes.findFirst({
+    where: { eventId, event: ministryScope(admin) },
+  });
   if (existing?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
   // Pull the meeting notes (body) from the minutes record.
-  const minutes = await prisma.minutes.findUnique({
-    where: { eventId },
+  const minutes = await prisma.minutes.findFirst({
+    where: { eventId, event: ministryScope(admin) },
     select: { body: true },
   });
   if (!minutes) return { error: "No meeting notes found to summarize." };
@@ -72,6 +81,7 @@ export async function generateMinutesSummary(
     entityType: "Minutes",
     entityId: updatedMinutes.id,
     metadata: { eventId },
+    ministryId: admin.ministryId,
   });
 
   revalidatePath(`/events/${eventId}/minutes`);
