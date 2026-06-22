@@ -9,6 +9,7 @@ export const MINISTRY_ROLES = [
   "DEPUTY_SECRETARY",
   "ADMIN_STAFF",
   "ADMIN",
+  "SUPER_ADMIN",
 ] as const;
 
 export const ROLE_LABELS: Record<MinistryRole, string> = {
@@ -18,6 +19,7 @@ export const ROLE_LABELS: Record<MinistryRole, string> = {
   DEPUTY_SECRETARY: "Deputy Secretary",
   ADMIN_STAFF: "Admin Staff",
   ADMIN: "Admin",
+  SUPER_ADMIN: "Super Admin",
 };
 
 /**
@@ -47,4 +49,9 @@ export function canViewMinistrySchedule(role: MinistryRole | undefined): boolean
 /** Every authenticated ministry user can confirm/check in to attendance. */
 export function canCheckIn(role: MinistryRole | undefined): boolean {
   return role !== undefined;
+}
+
+/** Super-admin (platform-wide admin). */
+export function isSuperAdmin(role: MinistryRole | undefined): boolean {
+  return role === "SUPER_ADMIN";
 }

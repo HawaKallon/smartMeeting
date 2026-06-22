@@ -17,10 +17,12 @@ declare module "next-auth" {
       email: string;
       name?: string | null;
       role: MinistryRole;
+      ministryId: string | null;
     };
   }
   interface User {
     role: MinistryRole;
+    ministryId: string | null;
   }
 }
 
@@ -52,6 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          ministryId: user.ministryId,
         };
       },
     }),

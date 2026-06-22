@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole } from "@/lib/guard";
+import { assertStaffRole, ministryScope } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 
 export type ActionState = { error?: string; ok?: true; letterId?: string } | undefined;
@@ -33,8 +33,11 @@ export async function createLetter(
 
   const { eventId, title, body, colorCategory } = parsed.data;
 
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
-  if (!event) return { error: "Event not found." };
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, ...ministryScope(staff) },
+    select: { id: true },
+  });
+  if (!event) return { error: "Event not found or you don't have access." };
 
   const letter = await prisma.letter.create({
     data: { eventId, title, body, colorCategory },
@@ -46,6 +49,7 @@ export async function createLetter(
     entityType: "Letter",
     entityId: letter.id,
     metadata: { eventId, title, colorCategory },
+    ministryId: staff.ministryId,
   });
 
   revalidatePath(`/events/${eventId}/letters`);
@@ -79,8 +83,17 @@ export async function updateLetter(
 
   const { letterId, eventId, title, body, colorCategory } = parsed.data;
 
-  const letter = await prisma.letter.findUnique({ where: { id: letterId } });
-  if (!letter || letter.eventId !== eventId) return { error: "Letter not found." };
+  // Verify event belongs to ministry
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, ...ministryScope(staff) },
+    select: { id: true },
+  });
+  if (!event) return { error: "Event not found or you don't have access." };
+
+  const letter = await prisma.letter.findFirst({
+    where: { id: letterId, eventId },
+  });
+  if (!letter) return { error: "Letter not found." };
 
   await prisma.letter.update({
     where: { id: letterId },
@@ -93,6 +106,7 @@ export async function updateLetter(
     entityType: "Letter",
     entityId: letterId,
     metadata: { eventId, title, colorCategory },
+    ministryId: staff.ministryId,
   });
 
   revalidatePath(`/events/${eventId}/letters`);

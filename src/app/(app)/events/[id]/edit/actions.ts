@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireStaffRole } from "@/lib/guard";
+import { requireStaffRole, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
@@ -39,8 +39,11 @@ export async function updateEvent(
   if (!eventId || !title) return { error: "Event ID and title are required" };
   if (endAt <= startAt) return { error: "End time must be after start time" };
 
-  const anchor = await prisma.event.findUnique({
-    where: { id: eventId },
+  const anchor = await prisma.event.findFirst({
+    where: {
+      id: eventId,
+      ...ministryScope(user),
+    },
     select: {
       id: true,
       organizerId: true,
@@ -51,6 +54,7 @@ export async function updateEvent(
       venueLng: true,
       geofenceRadius: true,
       colorCategory: true,
+      ministryId: true,
     },
   });
   if (!anchor || anchor.organizerId !== user.id) {
@@ -88,7 +92,10 @@ export async function updateEvent(
 
     let room = null;
     if (roomId) {
-      room = await prisma.room.findUnique({ where: { id: roomId }, select: { latitude: true, longitude: true } });
+      room = await prisma.room.findFirst({
+        where: { id: roomId, ...ministryScope(user) },
+        select: { latitude: true, longitude: true },
+      });
     }
 
     // Block on any room clash (siblings in this series don't count).
@@ -126,6 +133,7 @@ export async function updateEvent(
       geofenceRadius: anchor.geofenceRadius,
       colorCategory: anchor.colorCategory,
       organizerId: anchor.organizerId,
+      ministryId: anchor.ministryId,
     };
 
     const deleteWhere =
@@ -154,6 +162,7 @@ export async function updateEvent(
       entityType: "Event",
       entityId: firstId,
       metadata: { title, patternScope, frequency: freq, occurrences: slots.length },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/calendar");
@@ -186,8 +195,8 @@ export async function updateEvent(
 
     let room = null;
     if (roomId) {
-      room = await prisma.room.findUnique({
-        where: { id: roomId },
+      room = await prisma.room.findFirst({
+        where: { id: roomId, ...ministryScope(user) },
         select: { latitude: true, longitude: true },
       });
     }
@@ -241,6 +250,7 @@ export async function updateEvent(
       entityType: "Event",
       entityId: eventId,
       metadata: { title, scope, count: updates.length },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/calendar");
@@ -259,18 +269,23 @@ export async function deleteEvent(
 ): Promise<{ ok?: boolean; error?: string }> {
   try {
     const user = await requireStaffRole();
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
+    const event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        ...ministryScope(user),
+      },
       select: { id: true, organizerId: true, startAt: true, seriesId: true },
     });
     if (!event || event.organizerId !== user.id) {
       return { error: "You do not have permission to cancel this event" };
     }
 
-    const where =
-      event.seriesId && (scope === "FUTURE" || scope === "ALL")
+    const where = {
+      ...ministryScope(user),
+      ...(event.seriesId && (scope === "FUTURE" || scope === "ALL")
         ? { seriesId: event.seriesId, ...(scope === "FUTURE" ? { startAt: { gte: event.startAt } } : {}) }
-        : { id: eventId };
+        : { id: eventId }),
+    };
 
     const res = await prisma.event.deleteMany({ where });
 
@@ -280,6 +295,7 @@ export async function deleteEvent(
       entityType: "Event",
       entityId: eventId,
       metadata: { scope, count: res.count },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/calendar");
