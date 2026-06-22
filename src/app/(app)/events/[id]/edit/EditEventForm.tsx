@@ -1,15 +1,25 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { updateEvent } from "./actions";
+import { DateTimePicker } from "@/components/DateTimePicker";
+import { RecurrenceFields } from "@/components/RecurrenceFields";
+import { describeRecurrence } from "@/lib/recurrence";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
 
 type Room = { id: string; name: string; location: string; capacity: number };
 
+function toDateInput(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  const date = new Date(d);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export function EditEventForm({ event, rooms }: { event: any; rooms: Room[] }) {
   const [state, formAction, isPending] = useActionState(updateEvent, undefined);
+  const [changePattern, setChangePattern] = useState(false);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -24,6 +34,65 @@ export function EditEventForm({ event, rooms }: { event: any; rooms: Room[] }) {
       {state?.ok && (
         <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
           Event updated successfully
+        </div>
+      )}
+
+      {event.seriesId && (
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-foreground/80">
+              Recurring meeting{event.series ? ` · ${describeRecurrence(event.series)}` : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() => setChangePattern((v) => !v)}
+              className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              {changePattern ? "Keep current pattern" : "Change repeat pattern"}
+            </button>
+          </div>
+
+          {!changePattern ? (
+            <>
+              <p className="mt-3 text-sm text-foreground/80">Apply changes to:</p>
+              <div className="mt-2 flex flex-col gap-1.5 text-sm text-foreground">
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="editScope" value="THIS" defaultChecked /> This event only
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="editScope" value="FUTURE" /> This and following events
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="editScope" value="ALL" /> All events in the series
+                </label>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                For “following” or “all”, the date stays per-occurrence — only the time and details change.
+              </p>
+            </>
+          ) : (
+            <div className="mt-3 space-y-3">
+              <input type="hidden" name="editPattern" value="true" />
+              <RecurrenceFields
+                defaultFreq={event.series?.frequency ?? "WEEKLY"}
+                defaultInterval={String(event.series?.interval ?? 1)}
+                defaultEndType={event.series?.endType ?? "COUNT"}
+                defaultCount={String(event.series?.count ?? 5)}
+                defaultUntil={toDateInput(event.series?.until)}
+              />
+              <div className="flex flex-col gap-1.5 text-sm text-foreground">
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="patternScope" value="FUTURE" defaultChecked /> This and following events
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="patternScope" value="ALL" /> Entire series
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Regenerates the selected occurrences with the new pattern (starting from this meeting’s date &amp; time). Past meetings are unchanged.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -53,23 +122,11 @@ export function EditEventForm({ event, rooms }: { event: any; rooms: Room[] }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={label}>Start Date & Time *</label>
-          <input
-            type="datetime-local"
-            name="startAt"
-            defaultValue={event.startAt?.toISOString().slice(0, 16)}
-            required
-            className={field}
-          />
+          <DateTimePicker name="startAt" defaultValue={event.startAt?.toISOString().slice(0, 16)} required />
         </div>
         <div>
           <label className={label}>End Date & Time *</label>
-          <input
-            type="datetime-local"
-            name="endAt"
-            defaultValue={event.endAt?.toISOString().slice(0, 16)}
-            required
-            className={field}
-          />
+          <DateTimePicker name="endAt" defaultValue={event.endAt?.toISOString().slice(0, 16)} required />
         </div>
       </div>
 

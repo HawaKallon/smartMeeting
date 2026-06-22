@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { isGovEmail } from "@/lib/govEmail";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import authConfig from "./auth.config";
 
@@ -35,6 +36,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = String(credentials?.email ?? "").toLowerCase().trim();
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
+
+        // Platform access is government-only — block non-.gov.sl logins even if
+        // a legacy account record happens to exist.
+        if (!isGovEmail(email)) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.passwordHash) return null;

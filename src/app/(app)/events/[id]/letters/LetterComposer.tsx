@@ -4,8 +4,8 @@ import { useActionState, useState } from "react";
 import { createLetter, updateLetter, type ActionState } from "./actions";
 
 const field =
-  "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-gray-900 focus:outline-none";
-const label = "block text-sm font-medium text-gray-700";
+  "mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
+const label = "block text-sm font-medium text-foreground/80";
 
 interface Props {
   eventId: string;
@@ -32,10 +32,10 @@ export function LetterComposer({ eventId, existing, onCancel }: Props) {
       {isEdit && <input type="hidden" name="letterId" value={existing!.id} />}
 
       {state?.error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-400">{state.error}</p>
       )}
       {state?.ok && !isEdit && (
-        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">Letter saved.</p>
+        <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-400">Letter saved.</p>
       )}
 
       <div className="grid grid-cols-2 gap-4">
@@ -70,15 +70,15 @@ export function LetterComposer({ eventId, existing, onCancel }: Props) {
           <button
             type="button"
             onClick={() => setPreview((p) => !p)}
-            className="text-xs text-gray-500 hover:text-gray-900"
+            className="text-xs text-muted-foreground hover:text-foreground"
           >
             {preview ? "Edit" : "Preview"}
           </button>
         </div>
 
         {preview ? (
-          <div className="mt-1 min-h-[200px] rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap">
-            {bodyValue || <span className="text-gray-400 italic">Nothing to preview yet.</span>}
+          <div className="mt-1 min-h-[200px] rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-foreground whitespace-pre-wrap">
+            {bodyValue || <span className="text-muted-foreground italic">Nothing to preview yet.</span>}
           </div>
         ) : (
           <textarea
@@ -97,7 +97,7 @@ export function LetterComposer({ eventId, existing, onCancel }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
         >
           {pending ? "Saving…" : isEdit ? "Save changes" : "Create letter"}
         </button>
@@ -105,7 +105,7 @@ export function LetterComposer({ eventId, existing, onCancel }: Props) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground/80 hover:bg-muted/50"
           >
             Cancel
           </button>

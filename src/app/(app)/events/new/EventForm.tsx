@@ -3,8 +3,9 @@
 import { useActionState, useState, useRef, KeyboardEvent } from "react";
 import { createEvent, type ActionState } from "../actions";
 import { RoomSchedulePreview } from "./RoomSchedulePreview";
+import { DateTimePicker } from "@/components/DateTimePicker";
+import { RecurrenceFields } from "@/components/RecurrenceFields";
 import { X } from "lucide-react";
-import "./datetime.css";
 
 const field = "mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
@@ -12,7 +13,7 @@ const label = "block text-sm font-medium text-foreground/80";
 type Invite = { email: string; name: string };
 type Room = { id: string; name: string; location: string; capacity: number };
 
-export function EventForm({ rooms }: { rooms: Room[] }) {
+export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?: string }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     createEvent,
     undefined,
@@ -22,10 +23,12 @@ export function EventForm({ rooms }: { rooms: Room[] }) {
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteError, setInviteError] = useState("");
-  
+
   const [selectedRoomId, setSelectedRoomId] = useState("");
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
+  // Combined datetime strings (YYYY-MM-DDTHH:mm). Seed from a calendar-day
+  // prefill at 09:00–10:00; the DateTimePicker drives changes.
+  const [startAt, setStartAt] = useState(initialDate ? `${initialDate}T09:00` : "");
+  const [endAt, setEndAt] = useState(initialDate ? `${initialDate}T10:00` : "");
 
   function addInvite() {
     const email = inviteEmail.trim().toLowerCase();
@@ -106,27 +109,16 @@ export function EventForm({ rooms }: { rooms: Room[] }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={label}>Start</label>
-          <input
-            name="startAt"
-            type="datetime-local"
-            required
-            className={field}
-            value={startAt}
-            onChange={(e) => setStartAt(e.target.value)}
-          />
+          <DateTimePicker name="startAt" value={startAt} onChange={setStartAt} required />
         </div>
         <div>
           <label className={label}>End</label>
-          <input
-            name="endAt"
-            type="datetime-local"
-            required
-            className={field}
-            value={endAt}
-            onChange={(e) => setEndAt(e.target.value)}
-          />
+          <DateTimePicker name="endAt" value={endAt} onChange={setEndAt} required />
         </div>
       </div>
+
+      {/* Recurrence */}
+      <RecurrenceFields />
 
       {/* Hidden geofence fields */}
       <input type="hidden" name="geofenceRadius" value="100" />
