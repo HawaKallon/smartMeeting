@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { Plus, Building2, Check, X } from "lucide-react";
 import { CreateMinistryForm } from "./CreateMinistryForm";
 import { ToggleMinistryButton } from "./ToggleMinistryButton";
+import { AddAdminButton } from "./AddAdminButton";
+import { EditMinistryButton } from "./EditMinistryButton";
 
 export default async function AdminMinistriesPage() {
   const user = await requireUser();
@@ -51,6 +53,7 @@ export default async function AdminMinistriesPage() {
               <tr className="border-b border-border">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Code</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email Domain</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Users</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Events</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</th>
@@ -73,6 +76,9 @@ export default async function AdminMinistriesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-3 text-muted-foreground font-mono text-xs">{m.code}</td>
+                  <td className="px-6 py-3 text-muted-foreground font-mono text-xs">
+                    {m.emailDomain ? `@${m.emailDomain}` : <span className="text-muted-foreground/40">—</span>}
+                  </td>
                   <td className="px-6 py-3 text-muted-foreground">{m._count.users}</td>
                   <td className="px-6 py-3 text-muted-foreground">{m._count.events}</td>
                   <td className="px-6 py-3">
@@ -100,7 +106,11 @@ export default async function AdminMinistriesPage() {
                     {m.createdAt.toLocaleDateString("en-GB")}
                   </td>
                   <td className="px-6 py-3">
-                    <ToggleMinistryButton ministryId={m.id} isActive={m.active} />
+                    <div className="space-y-2">
+                      <ToggleMinistryButton ministryId={m.id} isActive={m.active} />
+                      <EditMinistryButton ministryId={m.id} name={m.name} emailDomain={m.emailDomain} />
+                      <AddAdminButton ministryId={m.id} emailDomain={m.emailDomain} />
+                    </div>
                   </td>
                 </tr>
               ))}
