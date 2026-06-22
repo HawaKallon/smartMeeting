@@ -9,7 +9,7 @@ import { COLOR_META } from "@/lib/colors";
 import { RsvpButtons } from "./RsvpButtons";
 import { BackButton } from "@/components/BackButton";
 // import { AudioPlayer } from "@/components/AudioPlayer";
-import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Repeat } from "lucide-react";
+import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Repeat, Music } from "lucide-react";
 import { describeRecurrence } from "@/lib/recurrence";
 import { CancelEventButton } from "./CancelEventButton";
 

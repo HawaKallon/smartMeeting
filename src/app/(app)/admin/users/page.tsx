@@ -1,4 +1,5 @@
-import { requireUser } from "@/lib/guard";
+import { requireUser, ministryScope } from "@/lib/guard";
+import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/roles";
@@ -9,8 +10,8 @@ import { DeleteUserButton } from "./DeleteUserButton";
 export default async function AdminUsersPage() {
   const user = await requireUser();
 
-  // Only allow superadmin
-  if (user.role !== "ADMIN") {
+  // Only allow ADMIN and SUPER_ADMIN
+  if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
     return (
       <div className="space-y-6">
         <BackButton href="/" label="Dashboard" />
@@ -22,8 +23,9 @@ export default async function AdminUsersPage() {
   }
 
   const users = await prisma.user.findMany({
+    where: ministryScope(user),
     orderBy: [{ createdAt: "desc" }],
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, createdAt: true, ministryId: true },
   });
 
   return (

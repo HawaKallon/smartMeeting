@@ -8,35 +8,112 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const USERS: { email: string; name: string; role: MinistryRole }[] = [
-  { email: "minister@ministry.gov.sl", name: "Hon. Arthur Vance", role: "MINISTER" },
-  { email: "ps@ministry.gov.sl", name: "Permanent Secretary", role: "PERMANENT_SECRETARY" },
-  { email: "deputy.minister@ministry.gov.sl", name: "Deputy Minister", role: "DEPUTY_MINISTER" },
-  { email: "ds@ministry.gov.sl", name: "Deputy Secretary", role: "DEPUTY_SECRETARY" },
-  { email: "admin@ministry.gov.sl", name: "Clara Jenkins (Admin)", role: "ADMIN" },
+const MINISTRIES: { code: string; name: string }[] = [
+  { code: "MOH", name: "Ministry of Health" },
+  { code: "MOE", name: "Ministry of Education" },
+];
+
+const MINISTRY_USERS: {
+  email: string;
+  name: string;
+  role: MinistryRole;
+  ministryCode: string;
+}[] = [
+  // MOH
+  { email: "minister@ministry.gov.sl", name: "Hon. Arthur Vance", role: "MINISTER", ministryCode: "MOH" },
+  { email: "ps@ministry.gov.sl", name: "Permanent Secretary", role: "PERMANENT_SECRETARY", ministryCode: "MOH" },
+  { email: "deputy.minister@ministry.gov.sl", name: "Deputy Minister", role: "DEPUTY_MINISTER", ministryCode: "MOH" },
+  { email: "ds@ministry.gov.sl", name: "Deputy Secretary", role: "DEPUTY_SECRETARY", ministryCode: "MOH" },
+  { email: "admin.staff@ministry.gov.sl", name: "John Smith (Admin Staff)", role: "ADMIN_STAFF", ministryCode: "MOH" },
+
+  // MOE
+  { email: "minister.moe@ministry.gov.sl", name: "Dr. Sarah Johnson", role: "MINISTER", ministryCode: "MOE" },
+  { email: "ps.moe@ministry.gov.sl", name: "PS Education", role: "PERMANENT_SECRETARY", ministryCode: "MOE" },
+  { email: "ds.moe@ministry.gov.sl", name: "DS Education", role: "DEPUTY_SECRETARY", ministryCode: "MOE" },
+];
+
+const SUPER_ADMIN_USERS: { email: string; name: string; role: "SUPER_ADMIN" }[] = [
+  { email: "superadmin@gov.sl", name: "Super Admin", role: "SUPER_ADMIN" },
+  { email: "platform.admin@gov.sl", name: "Platform Admin", role: "SUPER_ADMIN" },
+];
+
+const ROOMS: { name: string; location: string; capacity: number; ministryCode: string }[] = [
+  // MOH Rooms
+  { name: "Board Room", location: "Floor 3", capacity: 20, ministryCode: "MOH" },
+  { name: "Meeting Room A", location: "Floor 2", capacity: 10, ministryCode: "MOH" },
+  { name: "Conference Hall", location: "Ground Floor", capacity: 50, ministryCode: "MOH" },
+
+  // MOE Rooms
+  { name: "Board Room", location: "Building A", capacity: 20, ministryCode: "MOE" },
+  { name: "Training Room", location: "Building B", capacity: 30, ministryCode: "MOE" },
 ];
 
 async function main() {
-  const defaultPasswordHash = await bcrypt.hash("password123", 10);
-  const adminPasswordHash = await bcrypt.hash("password8888", 10);
+  console.log("🌱 Seeding database...\n");
 
-  for (const u of USERS) {
-    const passwordHash = u.role === "ADMIN" ? adminPasswordHash : defaultPasswordHash;
-    await prisma.user.upsert({
-      where: { email: u.email },
-      update: { name: u.name, role: u.role, passwordHash },
-      create: { email: u.email, name: u.name, role: u.role, passwordHash },
+  // Create ministries
+  console.log("📋 Creating ministries...");
+  const ministryMap: Record<string, string> = {};
+  for (const m of MINISTRIES) {
+    const ministry = await prisma.ministry.upsert({
+      where: { code: m.code },
+      update: {},
+      create: { code: m.code, name: m.name },
     });
-    console.log(`✓ ${u.role.padEnd(20)} ${u.email}`);
+    ministryMap[m.code] = ministry.id;
+    console.log(`  ✓ ${m.name} (${m.code})`);
   }
 
-  console.log("\nDefault password: password123");
-  console.log("Admin password: password8888");
+  // Create ministry users
+  console.log("\n👥 Creating ministry users...");
+  const defaultPasswordHash = await bcrypt.hash("password123", 10);
+  for (const u of MINISTRY_USERS) {
+    const ministryId = ministryMap[u.ministryCode];
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: { name: u.name, role: u.role, ministryId },
+      create: { email: u.email, name: u.name, role: u.role, ministryId, passwordHash: defaultPasswordHash },
+    });
+    console.log(`  ✓ ${u.role.padEnd(20)} ${u.email} (${u.ministryCode})`);
+  }
+
+  // Create super-admin users
+  console.log("\n👑 Creating super-admin users...");
+  const superAdminPasswordHash = await bcrypt.hash("admin123", 10);
+  for (const u of SUPER_ADMIN_USERS) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: { name: u.name, role: u.role, ministryId: null },
+      create: { email: u.email, name: u.name, role: u.role, ministryId: null, passwordHash: superAdminPasswordHash },
+    });
+    console.log(`  ✓ ${u.role.padEnd(20)} ${u.email}`);
+  }
+
+  // Create rooms per ministry
+  console.log("\n🏢 Creating rooms...");
+  for (const r of ROOMS) {
+    const ministryId = ministryMap[r.ministryCode];
+    // First try to find existing room by ministry + name
+    const existing = await prisma.room.findFirst({
+      where: { ministryId, name: r.name },
+    });
+    if (!existing) {
+      await prisma.room.create({
+        data: { ministryId, name: r.name, location: r.location, capacity: r.capacity, amenities: [] },
+      });
+    }
+    console.log(`  ✓ ${r.name} (${r.location}) - ${r.ministryCode}`);
+  }
+
+  console.log("\n✅ Seeding complete!");
+  console.log("\n🔑 Login credentials:");
+  console.log("  Ministry users: password123");
+  console.log("  Super admin: admin123");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Seed failed:", e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

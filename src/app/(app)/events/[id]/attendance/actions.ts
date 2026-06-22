@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole } from "@/lib/guard";
+import { assertStaffRole, ministryScope } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { checkInClosed } from "@/lib/checkin";
 
@@ -40,11 +40,14 @@ export async function manualCheckIn(
 
     // Check-in closes once the meeting has ended — no late attendance, even
     // for staff manual entry.
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
+    const event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        ...ministryScope(admin),
+      },
       select: { endAt: true },
     });
-    if (!event) return { error: "Event not found" };
+    if (!event) return { error: "Event not found or you don't have access." };
     if (checkInClosed(event.endAt)) {
       return { error: "This meeting has ended. Check-in is closed." };
     }
@@ -108,6 +111,7 @@ export async function manualCheckIn(
       entityType: "Attendance",
       entityId: attendance.id,
       metadata: { eventId, userId, externalName: guestName, externalEmail: guestEmail },
+      ministryId: admin.ministryId,
     });
 
     // Revalidate all relevant pages so check-in shows everywhere.
