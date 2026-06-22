@@ -55,3 +55,27 @@ export function canCheckIn(role: MinistryRole | undefined): boolean {
 export function isSuperAdmin(role: MinistryRole | undefined): boolean {
   return role === "SUPER_ADMIN";
 }
+
+// Per-event permissions: the organizer, their co-organizers, and ministry ADMINs
+// may manage a given event; only the organizer or a ministry ADMIN may reassign it.
+
+export type EventPerm = { ministryId: string; organizerId: string; coOrganizerIds: string[] };
+export type ActorPerm = { id: string; role: MinistryRole; ministryId: string | null };
+
+/** Can this actor edit/cancel/manage the given event? */
+export function canManageEvent(actor: ActorPerm, e: EventPerm): boolean {
+  if (isSuperAdmin(actor.role)) return true;
+  if (actor.ministryId !== e.ministryId) return false;
+  return (
+    e.organizerId === actor.id ||
+    e.coOrganizerIds.includes(actor.id) ||
+    actor.role === "ADMIN"
+  );
+}
+
+/** Can this actor add/remove co-organizers (reassign) on the given event? */
+export function canReassignEvent(actor: ActorPerm, e: EventPerm): boolean {
+  if (isSuperAdmin(actor.role)) return true;
+  if (actor.ministryId !== e.ministryId) return false;
+  return e.organizerId === actor.id || actor.role === "ADMIN";
+}
