@@ -5,14 +5,19 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertStaffRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
+import { checkInClosed } from "@/lib/checkin";
 
 const ManualSchema = z.object({
   eventId: z.string().min(1),
-  userId: z.string().optional(),
+  // Selected from the invitee dropdown — an EventAttendee id (registered or external).
+  attendeeId: z.string().optional(),
+  // Free-text "External Guest" tab — an ad-hoc name not on the invite list.
   externalName: z.string().optional(),
 });
 
-export type ActionState = { ok?: true; error?: string } | undefined;
+export type ActionState =
+  | { ok?: true; already?: true; error?: string }
+  | undefined;
 
 export async function manualCheckIn(
   _prev: unknown,
@@ -23,40 +28,76 @@ export async function manualCheckIn(
 
     const parsed = ManualSchema.safeParse({
       eventId: formData.get("eventId"),
-      userId: formData.get("userId") || undefined,
+      attendeeId: formData.get("attendeeId") || undefined,
       externalName: formData.get("externalName") || undefined,
     });
     if (!parsed.success) return { error: "Invalid input" };
-    const { eventId, userId, externalName } = parsed.data;
+    const { eventId, attendeeId, externalName } = parsed.data;
 
-    if (!userId && !externalName) {
-      return { error: "Select a user or enter a name" };
+    if (!attendeeId && !externalName) {
+      return { error: "Select an invitee or enter a name" };
     }
 
-    // For registered users, verify they are invited to the event.
-    if (userId) {
-      const invite = await prisma.eventAttendee.findUnique({
-        where: { eventId_userId: { eventId, userId } },
+    // Check-in closes once the meeting has ended — no late attendance, even
+    // for staff manual entry.
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { endAt: true },
+    });
+    if (!event) return { error: "Event not found" };
+    if (checkInClosed(event.endAt)) {
+      return { error: "This meeting has ended. Check-in is closed." };
+    }
+
+    // Resolve what we're checking in. An invitee picked from the dropdown is
+    // keyed by EventAttendee id and may be a registered user or an external
+    // guest; the External Guest tab supplies an ad-hoc name instead.
+    let userId: string | null = null;
+    let guestName: string | null = externalName ?? null;
+    let guestEmail: string | null = null;
+
+    if (attendeeId) {
+      const invite = await prisma.eventAttendee.findFirst({
+        where: { id: attendeeId, eventId },
       });
       if (!invite) {
-        return { error: "This user is not on the invite list for this event." };
+        return { error: "This invitee is not on the list for this event." };
       }
+      userId = invite.userId;
+      guestName = invite.userId ? null : invite.externalName;
+      guestEmail = invite.userId ? null : invite.externalEmail;
+    }
 
-      // Avoid duplicate manual check-ins for the same registered user.
-      const existing = await prisma.attendance.findFirst({
-        where: { eventId, userId },
-      });
-      if (existing) {
-        revalidatePath(`/events/${eventId}/attendance`);
-        return { ok: true };
-      }
+    // Normalize the typed/looked-up name so whitespace differences don't slip
+    // past the duplicate check below.
+    guestName = guestName?.trim() || null;
+
+    // Avoid duplicate check-ins. Registered users are matched by userId. An
+    // external guest is treated as the same person if EITHER their name or
+    // their email matches an existing external attendance — so a guest checked
+    // in once by name-only and once by name+email can't get two rows.
+    const externalMatches = [
+      guestEmail ? { externalEmail: { equals: guestEmail, mode: "insensitive" as const } } : null,
+      guestName ? { externalName: { equals: guestName, mode: "insensitive" as const } } : null,
+    ].filter(Boolean) as object[];
+    const existing = userId
+      ? await prisma.attendance.findFirst({ where: { eventId, userId } })
+      : externalMatches.length
+        ? await prisma.attendance.findFirst({
+            where: { eventId, userId: null, OR: externalMatches },
+          })
+        : null;
+    if (existing) {
+      revalidatePath(`/events/${eventId}/attendance`);
+      return { ok: true, already: true };
     }
 
     const attendance = await prisma.attendance.create({
       data: {
         eventId,
-        userId: userId ?? null,
-        externalName: userId ? null : externalName,
+        userId,
+        externalName: userId ? null : guestName,
+        externalEmail: userId ? null : guestEmail,
         method: "MANUAL",
       },
     });
@@ -66,7 +107,7 @@ export async function manualCheckIn(
       action: "MANUAL_CHECK_IN",
       entityType: "Attendance",
       entityId: attendance.id,
-      metadata: { eventId, userId, externalName },
+      metadata: { eventId, userId, externalName: guestName, externalEmail: guestEmail },
     });
 
     // Revalidate all relevant pages so check-in shows everywhere.

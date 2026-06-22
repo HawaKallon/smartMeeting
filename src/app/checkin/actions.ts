@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { audit } from "@/lib/audit";
-import { resolveToken } from "@/lib/checkin";
+import { resolveToken, checkInClosed } from "@/lib/checkin";
 import { withinGeofence } from "@/lib/geo";
 
 const CheckInSchema = z.object({
@@ -17,7 +17,7 @@ const CheckInSchema = z.object({
 });
 
 export type CheckInResult =
-  | { ok: true; withinGeofence: boolean | null; eventTitle: string }
+  | { ok: true; already?: boolean; withinGeofence: boolean | null; eventTitle: string }
   | { ok: false; error: string };
 
 export async function submitCheckIn(formData: FormData): Promise<CheckInResult> {
@@ -37,6 +37,11 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     return { ok: false, error: "This check-in code has expired. Ask for a fresh code." };
 
   const event = resolved.event;
+
+  // Check-in closes once the meeting has ended (PRD §6 — no late attendance).
+  if (checkInClosed(event.endAt)) {
+    return { ok: false, error: "This meeting has ended. Check-in is closed." };
+  }
 
   // Require login and verify the user is on the invite list.
   const session = await auth();
@@ -84,7 +89,7 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
       where: { eventId: event.id, userId },
     });
     if (existing) {
-      return { ok: true, withinGeofence: existing.withinGeofence, eventTitle: event.title };
+      return { ok: true, already: true, withinGeofence: existing.withinGeofence, eventTitle: event.title };
     }
   }
 
@@ -111,7 +116,11 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
   });
 
   // Revalidate event pages so attendee list and counts reflect the check-in.
+  // NOTE: keep this in sync with the manual check-in action — the attendance
+  // page (invite dropdown + "Checked in" list) is derived from `attendances`,
+  // so it must be revalidated here too or the invite list goes stale.
   const { revalidatePath } = await import("next/cache");
+  revalidatePath(`/events/${event.id}/attendance`);
   revalidatePath(`/events/${event.id}/attendees`);
   revalidatePath(`/events/${event.id}`);
 

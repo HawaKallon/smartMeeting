@@ -4,11 +4,16 @@ import { useActionState, useState } from "react";
 import { manualCheckIn, type ActionState } from "./actions";
 import { Users, Mail } from "lucide-react";
 
-type User = { id: string; name: string | null; email: string };
+type Invitee = {
+  attendeeId: string;
+  name: string | null;
+  email: string | null;
+  external: boolean;
+};
 
 interface Props {
   eventId: string;
-  invitedUsers: User[];
+  invitedUsers: Invitee[];
 }
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
@@ -60,24 +65,30 @@ export function ManualCheckInForm({ eventId, invitedUsers }: Props) {
               {state.error}
             </div>
           )}
-          {state?.ok && (
+          {state?.already ? (
+            <div className="rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-400">
+              Already checked in
+            </div>
+          ) : state?.ok ? (
             <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
               ✓ User checked in
             </div>
-          )}
+          ) : null}
 
           <div>
             <label className={label}>Select invited user</label>
             {invitedUsers.length === 0 ? (
               <p className="mt-1 text-sm text-muted-foreground">All invited users have already checked in.</p>
             ) : (
-              <select name="userId" required className={field} defaultValue="">
+              <select name="attendeeId" required className={field} defaultValue="">
                 <option value="" disabled>
                   Choose a user…
                 </option>
                 {invitedUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name ?? u.email} ({u.email})
+                  <option key={u.attendeeId} value={u.attendeeId}>
+                    {u.name ?? u.email}
+                    {u.email ? ` (${u.email})` : ""}
+                    {u.external ? " — guest" : ""}
                   </option>
                 ))}
               </select>
@@ -103,11 +114,15 @@ export function ManualCheckInForm({ eventId, invitedUsers }: Props) {
               {state.error}
             </div>
           )}
-          {state?.ok && (
+          {state?.already ? (
+            <div className="rounded-lg bg-amber-500/10 px-4 py-2 text-sm text-amber-400">
+              Already checked in
+            </div>
+          ) : state?.ok ? (
             <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
               ✓ Guest checked in
             </div>
-          )}
+          ) : null}
 
           <div>
             <label className={label}>Full name</label>

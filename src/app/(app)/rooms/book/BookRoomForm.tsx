@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { bookRoom } from "./actions";
+import { DatePicker } from "@/components/DatePicker";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
@@ -45,7 +46,7 @@ export function BookRoomForm({ rooms, userId }: { rooms: Room[]; userId: string 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={label}>Date *</label>
-          <input type="date" name="date" required className={field} />
+          <DatePicker name="date" required placeholder="Select date" />
         </div>
         <div>
           <label className={label}>Purpose *</label>
@@ -64,11 +65,11 @@ export function BookRoomForm({ rooms, userId }: { rooms: Room[]; userId: string 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={label}>Start Time *</label>
-          <input type="time" name="startTime" required className={field} />
+          <input type="time" name="startTime" required className={field} style={{ colorScheme: "dark" }} />
         </div>
         <div>
           <label className={label}>End Time *</label>
-          <input type="time" name="endTime" required className={field} />
+          <input type="time" name="endTime" required className={field} style={{ colorScheme: "dark" }} />
         </div>
       </div>
 

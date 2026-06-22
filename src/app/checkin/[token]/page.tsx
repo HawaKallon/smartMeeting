@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { resolveToken } from "@/lib/checkin";
+import { resolveToken, checkInClosed } from "@/lib/checkin";
 import { CheckInClient } from "./CheckInClient";
 
 export default async function CheckInPage({
@@ -20,6 +20,11 @@ export default async function CheckInPage({
           <Message
             title="Code expired"
             body="Ask the meeting organizer for a fresh QR code."
+          />
+        ) : checkInClosed(resolved.event.endAt) ? (
+          <Message
+            title="Meeting ended"
+            body="This meeting has ended. Check-in is closed."
           />
         ) : !session?.user ? (
           <LoginPrompt token={token} />

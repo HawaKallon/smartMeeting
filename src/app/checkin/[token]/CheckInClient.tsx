@@ -57,6 +57,14 @@ export function CheckInClient({
   }
 
   if (result?.ok) {
+    if (result.already) {
+      return (
+        <div className="rounded-lg bg-amber-500/10 p-5 text-center">
+          <p className="text-lg font-semibold text-amber-400">Already checked in</p>
+          <p className="mt-1 text-sm text-amber-400">{result.eventTitle}</p>
+        </div>
+      );
+    }
     return (
       <div className="rounded-lg bg-green-500/10 p-5 text-center">
         <p className="text-lg font-semibold text-green-400">✓ Checked in</p>
