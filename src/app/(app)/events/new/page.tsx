@@ -3,8 +3,16 @@ import { EventForm } from "./EventForm";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 
-export default async function NewEventPage() {
+export default async function NewEventPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
   await requireStaffRole();
+
+  const { date } = await searchParams;
+  // Only accept a well-formed YYYY-MM-DD prefill (e.g. from the calendar).
+  const initialDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined;
 
   const rooms = await prisma.room.findMany({
     orderBy: { name: "asc" },
@@ -19,7 +27,7 @@ export default async function NewEventPage() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-6">
-        <EventForm rooms={rooms} />
+        <EventForm rooms={rooms} initialDate={initialDate} />
       </div>
     </div>
   );

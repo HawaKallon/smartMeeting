@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Plus, Edit2, Trash2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { addActionItem, updateActionItem, deleteActionItem, type ActionState } from "./actions";
+import { DatePicker } from "@/components/DatePicker";
 
 type Item = {
   id: string;
@@ -111,12 +112,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                           </option>
                         ))}
                       </select>
-                      <input
-                        name="dueDate"
-                        type="date"
-                        defaultValue={item.dueDate ?? ""}
-                        className={field}
-                      />
+                      <DatePicker name="dueDate" defaultValue={item.dueDate ?? ""} placeholder="Due date" />
                     </div>
                     <select name="status" defaultValue={item.status} className={field}>
                       <option value="TODO">To Do</option>
@@ -232,7 +228,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                     </option>
                   ))}
                 </select>
-                <input name="dueDate" type="date" className={field} />
+                <DatePicker name="dueDate" placeholder="Due date" />
               </div>
 
               <div className="flex gap-2">

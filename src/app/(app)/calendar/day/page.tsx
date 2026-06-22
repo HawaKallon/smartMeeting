@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canViewMinistrySchedule } from "@/lib/roles";
+import { canViewMinistrySchedule, canManageEvents } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
 import { BackButton } from "@/components/BackButton";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MapPin, Users, Plus, Repeat } from "lucide-react";
 
 export default async function CalendarDayPage({
   searchParams,
@@ -60,6 +60,9 @@ export default async function CalendarDayPage({
 
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
+  const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+  const canAdd = canManageEvents(user.role);
+
   return (
     <div className="space-y-6">
       <BackButton href="/calendar" label="Calendar" />
@@ -104,6 +107,15 @@ export default async function CalendarDayPage({
         <div className="rounded-lg border border-border bg-card p-12 text-center">
           <Clock className="mx-auto h-8 w-8 text-muted-foreground/30" />
           <p className="mt-3 text-sm text-muted-foreground">No events scheduled for this day</p>
+          {canAdd && (
+            <Link
+              href={`/events/new?date=${selectedDateStr}`}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add event
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -142,6 +154,9 @@ export default async function CalendarDayPage({
                       <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-400 transition-colors">
                         {event.title}
                       </h3>
+                      {event.seriesId && (
+                        <Repeat className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Recurring" />
+                      )}
                     </div>
 
                     {event.description && (

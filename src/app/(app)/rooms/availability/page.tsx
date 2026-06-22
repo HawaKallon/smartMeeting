@@ -3,6 +3,8 @@ import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import Link from "next/link";
+import { AvailabilityDatePicker } from "./AvailabilityDatePicker";
+import { RoomSelect } from "./RoomSelect";
 
 export default async function RoomAvailabilityPage({
   searchParams,
@@ -132,23 +134,11 @@ export default async function RoomAvailabilityPage({
         <label className="block text-sm font-medium text-foreground/80 mb-2">
           Select Room
         </label>
-        <select
-          onChange={(e) => {
-            if (e.target.value) {
-              const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-              window.location.href = `/rooms/availability?roomId=${e.target.value}&date=${dateStr}`;
-            }
-          }}
-          value={sp.roomId || ""}
-          className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground"
-        >
-          <option value="">Choose a room...</option>
-          {rooms.map((room) => (
-            <option key={room.id} value={room.id}>
-              {room.name} ({room.capacity} people) - {room.location}
-            </option>
-          ))}
-        </select>
+        <RoomSelect
+          rooms={rooms}
+          roomId={sp.roomId || ""}
+          date={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`}
+        />
       </div>
 
       {selectedRoom && (
@@ -183,14 +173,9 @@ export default async function RoomAvailabilityPage({
             <label className="block text-sm font-medium text-foreground/80 mb-2">
               Select Date
             </label>
-            <input
-              type="date"
-              onChange={(e) => {
-                const dateStr = e.target.value;
-                window.location.href = `/rooms/availability?roomId=${sp.roomId}&date=${dateStr}`;
-              }}
-              value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`}
-              className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground"
+            <AvailabilityDatePicker
+              roomId={sp.roomId ?? ""}
+              date={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`}
             />
           </div>
 

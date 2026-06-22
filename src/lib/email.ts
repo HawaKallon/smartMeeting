@@ -209,3 +209,44 @@ export async function sendReminderEmail({
     logError(to, `Reminder — Action item due soon: ${title}`, err);
   }
 }
+
+// ── Meeting Reminder (≈1 hour before start) ───────────────────────────────────
+
+export async function sendMeetingReminderEmail({
+  to, toName, eventTitle, startAt, venueName, roomName, joinUrl,
+}: {
+  to: string; toName: string; eventTitle: string; startAt: Date;
+  venueName?: string | null; roomName?: string | null; joinUrl?: string | null;
+}) {
+  if (!resend) return skip(to, `RESEND_API_KEY not set`);
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured. Set EMAIL_FROM in .env to your verified Resend domain`);
+  }
+
+  const time = startAt.toLocaleString("en-GB", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+  const location = roomName || venueName;
+
+  const lines = [
+    `Dear ${toName},`,
+    ``,
+    `This is a reminder that a meeting you confirmed starts in about an hour:`,
+    ``,
+    `  Meeting : ${eventTitle}`,
+    `  Starts  : ${time}`,
+  ];
+  if (location) lines.push(`  Location: ${location}`);
+  if (joinUrl) lines.push(``, `Details: ${joinUrl}`);
+
+  try {
+    await resend.emails.send({
+      from: FROM, to,
+      subject: `Reminder: ${eventTitle} starts in 1 hour`,
+      text: lines.join("\n"),
+    });
+  } catch (err) {
+    logError(to, `Reminder: ${eventTitle} starts in 1 hour`, err);
+  }
+}

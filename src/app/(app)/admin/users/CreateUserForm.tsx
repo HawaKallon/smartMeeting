@@ -47,8 +47,11 @@ export function CreateUserForm() {
             name="email"
             required
             className={field}
-            placeholder="john@ministry.gov"
+            placeholder="john@ministry.gov.sl"
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Must be a government email ending in .gov.sl
+          </p>
         </div>
       </div>
 

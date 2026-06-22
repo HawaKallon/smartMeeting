@@ -25,6 +25,8 @@ export default async function EditEventPage({
       startAt: true,
       endAt: true,
       colorCategory: true,
+      seriesId: true,
+      series: { select: { frequency: true, interval: true, endType: true, count: true, until: true } },
     },
   });
 
