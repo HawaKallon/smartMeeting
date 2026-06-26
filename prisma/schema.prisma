@@ -20,6 +20,7 @@ enum MinistryRole {
   DEPUTY_SECRETARY
   ADMIN_STAFF
   ADMIN
+  SUPER_ADMIN // platform super-admin, across all ministries
 }
 
 enum EventType {
@@ -99,12 +100,32 @@ enum RoomBookingStatus {
 
 // ── Core models ─────────────────────────────────────────────────────────────
 
+model Ministry {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g. "Ministry of Health"
+  code        String   @unique // short slug, e.g. "MOH"
+  emailDomain String?  @unique // gov.sl subdomain that maps logins to this ministry, e.g. "mocti.gov.sl"
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users        User[]
+  events       Event[]
+  eventSeries  EventSeries[]
+  rooms        Room[]
+  roomBookings RoomBooking[]
+  auditLogs    AuditLog[]
+}
+
 model User {
   id            String       @id @default(cuid())
   email         String       @unique
   name          String?
   passwordHash  String? // for credential/OTP fallback
   role          MinistryRole @default(DEPUTY_SECRETARY)
+  ministryId    String? // null for SUPER_ADMIN users
+  ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  active        Boolean      @default(true) // deactivated users cannot log in
   emailVerified DateTime?
   image         String?
   createdAt     DateTime     @default(now())
@@ -120,6 +141,7 @@ model User {
   autoDeleteRecordings      Boolean @default(false)
 
   organizedEvents Event[]         @relation("EventOrganizer")
+  coOrganizedEvents Event[]       @relation("EventCoOrganizers")
   eventSeries     EventSeries[]   @relation("SeriesOrganizer")
   attendeeOf      EventAttendee[]
   attendances     Attendance[]
@@ -144,9 +166,12 @@ model Event {
   geofenceRadius Int            @default(100) // meters (PRD §6.6)
   colorCategory  ColorCategory? // PRD §6.5
   classification Classification @default(PUBLIC) // PRD §6.2
+  ministryId     String
+  ministry       Ministry       @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   roomId         String?
   organizerId    String
   organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
+  coOrganizers   User[]         @relation("EventCoOrganizers") // helpers who can also manage the event
   room           Room?          @relation("EventRoom", fields: [roomId], references: [id])
   reminderSentAt DateTime? // set once the 1h-before-start reminder has been emailed (idempotency)
   seriesId       String? // links recurring occurrences to their EventSeries
@@ -164,6 +189,7 @@ model Event {
   @@index([startAt])
   @@index([organizerId])
   @@index([seriesId])
+  @@index([ministryId])
 }
 
 // PRD §6 — a recurring meeting series. Each occurrence is a full Event row
@@ -175,11 +201,15 @@ model EventSeries {
   endType     RecurrenceEndType
   count       Int? // when endType = COUNT
   until       DateTime? // when endType = UNTIL
+  ministryId  String
+  ministry    Ministry            @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   organizerId String
   organizer   User                @relation("SeriesOrganizer", fields: [organizerId], references: [id])
   createdAt   DateTime            @default(now())
 
   events Event[]
+
+  @@index([ministryId])
 }
 
 model EventAttendee {
@@ -292,6 +322,8 @@ model ActionItem {
 /// Append-only audit trail (PRD §7).
 model AuditLog {
   id         String   @id @default(cuid())
+  ministryId String?
+  ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: SetNull)
   actorId    String?
   actor      User?    @relation(fields: [actorId], references: [id])
   action     String // e.g. "CHECK_IN", "PUBLISH_MINUTES"
@@ -302,6 +334,7 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@index([ministryId])
 }
 
 /// Dynamic / rotating signed QR token for check-in (PRD §6.1).
@@ -320,7 +353,9 @@ model QRToken {
 
 model Room {
   id        String   @id @default(cuid())
-  name      String   @unique
+  ministryId String
+  ministry  Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  name      String
   location  String
   capacity  Int
   amenities String[] // e.g., ["Projector", "Whiteboard"]
@@ -332,11 +367,15 @@ model Room {
   bookings RoomBooking[]
   events   Event[]      @relation("EventRoom")
 
+  @@unique([ministryId, name])
   @@index([location])
+  @@index([ministryId])
 }
 
 model RoomBooking {
   id           String               @id @default(cuid())
+  ministryId   String
+  ministry     Ministry             @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   roomId       String
   userId       String
   startTime    DateTime
@@ -355,6 +394,7 @@ model RoomBooking {
   @@index([userId])
   @@index([roomId])
   @@index([startTime])
+  @@index([ministryId])
 }
 
 // ── Auth.js (NextAuth) models ───────────────────────────────────────────────

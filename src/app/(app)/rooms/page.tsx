@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/guard";
+import { requireUser, ministryScope } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { Calendar, Users, MapPin, Plus } from "lucide-react";
@@ -8,6 +8,7 @@ export default async function RoomsPage() {
   const user = await requireUser();
 
   const rooms = await prisma.room.findMany({
+    where: ministryScope(user),
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -26,6 +27,7 @@ export default async function RoomsPage() {
 
   const todayBookings = await prisma.roomBooking.count({
     where: {
+      ...ministryScope(user),
       startTime: { gte: startOfDay, lt: endOfDay },
       status: "CONFIRMED",
     },

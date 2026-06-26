@@ -2,16 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireStaffRole } from "@/lib/guard";
+import { requireUser, ministryScope } from "@/lib/guard";
+import { canManageEvent, canReassignEvent } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
 import { generateOccurrences, MAX_OCCURRENCES } from "@/lib/recurrence";
+import type { Prisma } from "@/generated/prisma/client";
 import type {
   EventType,
   Classification,
   RecurrenceFrequency,
   RecurrenceEndType,
+  MinistryRole,
 } from "@/generated/prisma/enums";
 
 type Scope = "THIS" | "FUTURE" | "ALL";
@@ -24,7 +27,7 @@ export async function updateEvent(
   _: unknown,
   formData: FormData,
 ): Promise<{ ok?: boolean; error?: string }> {
-  const user = await requireStaffRole();
+  const user = await requireUser();
   const eventId = formData.get("eventId") as string;
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
@@ -39,11 +42,15 @@ export async function updateEvent(
   if (!eventId || !title) return { error: "Event ID and title are required" };
   if (endAt <= startAt) return { error: "End time must be after start time" };
 
-  const anchor = await prisma.event.findUnique({
-    where: { id: eventId },
+  const anchor = await prisma.event.findFirst({
+    where: {
+      id: eventId,
+      ...(ministryScope(user) as Prisma.EventWhereInput),
+    },
     select: {
       id: true,
       organizerId: true,
+      coOrganizers: { select: { id: true } },
       startAt: true,
       seriesId: true,
       venueName: true,
@@ -51,9 +58,17 @@ export async function updateEvent(
       venueLng: true,
       geofenceRadius: true,
       colorCategory: true,
+      ministryId: true,
     },
   });
-  if (!anchor || anchor.organizerId !== user.id) {
+  if (
+    !anchor ||
+    !canManageEvent(user, {
+      ministryId: anchor.ministryId,
+      organizerId: anchor.organizerId,
+      coOrganizerIds: anchor.coOrganizers.map((c) => c.id),
+    })
+  ) {
     return { error: "You do not have permission to edit this event" };
   }
 
@@ -88,7 +103,10 @@ export async function updateEvent(
 
     let room = null;
     if (roomId) {
-      room = await prisma.room.findUnique({ where: { id: roomId }, select: { latitude: true, longitude: true } });
+      room = await prisma.room.findFirst({
+        where: { id: roomId, ...ministryScope(user) },
+        select: { latitude: true, longitude: true },
+      });
     }
 
     // Block on any room clash (siblings in this series don't count).
@@ -126,6 +144,7 @@ export async function updateEvent(
       geofenceRadius: anchor.geofenceRadius,
       colorCategory: anchor.colorCategory,
       organizerId: anchor.organizerId,
+      ministryId: anchor.ministryId,
     };
 
     const deleteWhere =
@@ -154,6 +173,7 @@ export async function updateEvent(
       entityType: "Event",
       entityId: firstId,
       metadata: { title, patternScope, frequency: freq, occurrences: slots.length },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/calendar");
@@ -186,8 +206,8 @@ export async function updateEvent(
 
     let room = null;
     if (roomId) {
-      room = await prisma.room.findUnique({
-        where: { id: roomId },
+      room = await prisma.room.findFirst({
+        where: { id: roomId, ...ministryScope(user) },
         select: { latitude: true, longitude: true },
       });
     }
@@ -241,6 +261,7 @@ export async function updateEvent(
       entityType: "Event",
       entityId: eventId,
       metadata: { title, scope, count: updates.length },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/calendar");
@@ -258,19 +279,38 @@ export async function deleteEvent(
   scope: Scope = "THIS",
 ): Promise<{ ok?: boolean; error?: string }> {
   try {
-    const user = await requireStaffRole();
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: { id: true, organizerId: true, startAt: true, seriesId: true },
+    const user = await requireUser();
+    const event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        ...(ministryScope(user) as Prisma.EventWhereInput),
+      },
+      select: {
+        id: true,
+        organizerId: true,
+        coOrganizers: { select: { id: true } },
+        ministryId: true,
+        startAt: true,
+        seriesId: true,
+      },
     });
-    if (!event || event.organizerId !== user.id) {
+    if (
+      !event ||
+      !canManageEvent(user, {
+        ministryId: event.ministryId,
+        organizerId: event.organizerId,
+        coOrganizerIds: event.coOrganizers.map((c) => c.id),
+      })
+    ) {
       return { error: "You do not have permission to cancel this event" };
     }
 
-    const where =
-      event.seriesId && (scope === "FUTURE" || scope === "ALL")
+    const where = {
+      ...ministryScope(user),
+      ...(event.seriesId && (scope === "FUTURE" || scope === "ALL")
         ? { seriesId: event.seriesId, ...(scope === "FUTURE" ? { startAt: { gte: event.startAt } } : {}) }
-        : { id: eventId };
+        : { id: eventId }),
+    };
 
     const res = await prisma.event.deleteMany({ where });
 
@@ -280,6 +320,7 @@ export async function deleteEvent(
       entityType: "Event",
       entityId: eventId,
       metadata: { scope, count: res.count },
+      ministryId: user.ministryId,
     });
 
     revalidatePath("/calendar");
@@ -288,5 +329,109 @@ export async function deleteEvent(
   } catch (err) {
     console.error("Failed to cancel event:", err);
     return { error: "Failed to cancel event" };
+  }
+}
+
+// ── Co-organizers: hand an event off to another ministry user to help run it ──
+
+/** Load an event (ministry-scoped) with the fields needed for reassign checks. */
+async function loadEventForReassign(
+  user: { role: MinistryRole; ministryId: string | null },
+  eventId: string,
+) {
+  return prisma.event.findFirst({
+    where: { id: eventId, ...(ministryScope(user) as Prisma.EventWhereInput) },
+    select: {
+      id: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
+    },
+  });
+}
+
+export async function addCoOrganizer(
+  eventId: string,
+  userId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+    const event = await loadEventForReassign(user, eventId);
+    if (!event) return { error: "Event not found" };
+
+    const coOrganizerIds = event.coOrganizers.map((c) => c.id);
+    if (!canReassignEvent(user, { ministryId: event.ministryId, organizerId: event.organizerId, coOrganizerIds })) {
+      return { error: "You do not have permission to reassign this event" };
+    }
+
+    if (userId === event.organizerId) return { error: "That user is already the organizer" };
+    if (coOrganizerIds.includes(userId)) return { error: "That user is already a co-organizer" };
+
+    // Assignee must be a (non-super-admin) member of the same ministry.
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, role: true, ministryId: true },
+    });
+    if (!target || target.role === "SUPER_ADMIN" || target.ministryId !== event.ministryId) {
+      return { error: "Pick a user from this ministry" };
+    }
+
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { coOrganizers: { connect: { id: userId } } },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "ADD_CO_ORGANIZER",
+      entityType: "Event",
+      entityId: eventId,
+      metadata: { coOrganizerId: userId, coOrganizerEmail: target.email },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath("/calendar");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to add co-organizer:", err);
+    return { error: "Failed to add co-organizer" };
+  }
+}
+
+export async function removeCoOrganizer(
+  eventId: string,
+  userId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+    const event = await loadEventForReassign(user, eventId);
+    if (!event) return { error: "Event not found" };
+
+    const coOrganizerIds = event.coOrganizers.map((c) => c.id);
+    if (!canReassignEvent(user, { ministryId: event.ministryId, organizerId: event.organizerId, coOrganizerIds })) {
+      return { error: "You do not have permission to reassign this event" };
+    }
+
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { coOrganizers: { disconnect: { id: userId } } },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "REMOVE_CO_ORGANIZER",
+      entityType: "Event",
+      entityId: eventId,
+      metadata: { coOrganizerId: userId },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath("/calendar");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to remove co-organizer:", err);
+    return { error: "Failed to remove co-organizer" };
   }
 }

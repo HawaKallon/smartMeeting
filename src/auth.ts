@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { isGovEmail } from "@/lib/govEmail";
+import { isGovEmail, emailDomainOf } from "@/lib/govEmail";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import authConfig from "./auth.config";
 
@@ -17,10 +17,12 @@ declare module "next-auth" {
       email: string;
       name?: string | null;
       role: MinistryRole;
+      ministryId: string | null;
     };
   }
   interface User {
     role: MinistryRole;
+    ministryId: string | null;
   }
 }
 
@@ -44,14 +46,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.passwordHash) return null;
 
+        // Deactivated accounts cannot log in (applies to all roles).
+        if (!user.active) return null;
+
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
+
+        // Ministry membership is resolved from the email domain at login — the
+        // ministry's emailDomain (e.g. "mocti.gov.sl") is the source of truth.
+        // Super-admins are platform-wide and keep a null ministry.
+        let ministryId: string | null = user.ministryId;
+        if (user.role !== "SUPER_ADMIN") {
+          const domain = emailDomainOf(email);
+          const ministry = domain
+            ? await prisma.ministry.findUnique({ where: { emailDomain: domain } })
+            : null;
+          // No matching ministry (or it's deactivated) → deny access.
+          if (!ministry || !ministry.active) return null;
+          ministryId = ministry.id;
+          // Keep the stored ministry in sync with the resolved domain.
+          if (user.ministryId !== ministry.id) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { ministryId: ministry.id },
+            });
+          }
+        }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
+          ministryId,
         };
       },
     }),

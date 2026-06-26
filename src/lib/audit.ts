@@ -9,6 +9,7 @@ export async function audit(params: {
   entityType: string;
   entityId?: string | null;
   metadata?: Prisma.InputJsonValue;
+  ministryId?: string | null;
 }) {
   try {
     await prisma.auditLog.create({
@@ -18,6 +19,7 @@ export async function audit(params: {
         entityType: params.entityType,
         entityId: params.entityId ?? null,
         metadata: params.metadata,
+        ministryId: params.ministryId ?? null,
       },
     });
   } catch (err) {
