@@ -17,14 +17,16 @@ export function Topbar({
   return (
     <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-border bg-card px-6">
       {/* Ministry context + search */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-1 items-center gap-6">
         {ministryName && (
-          <div className="hidden items-center gap-2 sm:flex">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-semibold text-foreground">{ministryName}</span>
           </div>
         )}
-        <SearchBar />
+        <div className="flex-1 max-w-xs">
+          <SearchBar />
+        </div>
       </div>
 
       {/* Right side */}
