@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Building2 } from "lucide-react";
 import { ROLE_LABELS } from "@/lib/roles";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import { NotificationBell } from "./NotificationBell";
@@ -6,15 +7,25 @@ import { SearchBar } from "./SearchBar";
 
 export function Topbar({
   user,
+  ministryName,
 }: {
   user: { name?: string | null; email: string; role: MinistryRole };
+  ministryName?: string | null;
 }) {
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
   return (
     <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-border bg-card px-6">
-      {/* Search */}
-      <SearchBar />
+      {/* Ministry context + search */}
+      <div className="flex items-center gap-4">
+        {ministryName && (
+          <div className="hidden items-center gap-2 sm:flex">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-foreground">{ministryName}</span>
+          </div>
+        )}
+        <SearchBar />
+      </div>
 
       {/* Right side */}
       <div className="flex items-center gap-3">

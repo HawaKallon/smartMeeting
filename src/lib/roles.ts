@@ -9,6 +9,7 @@ export const MINISTRY_ROLES = [
   "DEPUTY_SECRETARY",
   "ADMIN_STAFF",
   "ADMIN",
+  "SUPER_ADMIN",
 ] as const;
 
 export const ROLE_LABELS: Record<MinistryRole, string> = {
@@ -18,6 +19,7 @@ export const ROLE_LABELS: Record<MinistryRole, string> = {
   DEPUTY_SECRETARY: "Deputy Secretary",
   ADMIN_STAFF: "Admin Staff",
   ADMIN: "Admin",
+  SUPER_ADMIN: "Super Admin",
 };
 
 /**
@@ -47,4 +49,33 @@ export function canViewMinistrySchedule(role: MinistryRole | undefined): boolean
 /** Every authenticated ministry user can confirm/check in to attendance. */
 export function canCheckIn(role: MinistryRole | undefined): boolean {
   return role !== undefined;
+}
+
+/** Super-admin (platform-wide admin). */
+export function isSuperAdmin(role: MinistryRole | undefined): boolean {
+  return role === "SUPER_ADMIN";
+}
+
+// Per-event permissions: the organizer, their co-organizers, and ministry ADMINs
+// may manage a given event; only the organizer or a ministry ADMIN may reassign it.
+
+export type EventPerm = { ministryId: string; organizerId: string; coOrganizerIds: string[] };
+export type ActorPerm = { id: string; role: MinistryRole; ministryId: string | null };
+
+/** Can this actor edit/cancel/manage the given event? */
+export function canManageEvent(actor: ActorPerm, e: EventPerm): boolean {
+  if (isSuperAdmin(actor.role)) return true;
+  if (actor.ministryId !== e.ministryId) return false;
+  return (
+    e.organizerId === actor.id ||
+    e.coOrganizerIds.includes(actor.id) ||
+    actor.role === "ADMIN"
+  );
+}
+
+/** Can this actor add/remove co-organizers (reassign) on the given event? */
+export function canReassignEvent(actor: ActorPerm, e: EventPerm): boolean {
+  if (isSuperAdmin(actor.role)) return true;
+  if (actor.ministryId !== e.ministryId) return false;
+  return e.organizerId === actor.id || actor.role === "ADMIN";
 }

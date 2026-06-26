@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
-import { requireStaffRole } from "@/lib/guard";
+import { notFound, redirect } from "next/navigation";
+import { requireUser } from "@/lib/guard";
+import { canManageEvent } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
 import { EditEventForm } from "./EditEventForm";
@@ -10,7 +11,7 @@ export default async function EditEventPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireStaffRole();
+  const user = await requireUser();
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -26,16 +27,30 @@ export default async function EditEventPage({
       endAt: true,
       colorCategory: true,
       seriesId: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       series: { select: { frequency: true, interval: true, endType: true, count: true, until: true } },
     },
   });
+
+  if (!event) notFound();
+
+  // Organizer, their co-organizers, and ministry ADMINs may edit.
+  if (
+    !canManageEvent(user, {
+      ministryId: event.ministryId,
+      organizerId: event.organizerId,
+      coOrganizerIds: event.coOrganizers.map((c) => c.id),
+    })
+  ) {
+    redirect("/forbidden");
+  }
 
   const rooms = await prisma.room.findMany({
     orderBy: { name: "asc" },
     select: { id: true, name: true, location: true, capacity: true },
   });
-
-  if (!event) notFound();
 
   return (
     <div className="space-y-6">
