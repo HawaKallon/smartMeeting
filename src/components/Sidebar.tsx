@@ -1,5 +1,5 @@
 import { signOut } from "@/auth";
-import { ROLE_LABELS, canManageEvents } from "@/lib/roles";
+import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import { NavLink } from "./SidebarNav";
 import {
@@ -14,6 +14,7 @@ export function Sidebar({
   user: { name?: string | null; email: string; role: MinistryRole };
 }) {
   const isStaff = canManageEvents(user.role);
+  const isSuperAdminUser = isSuperAdmin(user.role);
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
   return (
@@ -74,6 +75,26 @@ export function Sidebar({
             <User className="h-4 w-4 text-white" />
             Profile
           </NavLink>
+          {isSuperAdminUser && (
+            <>
+              <NavLink href="/admin">
+                <BarChart3 className="h-4 w-4 text-white" />
+                Platform Overview
+              </NavLink>
+              <NavLink href="/admin/ministries">
+                <Building2 className="h-4 w-4 text-white" />
+                Manage Ministries
+              </NavLink>
+              <NavLink href="/admin/users">
+                <Users className="h-4 w-4 text-white" />
+                Manage Users
+              </NavLink>
+              <NavLink href="/reports">
+                <BarChart3 className="h-4 w-4 text-white" />
+                Reports
+              </NavLink>
+            </>
+          )}
           {user.role === "ADMIN" && (
             <>
               <NavLink href="/admin/users">

@@ -1,8 +1,9 @@
 "use server";
 
-import { requireUser } from "@/lib/guard";
+import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
+import { revalidatePath } from "next/cache";
 
 export async function bookRoom(
   _: unknown,
@@ -22,10 +23,12 @@ export async function bookRoom(
       return { error: "All required fields must be filled" };
     }
 
-    // Verify room exists
-    const room = await prisma.room.findUnique({ where: { id: roomId } });
+    // Verify room exists and belongs to the user's ministry
+    const room = await prisma.room.findFirst({
+      where: { id: roomId, ...ministryScope(user) },
+    });
     if (!room) {
-      return { error: "Room not found" };
+      return { error: "Room not found or you don't have access" };
     }
 
     // Check capacity
@@ -67,6 +70,7 @@ export async function bookRoom(
     // Create booking
     const booking = await prisma.roomBooking.create({
       data: {
+        ministryId: user.ministryId!,
         roomId,
         userId: user.id,
         startTime: startDateTime,
@@ -90,8 +94,10 @@ export async function bookRoom(
         endTime: endDateTime.toISOString(),
         attendeeCount,
       },
+      ministryId: user.ministryId,
     });
 
+    revalidatePath("/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to book room:", err);
@@ -103,9 +109,11 @@ export async function cancelBooking(bookingId: string): Promise<{ ok?: boolean; 
   try {
     const user = await requireUser();
 
-    const booking = await prisma.roomBooking.findUnique({ where: { id: bookingId } });
+    const booking = await prisma.roomBooking.findFirst({
+      where: { id: bookingId, ...ministryScope(user) },
+    });
     if (!booking) {
-      return { error: "Booking not found" };
+      return { error: "Booking not found or you don't have access" };
     }
 
     if (booking.userId !== user.id) {
@@ -122,8 +130,10 @@ export async function cancelBooking(bookingId: string): Promise<{ ok?: boolean; 
       action: "CANCEL_ROOM_BOOKING",
       entityType: "RoomBooking",
       entityId: bookingId,
+      ministryId: user.ministryId,
     });
 
+    revalidatePath("/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to cancel booking:", err);

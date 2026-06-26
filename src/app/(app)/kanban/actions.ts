@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
+import type { MinistryRole } from "@/generated/prisma/enums";
 
 const Schema = z.object({
   itemId: z.string().min(1),
@@ -26,9 +27,12 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
 
   const { itemId, status } = parsed.data;
 
-  const item = await prisma.actionItem.findUnique({
-    where: { id: itemId },
-    select: { id: true, ownerId: true, minutesId: true },
+  const item = await prisma.actionItem.findFirst({
+    where: {
+      id: itemId,
+      minutes: { event: { ministryId: session.ministryId || undefined } },
+    },
+    select: { id: true, ownerId: true, minutesId: true, minutes: { select: { event: { select: { ministryId: true } } } } },
   });
   if (!item) return;
 
@@ -44,6 +48,7 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
     entityType: "ActionItem",
     entityId: itemId,
     metadata: { status },
+    ministryId: session.ministryId,
   });
 
   revalidatePath("/kanban");

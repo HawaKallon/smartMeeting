@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireStaffRole } from "@/lib/guard";
+import { requireStaffRole, ministryScope } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { COLOR_META } from "@/lib/colors";
@@ -7,11 +7,12 @@ import { Calendar, Clock, MapPin, Users, Search } from "lucide-react";
 import type { ColorCategory } from "@/generated/prisma/enums";
 
 export default async function AllEventsPage() {
-  await requireStaffRole();
+  const user = await requireStaffRole();
 
   const now = new Date();
 
   const events = await prisma.event.findMany({
+    where: ministryScope(user),
     orderBy: { startAt: "desc" },
     select: {
       id: true,

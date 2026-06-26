@@ -14,6 +14,7 @@ const authConfig: NextAuthConfig = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as { role: MinistryRole }).role;
+        token.ministryId = (user as unknown as { ministryId: string | null }).ministryId;
       }
       return token;
     },
@@ -21,6 +22,7 @@ const authConfig: NextAuthConfig = {
       if (session.user) {
         (session.user as { id: string }).id = token.id as string;
         (session.user as { role: MinistryRole }).role = token.role as MinistryRole;
+        (session.user as { ministryId: string | null }).ministryId = token.ministryId as string | null;
       }
       return session;
     },
