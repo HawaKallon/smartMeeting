@@ -112,6 +112,17 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 placeholder="Your full name"
               />
             </div>
+
+            <div>
+              <label className={label}>Phone Number</label>
+              <input
+                type="tel"
+                name="phone"
+                defaultValue={user.phone || ""}
+                className={field}
+                placeholder="e.g. +232 76 123456 (for SMS notifications)"
+              />
+            </div>
           </div>
         </div>
 
