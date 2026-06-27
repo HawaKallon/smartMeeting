@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
+import { IdleLogout } from "@/components/IdleLogout";
 
 export default async function AppLayout({
   children,
@@ -27,11 +28,14 @@ export default async function AppLayout({
   ]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-background" data-theme={user.theme || "dark"}>
+      <IdleLogout timeoutMinutes={user.sessionTimeout ?? 30} />
       <Sidebar user={user} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar user={user} ministryName={ministry?.name ?? null} notifications={notifications} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className={`flex-1 overflow-y-auto ${user.compactMode ? "p-3" : "p-6"}`}>
+          {children}
+        </main>
       </div>
     </div>
   );
