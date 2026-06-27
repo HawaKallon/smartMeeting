@@ -58,12 +58,15 @@ export async function POST(req: NextRequest) {
           dueDate: item.dueDate,
           minutesUrl,
         }),
-        sendReminderSms({
-          to: item.owner.email, // replace with a phone field when added to schema
-          toName: item.owner.name ?? item.owner.email,
-          title: item.title,
-          dueDate: item.dueDate,
-        }),
+        // Send SMS only if phone is configured
+        item.owner.phone
+          ? sendReminderSms({
+              to: item.owner.phone,
+              toName: item.owner.name ?? item.owner.email,
+              title: item.title,
+              dueDate: item.dueDate,
+            })
+          : Promise.resolve(),
       ]);
       sent++;
     }),

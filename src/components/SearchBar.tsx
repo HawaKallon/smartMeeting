@@ -23,7 +23,7 @@ export function SearchBar() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search events..."
+          placeholder="Search…"
           className="flex-1 bg-transparent outline-none text-foreground placeholder-muted-foreground"
         />
       </div>
