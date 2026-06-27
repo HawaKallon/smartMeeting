@@ -40,6 +40,7 @@ export function canViewMinistrySchedule(role: MinistryRole | undefined): boolean
   return (
     role === "MINISTER" ||
     role === "PERMANENT_SECRETARY" ||
+    role === "DEPUTY_MINISTER" ||
     role === "DEPUTY_SECRETARY" ||
     role === "ADMIN_STAFF" ||
     role === "ADMIN"
