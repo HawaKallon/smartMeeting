@@ -11,18 +11,26 @@ export default async function AppLayout({
   const user = await requireUser();
 
   // Show the user's ministry name in the header (super-admins have no ministry).
-  const ministry = user.ministryId
-    ? await prisma.ministry.findUnique({
-        where: { id: user.ministryId },
-        select: { name: true },
-      })
-    : null;
+  // Also fetch recent notifications for the topbar bell.
+  const [ministry, notifications] = await Promise.all([
+    user.ministryId
+      ? prisma.ministry.findUnique({
+          where: { id: user.ministryId },
+          select: { name: true },
+        })
+      : null,
+    prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+  ]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar user={user} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar user={user} ministryName={ministry?.name ?? null} />
+        <Topbar user={user} ministryName={ministry?.name ?? null} notifications={notifications} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
