@@ -127,6 +127,7 @@ model User {
   ministryId    String? // null for SUPER_ADMIN users
   ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   active        Boolean      @default(true) // deactivated users cannot log in
+  phone         String? // for SMS notifications (action item reminders, etc.)
   emailVerified DateTime?
   image         String?
   createdAt     DateTime     @default(now())
