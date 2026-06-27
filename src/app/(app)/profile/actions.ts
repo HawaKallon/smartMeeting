@@ -20,6 +20,7 @@ export async function updateProfile(
     const user = await requireUser();
 
     const name = formData.get("name") as string;
+    const phone = (formData.get("phone") as string) || null;
     const imageFile = formData.get("image") as File | null;
     const currentPassword = (formData.get("currentPassword") as string) || "";
     const newPassword = (formData.get("newPassword") as string) || "";
@@ -28,7 +29,10 @@ export async function updateProfile(
       return { error: "Name cannot be empty" };
     }
 
-    const updateData: { name: string; image?: string; passwordHash?: string } = { name: name.trim() };
+    const updateData: { name: string; phone: string | null; image?: string; passwordHash?: string } = {
+      name: name.trim(),
+      phone: phone ? phone.trim() : null,
+    };
 
     // Optional password change — only when a new password is supplied.
     if (newPassword) {
