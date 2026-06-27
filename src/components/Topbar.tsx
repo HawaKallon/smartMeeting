@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, Menu } from "lucide-react";
 import { ROLE_LABELS } from "@/lib/roles";
 import type { MinistryRole, Notification } from "@/generated/prisma/client";
 import { NotificationBell } from "./NotificationBell";
@@ -17,11 +17,20 @@ export function Topbar({
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
   return (
-    <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-border bg-card px-6">
+    <header className="flex h-14 flex-shrink-0 items-center justify-between border-b border-border bg-card px-6 relative">
+      {/* Mobile menu button */}
+      <button
+        id="mobile-menu-button"
+        className="hidden items-center justify-center rounded-lg border border-border hover:bg-muted/30 transition-colors sm:hidden mr-4"
+        aria-label="Toggle menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
       {/* Ministry context + search */}
       <div className="flex flex-1 items-center gap-6">
         {ministryName && (
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="hidden items-center gap-2 flex-shrink-0 sm:flex">
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-semibold text-foreground">{ministryName}</span>
           </div>
