@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { Building2 } from "lucide-react";
 import { ROLE_LABELS } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { MinistryRole, Notification } from "@/generated/prisma/client";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 
 export function Topbar({
   user,
   ministryName,
+  notifications = [],
 }: {
-  user: { name?: string | null; email: string; role: MinistryRole };
+  user: { id: string; name?: string | null; email: string; role: MinistryRole };
   ministryName?: string | null;
+  notifications?: Notification[];
 }) {
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
@@ -31,7 +33,7 @@ export function Topbar({
 
       {/* Right side */}
       <div className="flex items-center gap-3">
-        <NotificationBell />
+        <NotificationBell initialNotifications={notifications} />
 
         <div className="h-6 w-px bg-border" />
 
