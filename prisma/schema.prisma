@@ -109,12 +109,13 @@ model Ministry {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users        User[]
-  events       Event[]
-  eventSeries  EventSeries[]
-  rooms        Room[]
-  roomBookings RoomBooking[]
-  auditLogs    AuditLog[]
+  users         User[]
+  events        Event[]
+  eventSeries   EventSeries[]
+  rooms         Room[]
+  roomBookings  RoomBooking[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
 }
 
 model User {
@@ -148,6 +149,7 @@ model User {
   actionItems     ActionItem[]    @relation("ActionItemOwner")
   minutesApproved Minutes[]       @relation("MinutesApprover")
   auditLogs       AuditLog[]
+  notifications   Notification[]
   roomBookings    RoomBooking[]   @relation("RoomBookings")
   accounts        Account[]
   sessions        Session[]
@@ -334,6 +336,25 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@index([ministryId])
+}
+
+/// In-app notifications for events (invites, minutes, action items).
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ministryId String?
+  ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: SetNull)
+  type       String // e.g. "INVITE", "MINUTES_PUBLISHED", "ACTION_ITEM_ASSIGNED", "RSVP"
+  title      String
+  body       String
+  link       String? // in-app URL (e.g. /events/123)
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
   @@index([ministryId])
 }
 
