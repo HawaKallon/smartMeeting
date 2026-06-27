@@ -18,7 +18,7 @@ export function Sidebar({
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
   return (
-    <aside className="flex h-screen w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+    <aside className="hidden sm:flex h-screen w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary">
