@@ -1,7 +1,7 @@
 import { signOut } from "@/auth";
 import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
 import type { MinistryRole } from "@/generated/prisma/enums";
-import { NavLink } from "./SidebarNav";
+import { NavLink, SidebarNavProvider } from "./SidebarNav";
 import {
   LayoutDashboard, CalendarDays, KanbanSquare,
   PlusCircle, ClipboardList, LogOut, Building2,
@@ -17,8 +17,22 @@ export function Sidebar({
   const isSuperAdminUser = isSuperAdmin(user.role);
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
+  // Build the list of all hrefs shown for this user (deduped)
+  const navHrefs = Array.from(new Set([
+    "/",
+    "/calendar",
+    "/kanban",
+    "/notifications",
+    ...(isStaff ? ["/events/new", "/events", "/attendance", "/reports"] : []),
+    "/profile",
+    ...(isSuperAdminUser ? ["/admin", "/admin/ministries", "/admin/users", "/reports"] : []),
+    ...(user.role === "ADMIN" ? ["/admin/users", "/admin/rooms", "/admin/activity"] : []),
+    "/help",
+    "/settings",
+  ]));
+
   return (
-    <aside className="flex h-screen w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+    <aside className="hidden sm:flex h-screen w-64 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary">
@@ -28,7 +42,8 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+      <SidebarNavProvider hrefs={navHrefs}>
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         <NavSection label="Main">
           <NavLink href="/">
             <LayoutDashboard className="h-4 w-4 text-white" />
@@ -120,7 +135,8 @@ export function Sidebar({
             Settings
           </NavLink>
         </NavSection>
-      </nav>
+        </nav>
+      </SidebarNavProvider>
 
       {/* User footer */}
       <div className="border-t border-sidebar-border p-3">

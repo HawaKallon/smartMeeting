@@ -6,6 +6,7 @@ CREATE TABLE "Ministry" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
+    "emailDomain" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -15,6 +16,9 @@ CREATE TABLE "Ministry" (
 
 -- AddColumn ministryId to User (nullable for SUPER_ADMIN)
 ALTER TABLE "User" ADD COLUMN "ministryId" TEXT;
+
+-- AddColumn active to User
+ALTER TABLE "User" ADD COLUMN "active" BOOLEAN NOT NULL DEFAULT true;
 
 -- AddColumn ministryId to Event (required)
 ALTER TABLE "Event" ADD COLUMN "ministryId" TEXT NOT NULL DEFAULT '';
@@ -34,6 +38,7 @@ ALTER TABLE "AuditLog" ADD COLUMN "ministryId" TEXT;
 -- CreateIndex on Ministry unique columns
 CREATE UNIQUE INDEX "Ministry_name_key" ON "Ministry"("name");
 CREATE UNIQUE INDEX "Ministry_code_key" ON "Ministry"("code");
+CREATE UNIQUE INDEX "Ministry_emailDomain_key" ON "Ministry"("emailDomain");
 
 -- CreateIndex on Room per-ministry unique name
 CREATE UNIQUE INDEX "Room_ministryId_name_key" ON "Room"("ministryId", "name");

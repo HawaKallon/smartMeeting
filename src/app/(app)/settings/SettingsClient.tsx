@@ -179,16 +179,6 @@ export function SettingsClient({ user }: SettingsClientProps) {
           <h2 className="text-lg font-semibold text-foreground">Data & Storage</h2>
         </div>
         <div className="space-y-4">
-          <div className="rounded-lg bg-muted/30 p-4">
-            <p className="text-sm font-medium text-foreground mb-2">Storage Usage</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-sidebar-primary" style={{ width: "45%" }}></div>
-              </div>
-              <span className="text-xs text-muted-foreground">4.5 GB / 10 GB</span>
-            </div>
-          </div>
-
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-foreground">Auto-delete old recordings</p>
