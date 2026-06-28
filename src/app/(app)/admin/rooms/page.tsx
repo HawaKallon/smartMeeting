@@ -1,14 +1,21 @@
-import { requireUser } from "@/lib/guard";
+import { requireUser, ministryScope } from "@/lib/guard";
+import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { Plus, Users, MapPin } from "lucide-react";
 import Link from "next/link";
 import { CreateRoomForm } from "./CreateRoomForm";
+import { RoomFilters } from "./RoomFilters";
+import { RoomRowActions } from "./RoomRowActions";
 
-export default async function AdminRoomsPage() {
+export default async function AdminRoomsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ministryId?: string }>;
+}) {
   const user = await requireUser();
 
-  if (user.role !== "ADMIN") {
+  if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
     return (
       <div className="space-y-6">
         <BackButton href="/" label="Dashboard" />
@@ -19,7 +26,25 @@ export default async function AdminRoomsPage() {
     );
   }
 
+  const superAdmin = isSuperAdmin(user.role);
+  const { ministryId } = await searchParams;
+
+  // Load ministries for super-admin's filter and form
+  const ministries = superAdmin
+    ? await prisma.ministry.findMany({
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      })
+    : [];
+
+  // Build where clause: scope by ministry + apply optional filter
+  let where: any = { ...ministryScope(user) };
+  if (superAdmin && ministryId) {
+    where.ministryId = ministryId;
+  }
+
   const rooms = await prisma.room.findMany({
+    where,
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -27,13 +52,15 @@ export default async function AdminRoomsPage() {
       capacity: true,
       location: true,
       amenities: true,
+      ministryId: true,
+      ministry: { select: { name: true } },
       _count: { select: { bookings: true } },
     },
   });
 
   return (
     <div className="space-y-6">
-      <BackButton href="/admin/activity" label="Admin" />
+      <BackButton href="/" label="Dashboard" />
 
       <div className="flex items-center justify-between">
         <div>
@@ -48,8 +75,11 @@ export default async function AdminRoomsPage() {
           <Plus className="h-5 w-5" />
           Add New Room
         </h2>
-        <CreateRoomForm />
+        <CreateRoomForm isSuperAdmin={superAdmin} ministries={ministries} />
       </div>
+
+      {/* Filters */}
+      {superAdmin && <RoomFilters ministries={ministries} />}
 
       {/* Rooms List */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -66,11 +96,19 @@ export default async function AdminRoomsPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Capacity
                 </th>
+                {superAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Ministry
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Amenities
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Bookings
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -95,6 +133,11 @@ export default async function AdminRoomsPage() {
                       {room.capacity} people
                     </div>
                   </td>
+                  {superAdmin && (
+                    <td className="px-6 py-3 text-muted-foreground">
+                      {room.ministry?.name ?? "—"}
+                    </td>
+                  )}
                   <td className="px-6 py-3">
                     {room.amenities && room.amenities.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
@@ -112,6 +155,9 @@ export default async function AdminRoomsPage() {
                     )}
                   </td>
                   <td className="px-6 py-3 text-muted-foreground">{room._count.bookings}</td>
+                  <td className="px-6 py-3">
+                    <RoomRowActions roomId={room.id} roomName={room.name} />
+                  </td>
                 </tr>
               ))}
             </tbody>
