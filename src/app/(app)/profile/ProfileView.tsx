@@ -51,11 +51,6 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Auto-close edit mode after successful save
-  if (state?.ok && isEditing) {
-    setIsEditing(false);
-  }
-
   if (isEditing) {
     return (
       <form action={formAction} className="space-y-6">
