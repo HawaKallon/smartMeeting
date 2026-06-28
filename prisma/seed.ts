@@ -22,34 +22,121 @@ const MINISTRY_USERS: {
   ministryCode: string;
 }[] = [
   // MOH (@moh.gov.sl)
-  { email: "admin@moh.gov.sl", name: "MOH Admin", role: "ADMIN", ministryCode: "MOH" },
-  { email: "minister@moh.gov.sl", name: "Hon. Arthur Vance", role: "MINISTER", ministryCode: "MOH" },
-  { email: "ps@moh.gov.sl", name: "Permanent Secretary", role: "PERMANENT_SECRETARY", ministryCode: "MOH" },
-  { email: "deputy.minister@moh.gov.sl", name: "Deputy Minister", role: "DEPUTY_MINISTER", ministryCode: "MOH" },
-  { email: "ds@moh.gov.sl", name: "Deputy Secretary", role: "DEPUTY_SECRETARY", ministryCode: "MOH" },
-  { email: "admin.staff@moh.gov.sl", name: "John Smith (Admin Staff)", role: "ADMIN_STAFF", ministryCode: "MOH" },
+  {
+    email: "admin@moh.gov.sl",
+    name: "MOH Admin",
+    role: "ADMIN",
+    ministryCode: "MOH",
+  },
+  {
+    email: "minister@moh.gov.sl",
+    name: "Hon. Arthur Vance",
+    role: "MINISTER",
+    ministryCode: "MOH",
+  },
+  {
+    email: "ps@moh.gov.sl",
+    name: "Permanent Secretary",
+    role: "PERMANENT_SECRETARY",
+    ministryCode: "MOH",
+  },
+  {
+    email: "deputy.minister@moh.gov.sl",
+    name: "Deputy Minister",
+    role: "DEPUTY_MINISTER",
+    ministryCode: "MOH",
+  },
+  {
+    email: "ds@moh.gov.sl",
+    name: "Deputy Secretary",
+    role: "DEPUTY_SECRETARY",
+    ministryCode: "MOH",
+  },
+  {
+    email: "admin.staff@moh.gov.sl",
+    name: "John Smith (Admin Staff)",
+    role: "ADMIN_STAFF",
+    ministryCode: "MOH",
+  },
 
   // MOE (@moe.gov.sl)
-  { email: "admin@moe.gov.sl", name: "MOE Admin", role: "ADMIN", ministryCode: "MOE" },
-  { email: "minister@moe.gov.sl", name: "Dr. Sarah Johnson", role: "MINISTER", ministryCode: "MOE" },
-  { email: "ps@moe.gov.sl", name: "PS Education", role: "PERMANENT_SECRETARY", ministryCode: "MOE" },
-  { email: "ds@moe.gov.sl", name: "DS Education", role: "DEPUTY_SECRETARY", ministryCode: "MOE" },
+  {
+    email: "admin@moe.gov.sl",
+    name: "MOE Admin",
+    role: "ADMIN",
+    ministryCode: "MOE",
+  },
+  {
+    email: "minister@moe.gov.sl",
+    name: "Dr. Sarah Johnson",
+    role: "MINISTER",
+    ministryCode: "MOE",
+  },
+  {
+    email: "ps@moe.gov.sl",
+    name: "PS Education",
+    role: "PERMANENT_SECRETARY",
+    ministryCode: "MOE",
+  },
+  {
+    email: "ds@moe.gov.sl",
+    name: "DS Education",
+    role: "DEPUTY_SECRETARY",
+    ministryCode: "MOE",
+  },
 ];
 
-const SUPER_ADMIN_USERS: { email: string; name: string; role: "SUPER_ADMIN" }[] = [
-  { email: "superadmin@gov.sl", name: "Super Admin", role: "SUPER_ADMIN" },
-  { email: "platform.admin@gov.sl", name: "Platform Admin", role: "SUPER_ADMIN" },
+const SUPER_ADMIN_USERS: {
+  email: string;
+  name: string;
+  role: "SUPER_ADMIN";
+}[] = [
+  {
+    email: "hawa.kallon@mocti.gov.sl",
+    name: "Hawa Kallon",
+    role: "SUPER_ADMIN",
+  },
 ];
 
-const ROOMS: { name: string; location: string; capacity: number; ministryCode: string }[] = [
+const ROOMS: {
+  name: string;
+  location: string;
+  capacity: number;
+  ministryCode: string;
+}[] = [
   // MOH Rooms
-  { name: "Board Room", location: "Floor 3", capacity: 20, ministryCode: "MOH" },
-  { name: "Meeting Room A", location: "Floor 2", capacity: 10, ministryCode: "MOH" },
-  { name: "Conference Hall", location: "Ground Floor", capacity: 50, ministryCode: "MOH" },
+  {
+    name: "Board Room",
+    location: "Floor 3",
+    capacity: 20,
+    ministryCode: "MOH",
+  },
+  {
+    name: "Meeting Room A",
+    location: "Floor 2",
+    capacity: 10,
+    ministryCode: "MOH",
+  },
+  {
+    name: "Conference Hall",
+    location: "Ground Floor",
+    capacity: 50,
+    ministryCode: "MOH",
+  },
 
   // MOE Rooms
-  { name: "Board Room", location: "Building A", capacity: 20, ministryCode: "MOE" },
-  { name: "Training Room", location: "Building B", capacity: 30, ministryCode: "MOE" },
+  {
+    name: "Board Room",
+    location: "Building A",
+    capacity: 20,
+    ministryCode: "MOE",
+  },
+  {
+    name: "Training Room",
+    location: "Building B",
+    capacity: 30,
+    ministryCode: "MOE",
+  },
 ];
 
 async function main() {
@@ -76,19 +163,35 @@ async function main() {
     await prisma.user.upsert({
       where: { email: u.email },
       update: { name: u.name, role: u.role, ministryId },
-      create: { email: u.email, name: u.name, role: u.role, ministryId, passwordHash: defaultPasswordHash },
+      create: {
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        ministryId,
+        passwordHash: defaultPasswordHash,
+      },
     });
     console.log(`  ✓ ${u.role.padEnd(20)} ${u.email} (${u.ministryCode})`);
   }
 
   // Create super-admin users
   console.log("\n👑 Creating super-admin users...");
-  const superAdminPasswordHash = await bcrypt.hash("admin123", 10);
+  const superAdminPasswordHash = await bcrypt.hash("platform88pass", 10);
+  const keepEmails = SUPER_ADMIN_USERS.map((u) => u.email);
+  await prisma.user.deleteMany({
+    where: { role: "SUPER_ADMIN", email: { notIn: keepEmails } },
+  });
   for (const u of SUPER_ADMIN_USERS) {
     await prisma.user.upsert({
       where: { email: u.email },
       update: { name: u.name, role: u.role, ministryId: null },
-      create: { email: u.email, name: u.name, role: u.role, ministryId: null, passwordHash: superAdminPasswordHash },
+      create: {
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        ministryId: null,
+        passwordHash: superAdminPasswordHash,
+      },
     });
     console.log(`  ✓ ${u.role.padEnd(20)} ${u.email}`);
   }
@@ -103,7 +206,13 @@ async function main() {
     });
     if (!existing) {
       await prisma.room.create({
-        data: { ministryId, name: r.name, location: r.location, capacity: r.capacity, amenities: [] },
+        data: {
+          ministryId,
+          name: r.name,
+          location: r.location,
+          capacity: r.capacity,
+          amenities: [],
+        },
       });
     }
     console.log(`  ✓ ${r.name} (${r.location}) - ${r.ministryCode}`);
@@ -112,7 +221,7 @@ async function main() {
   console.log("\n✅ Seeding complete!");
   console.log("\n🔑 Login credentials:");
   console.log("  Ministry users: password123");
-  console.log("  Super admin: admin123");
+  console.log("  Super admin: <set at seed>");
 }
 
 main()
