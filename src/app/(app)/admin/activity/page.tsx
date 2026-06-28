@@ -3,6 +3,7 @@ import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { Activity, Filter } from "lucide-react";
+import { ActivityFilters } from "./ActivityFilters";
 
 export default async function ActivityLogPage({
   searchParams,
@@ -63,6 +64,7 @@ export default async function ActivityLogPage({
   ]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
+  const actionList = uniqueActions.map((a) => a.action);
 
   return (
     <div className="space-y-6">
@@ -97,57 +99,13 @@ export default async function ActivityLogPage({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm font-medium text-foreground">Filter by action:</label>
-        <select
-          onChange={(e) => {
-            const url = new URL(window.location.href);
-            if (e.target.value) {
-              url.searchParams.set("action", e.target.value);
-              url.searchParams.delete("page");
-            } else {
-              url.searchParams.delete("action");
-            }
-            window.location.href = url.toString();
-          }}
-          defaultValue={action ?? ""}
-          className="px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-sm hover:bg-muted/70 transition-colors cursor-pointer"
-        >
-          <option value="">All actions</option>
-          {uniqueActions.map((a) => (
-            <option key={a.action} value={a.action}>
-              {a.action.replace(/_/g, " ")}
-            </option>
-          ))}
-        </select>
-
-        {superAdmin && (
-          <>
-            <label className="text-sm font-medium text-foreground">Filter by ministry:</label>
-            <select
-              onChange={(e) => {
-                const url = new URL(window.location.href);
-                if (e.target.value) {
-                  url.searchParams.set("ministryId", e.target.value);
-                  url.searchParams.delete("page");
-                } else {
-                  url.searchParams.delete("ministryId");
-                }
-                window.location.href = url.toString();
-              }}
-              defaultValue={ministryId ?? ""}
-              className="px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-sm hover:bg-muted/70 transition-colors cursor-pointer"
-            >
-              <option value="">All ministries</option>
-              {ministries.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
-      </div>
+      <ActivityFilters
+        action={action}
+        ministryId={ministryId}
+        actions={actionList}
+        ministries={superAdmin ? ministries : undefined}
+        superAdmin={superAdmin}
+      />
 
       {/* Activity Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
