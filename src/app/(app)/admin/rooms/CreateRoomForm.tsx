@@ -6,7 +6,13 @@ import { createRoom } from "./actions";
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
 
-export function CreateRoomForm() {
+export function CreateRoomForm({
+  isSuperAdmin,
+  ministries,
+}: {
+  isSuperAdmin?: boolean;
+  ministries?: { id: string; name: string }[];
+}) {
   const [state, formAction, isPending] = useActionState(createRoom, undefined);
 
   return (
@@ -18,6 +24,24 @@ export function CreateRoomForm() {
       {state?.ok && (
         <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
           Room created successfully!
+        </div>
+      )}
+
+      {isSuperAdmin && ministries && (
+        <div>
+          <label className={label}>Ministry *</label>
+          <select
+            name="ministryId"
+            required
+            className={field}
+          >
+            <option value="">Select a ministry</option>
+            {ministries.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
