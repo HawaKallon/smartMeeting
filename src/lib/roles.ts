@@ -38,6 +38,7 @@ export function canApproveMinutes(role: MinistryRole | undefined): boolean {
 /** Roles that may view ministry-wide schedule. */
 export function canViewMinistrySchedule(role: MinistryRole | undefined): boolean {
   return (
+    isSuperAdmin(role) ||
     role === "MINISTER" ||
     role === "PERMANENT_SECRETARY" ||
     role === "DEPUTY_MINISTER" ||
