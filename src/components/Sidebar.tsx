@@ -25,7 +25,7 @@ export function Sidebar({
     "/notifications",
     ...(isStaff ? ["/events/new", "/events", "/attendance", "/reports"] : []),
     "/profile",
-    ...(isSuperAdminUser ? ["/admin", "/admin/ministries", "/admin/users", "/reports"] : []),
+    ...(isSuperAdminUser ? ["/admin", "/admin/ministries", "/admin/users", "/admin/rooms", "/admin/activity", "/reports"] : []),
     ...(user.role === "ADMIN" ? ["/admin/users", "/admin/rooms", "/admin/activity"] : []),
     "/help",
     "/settings",
@@ -103,6 +103,14 @@ export function Sidebar({
               <NavLink href="/admin/users">
                 <Users className="h-4 w-4 text-white" />
                 Manage Users
+              </NavLink>
+              <NavLink href="/admin/rooms">
+                <Building2 className="h-4 w-4 text-white" />
+                Manage Rooms
+              </NavLink>
+              <NavLink href="/admin/activity">
+                <Activity className="h-4 w-4 text-white" />
+                Activity Log
               </NavLink>
               <NavLink href="/reports">
                 <BarChart3 className="h-4 w-4 text-white" />
