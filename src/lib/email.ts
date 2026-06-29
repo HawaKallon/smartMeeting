@@ -20,6 +20,19 @@ function logError(to: string, subject: string, err: unknown) {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function emailText(value: string): string {
+  return escapeHtml(value).replaceAll("\n", "<br>");
+}
+
 // ── Welcome / New User Invitation ─────────────────────────────────────────────
 
 export async function sendWelcomeEmail({
@@ -64,10 +77,39 @@ export async function sendWelcomeEmail({
 // ── Attendee Invitation ───────────────────────────────────────────────────────
 
 export async function sendInviteEmail({
-  to, toName, eventTitle, startAt, venueName, roomName, organizerName,
+  to,
+  toName,
+  eventTitle,
+  eventDescription,
+  eventType,
+  classification,
+  startAt,
+  endAt,
+  venueName,
+  roomName,
+  organizerName,
+  organizerEmail,
+  ministryName,
+  recurrenceText,
+  acceptUrl,
+  declineUrl,
 }: {
-  to: string; toName: string; eventTitle: string;
-  startAt: Date; venueName?: string | null; roomName?: string | null; organizerName: string;
+  to: string;
+  toName: string;
+  eventTitle: string;
+  eventDescription?: string | null;
+  eventType?: string | null;
+  classification?: string | null;
+  startAt: Date;
+  endAt: Date;
+  venueName?: string | null;
+  roomName?: string | null;
+  organizerName: string;
+  organizerEmail: string;
+  ministryName: string;
+  recurrenceText?: string | null;
+  acceptUrl: string;
+  declineUrl: string;
 }) {
   if (!resend) {
     return skip(to, `RESEND_API_KEY not set. Configure it in .env`);
@@ -77,31 +119,135 @@ export async function sendInviteEmail({
     return skip(to, `EMAIL_FROM not properly configured. Set EMAIL_FROM in .env to your verified Resend domain`);
   }
 
-  const date = startAt.toLocaleString("en-GB", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-    hour: "2-digit", minute: "2-digit",
+  const date = startAt.toLocaleDateString("en-GB", {
+    timeZone: "Africa/Freetown",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const startTime = startAt.toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Freetown",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const endTime = endAt.toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Freetown",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   const location = roomName || venueName;
+  const subject = `Official Meeting Invitation — ${eventTitle}`;
+  const safe = {
+    toName: escapeHtml(toName),
+    eventTitle: escapeHtml(eventTitle),
+    description: eventDescription ? emailText(eventDescription) : null,
+    eventType: eventType ? escapeHtml(eventType.replaceAll("_", " ").toLowerCase()) : null,
+    classification: classification ? escapeHtml(classification.toLowerCase()) : null,
+    date: escapeHtml(date),
+    time: escapeHtml(`${startTime}–${endTime} GMT`),
+    location: location ? escapeHtml(location) : "To be confirmed",
+    organizerName: escapeHtml(organizerName),
+    ministryName: escapeHtml(ministryName),
+    recurrence: recurrenceText ? escapeHtml(recurrenceText) : null,
+    acceptUrl: escapeHtml(acceptUrl),
+    declineUrl: escapeHtml(declineUrl),
+  };
+
+  const detailRow = (label: string, value: string) => `
+    <tr>
+      <td style="padding:8px 16px 8px 0;color:#64748b;font-size:13px;font-weight:600;vertical-align:top;white-space:nowrap;">${label}</td>
+      <td style="padding:8px 0;color:#172033;font-size:14px;line-height:1.5;vertical-align:top;">${value}</td>
+    </tr>`;
 
   try {
     const result = await resend.emails.send({
-      from: FROM, to,
-      subject: `Invitation: ${eventTitle}`,
+      from: FROM,
+      to,
+      replyTo: organizerEmail,
+      subject,
       text: [
         `Dear ${toName},`,
         ``,
-        `You have been invited to: ${eventTitle}`,
-        `Date  : ${date}`,
-        location ? `Location : ${location}` : null,
-        `By    : ${organizerName}`,
+        `${organizerName}, on behalf of ${ministryName}, formally invites you to attend the following meeting.`,
         ``,
-        `Please log in to confirm or decline your attendance.`,
+        `MEETING DETAILS`,
+        `Title: ${eventTitle}`,
+        eventType ? `Type: ${eventType.replaceAll("_", " ").toLowerCase()}` : null,
+        classification ? `Classification: ${classification.toLowerCase()}` : null,
+        `Date: ${date}`,
+        `Time: ${startTime}–${endTime} GMT`,
+        `Location: ${location ?? "To be confirmed"}`,
+        recurrenceText ? `Schedule: ${recurrenceText}` : null,
+        eventDescription ? `Purpose / agenda:\n${eventDescription}` : null,
+        ``,
+        `Please respond using one of the secure links below:`,
+        `Accept: ${acceptUrl}`,
+        `Decline: ${declineUrl}`,
+        ``,
+        `These links are personal to this invitation. Please do not forward them.`,
+        ``,
+        `Yours faithfully,`,
+        organizerName,
+        `On behalf of ${ministryName}`,
+        `Government of Sierra Leone`,
       ].filter(Boolean).join("\n"),
+      html: `<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  <body style="margin:0;padding:0;background:#f1f5f9;color:#172033;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Official meeting invitation from ${safe.ministryName}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f1f5f9;padding:28px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #dbe3ee;border-radius:10px;overflow:hidden;">
+          <tr>
+            <td style="background:#12355b;border-bottom:5px solid #1d7a46;padding:26px 32px;color:#ffffff;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#dbeafe;">Government of Sierra Leone</div>
+              <div style="margin-top:7px;font-size:21px;font-weight:700;line-height:1.3;">${safe.ministryName}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#1d7a46;">Official Meeting Invitation</div>
+              <h1 style="margin:10px 0 20px;font-size:25px;line-height:1.3;color:#12355b;">${safe.eventTitle}</h1>
+              <p style="margin:0 0 14px;font-size:15px;line-height:1.7;">Dear ${safe.toName},</p>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.7;">${safe.organizerName}, on behalf of ${safe.ministryName}, formally invites you to attend the meeting detailed below.</p>
+
+              <div style="border:1px solid #dbe3ee;border-radius:8px;background:#f8fafc;padding:14px 18px;margin-bottom:22px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  ${safe.eventType ? detailRow("Type", safe.eventType) : ""}
+                  ${safe.classification ? detailRow("Classification", safe.classification) : ""}
+                  ${detailRow("Date", safe.date)}
+                  ${detailRow("Time", safe.time)}
+                  ${detailRow("Location", safe.location)}
+                  ${safe.recurrence ? detailRow("Schedule", safe.recurrence) : ""}
+                  ${detailRow("Organizer", safe.organizerName)}
+                </table>
+              </div>
+
+              ${safe.description ? `<div style="margin-bottom:24px;"><div style="margin-bottom:7px;font-size:13px;font-weight:700;color:#12355b;text-transform:uppercase;letter-spacing:.6px;">Purpose / Agenda</div><div style="font-size:14px;line-height:1.7;color:#334155;">${safe.description}</div></div>` : ""}
+
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Kindly confirm whether you will attend:</p>
+              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                <td style="padding:0 10px 10px 0;"><a href="${safe.acceptUrl}" style="display:inline-block;background:#1d7a46;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 22px;border-radius:6px;">Accept Invitation</a></td>
+                <td style="padding:0 0 10px;"><a href="${safe.declineUrl}" style="display:inline-block;background:#ffffff;color:#7f1d1d;text-decoration:none;font-size:14px;font-weight:700;padding:11px 21px;border:1px solid #fecaca;border-radius:6px;">Decline</a></td>
+              </tr></table>
+
+              <p style="margin:15px 0 24px;font-size:12px;line-height:1.6;color:#64748b;">For security, these response links are personal to your invitation. Please do not forward this email.</p>
+              <p style="margin:0;font-size:14px;line-height:1.7;">Yours faithfully,<br><strong>${safe.organizerName}</strong><br>On behalf of ${safe.ministryName}</p>
+            </td>
+          </tr>
+          <tr><td style="border-top:1px solid #e2e8f0;background:#f8fafc;padding:18px 32px;font-size:11px;line-height:1.6;color:#64748b;">This is an official internal meeting notification issued through the Smart Meeting &amp; Attendance Logger. Replies are directed to the meeting organizer.</td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`,
     });
     console.log(`[email] sent invite to ${to}:`, result.data?.id);
   } catch (err) {
-    logError(to, `Invitation: ${eventTitle}`, err);
+    logError(to, subject, err);
   }
 }
 

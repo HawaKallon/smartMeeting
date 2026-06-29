@@ -115,14 +115,14 @@ model Ministry {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users          User[]
-  events         Event[]
-  eventSeries    EventSeries[]
-  rooms          Room[]
-  roomBookings   RoomBooking[]
-  auditLogs      AuditLog[]
-  notifications  Notification[]
-  publicEvents   PublicEvent[]
+  users         User[]
+  events        Event[]
+  eventSeries   EventSeries[]
+  rooms         Room[]
+  roomBookings  RoomBooking[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  publicEvents  PublicEvent[]
 }
 
 model User {
@@ -141,26 +141,26 @@ model User {
   updatedAt     DateTime     @updatedAt
 
   // Preferences
-  emailNotifications        Boolean @default(true)
-  meetingReminders          Boolean @default(true)
-  actionItemNotifications   Boolean @default(true)
-  theme                     String  @default("dark") // dark, light, auto
-  compactMode               Boolean @default(false)
-  sessionTimeout            Int     @default(30) // minutes
-  autoDeleteRecordings      Boolean @default(false)
+  emailNotifications      Boolean @default(true)
+  meetingReminders        Boolean @default(true)
+  actionItemNotifications Boolean @default(true)
+  theme                   String  @default("dark") // dark, light, auto
+  compactMode             Boolean @default(false)
+  sessionTimeout          Int     @default(30) // minutes
+  autoDeleteRecordings    Boolean @default(false)
 
-  organizedEvents Event[]         @relation("EventOrganizer")
-  coOrganizedEvents Event[]       @relation("EventCoOrganizers")
-  eventSeries     EventSeries[]   @relation("SeriesOrganizer")
-  attendeeOf      EventAttendee[]
-  attendances     Attendance[]
-  actionItems     ActionItem[]    @relation("ActionItemOwner")
-  minutesApproved Minutes[]       @relation("MinutesApprover")
-  auditLogs       AuditLog[]
-  notifications   Notification[]
-  roomBookings    RoomBooking[]   @relation("RoomBookings")
-  accounts        Account[]
-  sessions        Session[]
+  organizedEvents   Event[]         @relation("EventOrganizer")
+  coOrganizedEvents Event[]         @relation("EventCoOrganizers")
+  eventSeries       EventSeries[]   @relation("SeriesOrganizer")
+  attendeeOf        EventAttendee[]
+  attendances       Attendance[]
+  actionItems       ActionItem[]    @relation("ActionItemOwner")
+  minutesApproved   Minutes[]       @relation("MinutesApprover")
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  roomBookings      RoomBooking[]   @relation("RoomBookings")
+  accounts          Account[]
+  sessions          Session[]
 }
 
 model Event {
@@ -231,10 +231,13 @@ model EventAttendee {
   externalName  String? // external guest without an account
   externalEmail String?
   status        InviteStatus @default(INVITED)
+  rsvpTokenHash String? // SHA-256 only; the bearer token is sent by email and never persisted
+  respondedAt   DateTime?
   createdAt     DateTime     @default(now())
 
   @@unique([eventId, userId])
   @@index([eventId])
+  @@index([rsvpTokenHash])
 }
 
 model Attendance {
@@ -331,16 +334,16 @@ model ActionItem {
 
 /// Append-only audit trail (PRD §7).
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   ministryId String?
   ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: SetNull)
   actorId    String?
-  actor      User?    @relation(fields: [actorId], references: [id])
+  actor      User?     @relation(fields: [actorId], references: [id])
   action     String // e.g. "CHECK_IN", "PUBLISH_MINUTES"
   entityType String
   entityId   String?
   metadata   Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([entityType, entityId])
   @@index([createdAt])
@@ -349,17 +352,17 @@ model AuditLog {
 
 /// In-app notifications for events (invites, minutes, action items).
 model Notification {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   ministryId String?
   ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: SetNull)
   type       String // e.g. "INVITE", "MINUTES_PUBLISHED", "ACTION_ITEM_ASSIGNED", "RSVP"
   title      String
   body       String
   link       String? // in-app URL (e.g. /events/123)
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  read       Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 
   @@index([userId, read])
   @@index([userId, createdAt])
@@ -381,20 +384,20 @@ model QRToken {
 // ── Room Booking models ─────────────────────────────────────────────────────
 
 model Room {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   ministryId String
-  ministry  Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
-  name      String
-  location  String
-  capacity  Int
-  amenities String[] // e.g., ["Projector", "Whiteboard"]
-  latitude  Float?
-  longitude Float?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  ministry   Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  name       String
+  location   String
+  capacity   Int
+  amenities  String[] // e.g., ["Projector", "Whiteboard"]
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   bookings RoomBooking[]
-  events   Event[]      @relation("EventRoom")
+  events   Event[]       @relation("EventRoom")
 
   @@unique([ministryId, name])
   @@index([location])
@@ -402,19 +405,19 @@ model Room {
 }
 
 model RoomBooking {
-  id           String               @id @default(cuid())
-  ministryId   String
-  ministry     Ministry             @relation(fields: [ministryId], references: [id], onDelete: Cascade)
-  roomId       String
-  userId       String
-  startTime    DateTime
-  endTime      DateTime
-  purpose      RoomBookingPurpose
+  id            String             @id @default(cuid())
+  ministryId    String
+  ministry      Ministry           @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  roomId        String
+  userId        String
+  startTime     DateTime
+  endTime       DateTime
+  purpose       RoomBookingPurpose
   attendeeCount Int?
-  notes        String?
-  status       RoomBookingStatus    @default(CONFIRMED)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  notes         String?
+  status        RoomBookingStatus  @default(CONFIRMED)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User @relation("RoomBookings", fields: [userId], references: [id], onDelete: Cascade)
@@ -464,7 +467,7 @@ model VerificationToken {
 
 /// Public calendar events — visible to all without login, managed by admins.
 model PublicEvent {
-  id           String               @id @default(cuid())
+  id           String            @id @default(cuid())
   title        String
   description  String?
   category     String? // free tag, e.g. "Conference", "Public Notice"
@@ -475,13 +478,13 @@ model PublicEvent {
   externalUrl  String?
   contactEmail String?
   contactPhone String?
-  status       PublicEventStatus    @default(DRAFT)
+  status       PublicEventStatus @default(DRAFT)
   publishedAt  DateTime?
   ministryId   String?
-  ministry     Ministry?            @relation(fields: [ministryId], references: [id], onDelete: SetNull)
+  ministry     Ministry?         @relation(fields: [ministryId], references: [id], onDelete: SetNull)
   createdById  String?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@index([status, startAt])
   @@index([ministryId])
