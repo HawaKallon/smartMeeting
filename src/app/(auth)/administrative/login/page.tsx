@@ -6,6 +6,7 @@ import { ArrowLeft, CalendarCheck2, Landmark, LockKeyhole, Mail, ShieldCheck } f
 import { signIn, auth } from "@/auth";
 import { PasswordInput } from "@/components/PasswordInput";
 
+// The auth route group keeps this public page outside the protected app layout.
 export const metadata: Metadata = {
   title: "Administrative Sign In | Smart Meeting",
   robots: { index: false, follow: false },
