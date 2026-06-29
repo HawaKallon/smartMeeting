@@ -30,7 +30,8 @@ export default async function AttendanceReportsPage() {
       <BackButton href="/administrative" label="Dashboard" />
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Attendance Reports</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Operational reporting</p>
+        <h1 className="mt-2 text-2xl font-bold text-foreground">Attendance Reports</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">Check-in statistics and attendance rates across all events</p>
       </div>
 
@@ -63,11 +64,11 @@ export default async function AttendanceReportsPage() {
       </div>
 
       {/* Events table */}
-      <div className="rounded-lg border border-border overflow-hidden bg-card">
+      <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/30">
+              <tr className="border-b border-border bg-secondary/45">
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-muted-foreground">Event</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-muted-foreground">Date</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold text-muted-foreground">Location</th>
@@ -92,7 +93,7 @@ export default async function AttendanceReportsPage() {
                 return (
                   <tr
                     key={e.id}
-                    className="transition-colors hover:bg-muted/40 cursor-pointer"
+                    className="cursor-pointer transition-colors hover:bg-secondary/35"
                   >
                     <td className="px-5 py-4">
                       <p className="font-medium text-foreground">{e.title}</p>
@@ -108,7 +109,7 @@ export default async function AttendanceReportsPage() {
                       {e.room ? `${e.room.name} • ${e.room.location}` : e.venueName ?? "—"}
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <span className="inline-flex items-center justify-center rounded-md bg-muted/50 px-2 py-1 text-sm font-medium text-foreground">
+                      <span className="inline-flex items-center justify-center rounded-md bg-secondary/65 px-2 py-1 text-sm font-medium text-foreground">
                         {e._count.attendees}
                       </span>
                     </td>
@@ -139,7 +140,7 @@ export default async function AttendanceReportsPage() {
 
         {events.length === 0 && (
           <div className="px-5 py-12 text-center">
-            <Activity className="mx-auto h-8 w-8 text-muted-foreground/20" />
+            <Activity className="mx-auto h-8 w-8 text-primary/25" />
             <p className="mt-3 text-sm text-muted-foreground">No events found</p>
           </div>
         )}
@@ -160,15 +161,16 @@ function StatCard({
   sub: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4 transition-all hover:bg-muted/30 hover:border-border/80">
+    <div className="relative overflow-hidden rounded-[1.6rem] border border-[#d3e0f0] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-5 shadow-[0_14px_35px_rgba(15,35,63,0.07)] transition-all hover:border-[#c0d4ee]">
+      <div className="absolute inset-x-0 top-0 h-1 bg-[#003580]" />
       <div className="flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/50">
+        <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[#bfd1ee] bg-[#e4eefc]">
           {icon}
         </div>
       </div>
-      <p className="mt-3 text-2xl font-bold text-foreground">{value}</p>
-      <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground/60">{sub}</p>
+      <p className="mt-5 text-3xl font-semibold tracking-tight text-[#003580]">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-foreground">{label}</p>
+      <p className="mt-1 text-xs font-medium text-[#4e678f]">{sub}</p>
     </div>
   );
 }
