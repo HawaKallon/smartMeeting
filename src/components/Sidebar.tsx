@@ -15,6 +15,7 @@ export function Sidebar({
 }) {
   const isStaff = canManageEvents(user.role);
   const isSuperAdminUser = isSuperAdmin(user.role);
+  const isAdmin = user.role === "ADMIN" || isSuperAdminUser;
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
   // Build the list of all hrefs shown for this user (deduped)
@@ -26,6 +27,7 @@ export function Sidebar({
     ...(isStaff ? ["/events/new", "/events", "/attendance", "/reports"] : []),
     "/profile",
     ...(isSuperAdminUser ? ["/admin", "/admin/ministries", "/admin/users", "/admin/rooms", "/admin/activity", "/reports"] : []),
+    ...(isAdmin ? ["/admin/public-calendar"] : []),
     ...(user.role === "ADMIN" ? ["/admin/users", "/admin/rooms", "/admin/activity"] : []),
     "/help",
     "/settings",
@@ -117,6 +119,12 @@ export function Sidebar({
                 Reports
               </NavLink>
             </>
+          )}
+          {isAdmin && (
+            <NavLink href="/admin/public-calendar">
+              <CalendarDays className="h-4 w-4 text-white" />
+              Public Calendar
+            </NavLink>
           )}
           {user.role === "ADMIN" && (
             <>
