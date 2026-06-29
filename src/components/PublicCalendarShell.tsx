@@ -4,14 +4,8 @@ import { CalendarDays } from "lucide-react";
 export function PublicCalendarShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-[#f4f7f9] text-slate-900">
-      <div className="grid h-1.5 grid-cols-3" aria-hidden="true">
-        <span className="bg-[#1f8f4e]" />
-        <span className="bg-white" />
-        <span className="bg-[#1f6fa8]" />
-      </div>
-
       <header className="border-b border-slate-200 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-4">
             <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#12355b] text-white shadow-sm">
               <CalendarDays className="h-6 w-6" />
@@ -25,6 +19,17 @@ export function PublicCalendarShell({ children }: { children: React.ReactNode })
               </span>
             </span>
           </Link>
+
+          <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
+            <span className="flex h-7 w-11 overflow-hidden rounded-[4px] border border-slate-300 bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.35)_inset]" aria-hidden="true">
+              <span className="flex-1 bg-[#1f8f4e]" />
+              <span className="flex-1 bg-white" />
+              <span className="flex-1 bg-[#1f6fa8]" />
+            </span>
+            <span className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 sm:inline">
+              Sierra Leone
+            </span>
+          </div>
         </div>
       </header>
 
