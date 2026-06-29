@@ -71,28 +71,28 @@ export default async function ActivityLogPage({
       <BackButton href="/administrative" label="Dashboard" />
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Activity Log</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Platform administration</p>
+        <h1 className="mt-2 text-2xl font-bold text-foreground">Activity Log</h1>
         <p className="mt-1 text-sm text-muted-foreground">Track all system actions and changes</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-border bg-card p-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-[1.6rem] border border-[#d3e0f0] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-5 shadow-[0_14px_35px_rgba(15,35,63,0.07)]">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Actions</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">{totalCount.toLocaleString()}</p>
+          <p className="mt-3 text-3xl font-semibold text-[#003580]">{totalCount.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-[1.6rem] border border-[#d7e2c6] bg-[linear-gradient(180deg,#fbfff8_0%,#eef7e5_100%)] p-5 shadow-[0_14px_35px_rgba(15,35,63,0.07)]">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Today</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">
+          <p className="mt-3 text-3xl font-semibold text-[#007236]">
             {logs.filter((l) => {
               const today = new Date();
               return l.createdAt.toDateString() === today.toDateString();
             }).length}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-[1.6rem] border border-[#f0dfaa] bg-[linear-gradient(180deg,#fffef8_0%,#fff5d9_100%)] p-5 shadow-[0_14px_35px_rgba(15,35,63,0.07)]">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Users Active</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">
+          <p className="mt-3 text-3xl font-semibold text-[#946200]">
             {new Set(logs.map((l) => l.actorId)).size}
           </p>
         </div>
@@ -107,12 +107,11 @@ export default async function ActivityLogPage({
         superAdmin={superAdmin}
       />
 
-      {/* Activity Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-border bg-secondary/45">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Action</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">User</th>
                 {superAdmin && (
@@ -127,10 +126,10 @@ export default async function ActivityLogPage({
               {logs.map((log, idx) => (
                 <tr
                   key={log.id}
-                  className={`transition-colors hover:bg-muted/30 ${idx < logs.length - 1 ? "border-b border-border/50" : ""}`}
+                  className={`transition-colors hover:bg-secondary/30 ${idx < logs.length - 1 ? "border-b border-border/50" : ""}`}
                 >
                   <td className="px-6 py-3">
-                    <span className="rounded-lg bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-400">
+                    <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-600">
                       {log.action.replace(/_/g, " ")}
                     </span>
                   </td>
@@ -154,8 +153,8 @@ export default async function ActivityLogPage({
                   <td className="px-6 py-3">
                     {log.metadata && (
                       <details className="cursor-pointer">
-                        <summary className="text-blue-400 hover:text-blue-300">View</summary>
-                        <pre className="mt-1 overflow-auto rounded bg-muted/30 p-2 text-xs">
+                        <summary className="text-blue-600 hover:text-blue-700">View</summary>
+                        <pre className="mt-1 overflow-auto rounded-xl bg-secondary/40 p-2 text-xs">
                           {JSON.stringify(log.metadata, null, 2)}
                         </pre>
                       </details>
@@ -172,7 +171,7 @@ export default async function ActivityLogPage({
 
         {logs.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <Activity className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <Activity className="mx-auto h-8 w-8 text-primary/25" />
             <p className="mt-3 text-sm text-muted-foreground">No activity logged yet</p>
           </div>
         )}
@@ -188,7 +187,7 @@ export default async function ActivityLogPage({
             {currentPage > 1 && (
               <a
                 href={`?page=${currentPage - 1}${action ? `&action=${action}` : ""}${ministryId ? `&ministryId=${ministryId}` : ""}`}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+                className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary/35"
               >
                 ← Previous
               </a>
@@ -196,7 +195,7 @@ export default async function ActivityLogPage({
             {currentPage < totalPages && (
               <a
                 href={`?page=${currentPage + 1}${action ? `&action=${action}` : ""}${ministryId ? `&ministryId=${ministryId}` : ""}`}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+                className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary/35"
               >
                 Next →
               </a>
