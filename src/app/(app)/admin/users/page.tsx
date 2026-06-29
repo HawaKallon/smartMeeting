@@ -73,13 +73,13 @@ export default async function AdminUsersPage({
       <BackButton href="/administrative" label="Dashboard" />
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Admin: Manage Users</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Platform administration</p>
+        <h1 className="mt-2 text-2xl font-bold text-foreground">Admin: Manage Users</h1>
         <p className="mt-1 text-sm text-muted-foreground">Create users and manage roles</p>
       </div>
 
-      {/* Create User Form */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <Plus className="h-5 w-5" />
           Create New User
         </h2>
@@ -89,12 +89,11 @@ export default async function AdminUsersPage({
       {/* Filters */}
       <UserFilters ministries={superAdmin ? ministries : undefined} />
 
-      {/* Users Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-border bg-secondary/45">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</th>
                 {superAdmin && (
@@ -109,11 +108,11 @@ export default async function AdminUsersPage({
               {users.map((u, idx) => (
                 <tr
                   key={u.id}
-                  className={`transition-colors hover:bg-muted/30 ${idx < users.length - 1 ? "border-b border-border/50" : ""}`}
+                  className={`transition-colors hover:bg-secondary/30 ${idx < users.length - 1 ? "border-b border-border/50" : ""}`}
                 >
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                         {(u.name || u.email).charAt(0).toUpperCase()}
                       </div>
                       <span className="font-medium text-foreground">{u.name || "—"}</span>
@@ -124,16 +123,16 @@ export default async function AdminUsersPage({
                     <td className="px-6 py-3 text-muted-foreground">{u.ministry?.name ?? "—"}</td>
                   )}
                   <td className="px-6 py-3">
-                    <span className="rounded-lg bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-400">
+                    <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-600">
                       {ROLE_LABELS[u.role]}
                     </span>
                   </td>
                   <td className="px-6 py-3">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-medium ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
                         u.active
-                          ? "bg-green-500/10 text-green-400"
-                          : "bg-red-500/10 text-red-400"
+                          ? "bg-green-500/10 text-green-600"
+                          : "bg-red-500/10 text-red-600"
                       }`}
                     >
                       {u.active ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
@@ -156,7 +155,7 @@ export default async function AdminUsersPage({
 
         {users.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <Shield className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <Shield className="mx-auto h-8 w-8 text-primary/25" />
             <p className="mt-3 text-sm text-muted-foreground">No users found</p>
           </div>
         )}
