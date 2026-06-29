@@ -18,7 +18,7 @@ export function NotificationBell({ initialNotifications }: NotificationBellProps
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-white text-primary transition-colors hover:bg-muted"
+        className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-primary transition-colors hover:bg-muted"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -44,7 +44,7 @@ export function NotificationBell({ initialNotifications }: NotificationBellProps
                     key={n.id}
                     href={n.link || "#"}
                     className={`block border-b border-border/50 px-4 py-3 transition-colors ${
-                    n.read ? "hover:bg-muted/50" : "bg-secondary/50 hover:bg-secondary"
+                    n.read ? "hover:bg-muted/50" : "bg-secondary/70 hover:bg-secondary"
                   }`}
                 >
                   <div className="flex items-start gap-2">
