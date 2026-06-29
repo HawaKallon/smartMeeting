@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendReminderEmail } from "@/lib/email";
 import { sendReminderSms } from "@/lib/sms";
+import { absoluteAppUrl } from "@/lib/appUrl";
 
 // Scheduled reminders for action items due within the next 2 days.
 // Call this endpoint from any cron service (Vercel Cron, cron-job.org, etc.)
@@ -39,14 +40,13 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   let sent = 0;
 
   await Promise.allSettled(
     items.map(async (item) => {
       if (!item.owner || !item.dueDate) return;
 
-      const minutesUrl = `${baseUrl}/administrative/events/${item.minutes.eventId}/minutes`;
+      const minutesUrl = absoluteAppUrl(`/administrative/events/${item.minutes.eventId}/minutes`);
       const eventTitle = item.minutes.event.title;
 
       await Promise.allSettled([
