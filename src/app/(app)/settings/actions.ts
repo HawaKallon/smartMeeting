@@ -14,7 +14,6 @@ export async function updateAllSettings(
     const emailNotifications = formData.get("emailNotifications") === "on";
     const meetingReminders = formData.get("meetingReminders") === "on";
     const actionItemNotifications = formData.get("actionItemNotifications") === "on";
-    const theme = (formData.get("theme") as string) || "dark";
     const compactMode = formData.get("compactMode") === "on";
     const sessionTimeout = parseInt(formData.get("sessionTimeout") as string) || 30;
     const autoDeleteRecordings = formData.get("autoDeleteRecordings") === "on";
@@ -25,7 +24,6 @@ export async function updateAllSettings(
         emailNotifications,
         meetingReminders,
         actionItemNotifications,
-        theme,
         compactMode,
         sessionTimeout,
         autoDeleteRecordings,

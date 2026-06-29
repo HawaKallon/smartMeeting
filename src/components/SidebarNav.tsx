@@ -32,10 +32,10 @@ export function NavLink({ href, children }: { href: string; children: ReactNode 
   return (
     <Link
       href={href}
-      className={`flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors ${
+      className={`flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm transition-all ${
         isActive
-          ? "bg-sidebar-accent font-medium text-sidebar-foreground"
-          : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+          ? "bg-sidebar-accent font-semibold text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(0,114,54,0.18)]"
+          : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground"
       }`}
     >
       {children}
