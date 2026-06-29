@@ -34,7 +34,7 @@ export function Sidebar({
   ]));
 
   return (
-    <aside className="hidden h-screen w-72 flex-shrink-0 flex-col border-r border-sidebar-border bg-sidebar sm:flex">
+    <aside className="hidden h-screen w-72 flex-shrink-0 flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#f1f7fe_100%)] sm:flex">
       <div className="border-b border-sidebar-border px-5 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sidebar-primary shadow-[0_10px_24px_rgba(0,114,54,0.18)]">
@@ -159,8 +159,8 @@ export function Sidebar({
         </nav>
       </SidebarNavProvider>
 
-      <div className="border-t border-sidebar-border bg-[#f9fbfe] p-4">
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-white px-3 py-3 shadow-sm">
+      <div className="border-t border-sidebar-border bg-[#edf4fd] p-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-3 shadow-sm">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-white">
             {initial}
           </div>
@@ -170,18 +170,18 @@ export function Sidebar({
             </p>
             <p className="text-xs text-sidebar-foreground/55">{ROLE_LABELS[user.role]}</p>
           </div>
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/administrative/login" });
+            }}
+            className="shrink-0"
+          >
+            <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-secondary/60 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
+              <LogOut className="h-4 w-4" />
+            </button>
+          </form>
         </div>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/administrative/login" });
-          }}
-        >
-          <button className="mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
-            <LogOut className="h-3.5 w-3.5" />
-            Sign out
-          </button>
-        </form>
       </div>
     </aside>
   );
