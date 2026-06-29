@@ -256,9 +256,9 @@ export async function createEvent(
     );
   }
 
-  revalidatePath("/calendar");
-  revalidatePath("/");
-  redirect(`/events/${firstId}`);
+  revalidatePath("/administrative/calendar");
+  revalidatePath("/administrative");
+  redirect(`/administrative/events/${firstId}`);
 }
 
 export async function checkRoomAvailability(

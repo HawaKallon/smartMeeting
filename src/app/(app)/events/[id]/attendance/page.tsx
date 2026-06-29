@@ -68,7 +68,7 @@ export default async function AttendancePage({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <BackButton href={`/events/${id}`} label={event.title} />
+        <BackButton href={`/administrative/events/${id}`} label={event.title} />
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
           <Users className="h-8 w-8 text-sidebar-primary" />
           Attendance

@@ -120,9 +120,9 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
   // page (invite dropdown + "Checked in" list) is derived from `attendances`,
   // so it must be revalidated here too or the invite list goes stale.
   const { revalidatePath } = await import("next/cache");
-  revalidatePath(`/events/${event.id}/attendance`);
-  revalidatePath(`/events/${event.id}/attendees`);
-  revalidatePath(`/events/${event.id}`);
+  revalidatePath(`/administrative/events/${event.id}/attendance`);
+  revalidatePath(`/administrative/events/${event.id}/attendees`);
+  revalidatePath(`/administrative/events/${event.id}`);
 
   return { ok: true, withinGeofence: within, eventTitle: event.title };
 }

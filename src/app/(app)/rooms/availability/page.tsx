@@ -120,7 +120,7 @@ export default async function RoomAvailabilityPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/rooms" label="Rooms" />
+      <BackButton href="/administrative/rooms" label="Rooms" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Room Availability</h1>
@@ -273,7 +273,7 @@ export default async function RoomAvailabilityPage({
 
           {/* Create Event Button */}
           <Link
-            href={`/events/new`}
+            href={`/administrative/events/new`}
             className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
           >
             Create Event with This Room

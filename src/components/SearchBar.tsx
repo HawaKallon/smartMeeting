@@ -11,7 +11,7 @@ export function SearchBar() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query)}`);
+      router.push(`/administrative/search?q=${encodeURIComponent(query)}`);
     }
   }
 

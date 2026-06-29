@@ -17,7 +17,7 @@ export function RoomFilters({
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
     else next.delete(key);
-    router.push(`/admin/rooms?${next.toString()}`);
+    router.push(`/administrative/admin/rooms?${next.toString()}`);
   }
 
   return (

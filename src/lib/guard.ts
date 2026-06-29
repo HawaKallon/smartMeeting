@@ -7,13 +7,13 @@ import type { MinistryRole } from "@/generated/prisma/enums";
 
 export async function requireUser() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/administrative/login");
   return session.user;
 }
 
 export async function requireRole(...roles: MinistryRole[]) {
   const user = await requireUser();
-  if (!roles.includes(user.role)) redirect("/forbidden");
+  if (!roles.includes(user.role)) redirect("/administrative/forbidden");
   return user;
 }
 
@@ -38,7 +38,7 @@ export async function assertStaffRole() {
 /** Page guard: platform super-admin only. */
 export async function requireSuperAdmin() {
   const user = await requireUser();
-  if (!isSuperAdmin(user.role)) redirect("/forbidden");
+  if (!isSuperAdmin(user.role)) redirect("/administrative/forbidden");
   return user;
 }
 

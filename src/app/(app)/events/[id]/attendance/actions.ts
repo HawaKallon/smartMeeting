@@ -91,7 +91,7 @@ export async function manualCheckIn(
           })
         : null;
     if (existing) {
-      revalidatePath(`/events/${eventId}/attendance`);
+      revalidatePath(`/administrative/events/${eventId}/attendance`);
       return { ok: true, already: true };
     }
 
@@ -115,9 +115,9 @@ export async function manualCheckIn(
     });
 
     // Revalidate all relevant pages so check-in shows everywhere.
-    revalidatePath(`/events/${eventId}/attendance`);
-    revalidatePath(`/events/${eventId}/attendees`);
-    revalidatePath(`/events/${eventId}`);
+    revalidatePath(`/administrative/events/${eventId}/attendance`);
+    revalidatePath(`/administrative/events/${eventId}/attendees`);
+    revalidatePath(`/administrative/events/${eventId}`);
 
     return { ok: true };
   } catch (err) {

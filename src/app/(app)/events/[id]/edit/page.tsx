@@ -44,7 +44,7 @@ export default async function EditEventPage({
       coOrganizerIds: event.coOrganizers.map((c) => c.id),
     })
   ) {
-    redirect("/forbidden");
+    redirect("/administrative/forbidden");
   }
 
   const rooms = await prisma.room.findMany({
@@ -54,7 +54,7 @@ export default async function EditEventPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href={`/events/${id}`} label={event.title} />
+      <BackButton href={`/administrative/events/${id}`} label={event.title} />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Edit Event</h1>
         <p className="mt-1 text-sm text-muted-foreground">Update event details</p>

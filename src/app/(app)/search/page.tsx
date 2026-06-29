@@ -16,7 +16,7 @@ export default async function SearchPage({
   if (!q || q.trim().length === 0) {
     return (
       <div className="space-y-6">
-        <BackButton href="/" label="Dashboard" />
+        <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <Inbox className="mx-auto h-8 w-8 text-muted-foreground/30" />
           <p className="mt-3 text-sm text-muted-foreground">Enter a search query to get started</p>
@@ -104,7 +104,7 @@ export default async function SearchPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Search Results</h1>
@@ -131,7 +131,7 @@ export default async function SearchPage({
                 {events.map((e) => (
                   <Link
                     key={e.id}
-                    href={`/events/${e.id}`}
+                    href={`/administrative/events/${e.id}`}
                     className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
                   >
                     <p className="font-medium text-foreground">{e.title}</p>
@@ -158,7 +158,7 @@ export default async function SearchPage({
                 {minutes.map((m) => (
                   <Link
                     key={m.id}
-                    href={`/events/${m.eventId}/minutes`}
+                    href={`/administrative/events/${m.eventId}/minutes`}
                     className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
                   >
                     <p className="font-medium text-foreground">{m.event.title}</p>
@@ -182,7 +182,7 @@ export default async function SearchPage({
                 {rooms.map((r) => (
                   <Link
                     key={r.id}
-                    href={`/rooms/${r.id}`}
+                    href={`/administrative/rooms/${r.id}`}
                     className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
                   >
                     <p className="font-medium text-foreground">{r.name}</p>
@@ -208,7 +208,7 @@ export default async function SearchPage({
                 {users.map((u) => (
                   <Link
                     key={u.id}
-                    href={`/admin/users`}
+                    href={`/administrative/admin/users`}
                     className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
                   >
                     <p className="font-medium text-foreground">{u.name || u.email}</p>

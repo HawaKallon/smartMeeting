@@ -30,7 +30,7 @@ export function ProfilePageClient({ user, stats }: ProfilePageClientProps) {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div className="flex items-center justify-between">
         <div>

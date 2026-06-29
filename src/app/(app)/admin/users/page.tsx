@@ -20,7 +20,7 @@ export default async function AdminUsersPage({
   if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
     return (
       <div className="space-y-6">
-        <BackButton href="/" label="Dashboard" />
+        <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
           <p className="text-red-400">You don&apos;t have permission to access this page</p>
         </div>
@@ -70,7 +70,7 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Admin: Manage Users</h1>
