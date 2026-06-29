@@ -35,6 +35,16 @@ export async function assertStaffRole() {
   return assertRole("ADMIN_STAFF", "ADMIN");
 }
 
+/** Page guard: ministry admin or platform super-admin. */
+export async function requireAdminRole() {
+  return requireRole("ADMIN", "SUPER_ADMIN");
+}
+
+/** Action guard: ministry admin or platform super-admin. */
+export async function assertAdminRole() {
+  return assertRole("ADMIN", "SUPER_ADMIN");
+}
+
 /** Page guard: platform super-admin only. */
 export async function requireSuperAdmin() {
   const user = await requireUser();
@@ -51,9 +61,12 @@ export async function assertSuperAdmin() {
 }
 
 /** Scope helper: returns where clause for ministry filtering. Super-admins bypass filtering. */
-export function ministryScope(user: { role: MinistryRole; ministryId: string | null }) {
+export function ministryScope(
+  user: { role: MinistryRole; ministryId: string | null },
+): { ministryId?: string } {
   if (isSuperAdmin(user.role)) return {};
-  return { ministryId: user.ministryId };
+  // A ministry-bound role without a ministry must never receive an unscoped query.
+  return { ministryId: user.ministryId ?? "__missing_ministry__" };
 }
 
 /** Assert that an entity belongs to the user's ministry (or allow super-admin). */
