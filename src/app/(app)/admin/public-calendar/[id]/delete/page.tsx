@@ -42,7 +42,7 @@ export default function DeletePublicEventPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/admin/public-calendar" label="Public Calendar" />
+      <BackButton href="/administrative/admin/public-calendar" label="Public Calendar" />
 
       <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-6">
         <h1 className="text-2xl font-bold text-red-900 dark:text-red-200">Delete Event?</h1>

@@ -32,7 +32,7 @@ export async function updateAllSettings(
       },
     });
 
-    revalidatePath("/settings");
+    revalidatePath("/administrative/settings");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update settings:", err);

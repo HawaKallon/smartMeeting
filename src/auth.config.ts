@@ -7,7 +7,7 @@ import type { MinistryRole } from "@/generated/prisma/enums";
 
 const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  pages: { signIn: "/administrative/login" },
   providers: [],
   callbacks: {
     jwt({ token, user }) {

@@ -20,17 +20,17 @@ export function Sidebar({
 
   // Build the list of all hrefs shown for this user (deduped)
   const navHrefs = Array.from(new Set([
-    "/",
-    "/calendar",
-    "/kanban",
-    "/notifications",
-    ...(isStaff ? ["/events/new", "/events", "/attendance", "/reports"] : []),
-    "/profile",
-    ...(isSuperAdminUser ? ["/admin", "/admin/ministries", "/admin/users", "/admin/rooms", "/admin/activity", "/reports"] : []),
-    ...(isAdmin ? ["/admin/public-calendar"] : []),
-    ...(user.role === "ADMIN" ? ["/admin/users", "/admin/rooms", "/admin/activity"] : []),
-    "/help",
-    "/settings",
+    "/administrative",
+    "/administrative/calendar",
+    "/administrative/kanban",
+    "/administrative/notifications",
+    ...(isStaff ? ["/administrative/events/new", "/administrative/events", "/administrative/attendance", "/administrative/reports"] : []),
+    "/administrative/profile",
+    ...(isSuperAdminUser ? ["/administrative/admin", "/administrative/admin/ministries", "/administrative/admin/users", "/administrative/admin/rooms", "/administrative/admin/activity", "/administrative/reports"] : []),
+    ...(isAdmin ? ["/administrative/admin/public-calendar"] : []),
+    ...(user.role === "ADMIN" ? ["/administrative/admin/users", "/administrative/admin/rooms", "/administrative/admin/activity"] : []),
+    "/administrative/help",
+    "/administrative/settings",
   ]));
 
   return (
@@ -47,20 +47,20 @@ export function Sidebar({
       <SidebarNavProvider hrefs={navHrefs}>
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         <NavSection label="Main">
-          <NavLink href="/">
+          <NavLink href="/administrative">
             <LayoutDashboard className="h-4 w-4 text-white" />
             Dashboard
           </NavLink>
-          <NavLink href="/calendar">
+          <NavLink href="/administrative/calendar">
             <CalendarDays className="h-4 w-4 text-white" />
             Calendar
           </NavLink>
 
-          <NavLink href="/kanban">
+          <NavLink href="/administrative/kanban">
             <KanbanSquare className="h-4 w-4 text-white" />
             Action Items
           </NavLink>
-          <NavLink href="/notifications">
+          <NavLink href="/administrative/notifications">
             <Bell className="h-4 w-4 text-white" />
             Notifications
           </NavLink>
@@ -68,19 +68,19 @@ export function Sidebar({
 
         {isStaff && (
           <NavSection label="Management">
-            <NavLink href="/events/new">
+            <NavLink href="/administrative/events/new">
               <PlusCircle className="h-4 w-4 text-white" />
               New Event
             </NavLink>
-            <NavLink href="/events">
+            <NavLink href="/administrative/events">
               <CalendarDays className="h-4 w-4 text-white" />
               All Events
             </NavLink>
-            <NavLink href="/attendance">
+            <NavLink href="/administrative/attendance">
               <ClipboardList className="h-4 w-4 text-white" />
               Attendance
             </NavLink>
-            <NavLink href="/reports">
+            <NavLink href="/administrative/reports">
               <BarChart3 className="h-4 w-4 text-white" />
               Reports
             </NavLink>
@@ -88,65 +88,65 @@ export function Sidebar({
         )}
 
         <NavSection label="System">
-          <NavLink href="/profile">
+          <NavLink href="/administrative/profile">
             <User className="h-4 w-4 text-white" />
             Profile
           </NavLink>
           {isSuperAdminUser && (
             <>
-              <NavLink href="/admin">
+              <NavLink href="/administrative/admin">
                 <BarChart3 className="h-4 w-4 text-white" />
                 Platform Overview
               </NavLink>
-              <NavLink href="/admin/ministries">
+              <NavLink href="/administrative/admin/ministries">
                 <Building2 className="h-4 w-4 text-white" />
                 Manage Ministries
               </NavLink>
-              <NavLink href="/admin/users">
+              <NavLink href="/administrative/admin/users">
                 <Users className="h-4 w-4 text-white" />
                 Manage Users
               </NavLink>
-              <NavLink href="/admin/rooms">
+              <NavLink href="/administrative/admin/rooms">
                 <Building2 className="h-4 w-4 text-white" />
                 Manage Rooms
               </NavLink>
-              <NavLink href="/admin/activity">
+              <NavLink href="/administrative/admin/activity">
                 <Activity className="h-4 w-4 text-white" />
                 Activity Log
               </NavLink>
-              <NavLink href="/reports">
+              <NavLink href="/administrative/reports">
                 <BarChart3 className="h-4 w-4 text-white" />
                 Reports
               </NavLink>
             </>
           )}
           {isAdmin && (
-            <NavLink href="/admin/public-calendar">
+            <NavLink href="/administrative/admin/public-calendar">
               <CalendarDays className="h-4 w-4 text-white" />
               Public Calendar
             </NavLink>
           )}
           {user.role === "ADMIN" && (
             <>
-              <NavLink href="/admin/users">
+              <NavLink href="/administrative/admin/users">
                 <Users className="h-4 w-4 text-white" />
                 Manage Users
               </NavLink>
-              <NavLink href="/admin/rooms">
+              <NavLink href="/administrative/admin/rooms">
                 <Building2 className="h-4 w-4 text-white" />
                 Manage Rooms
               </NavLink>
-              <NavLink href="/admin/activity">
+              <NavLink href="/administrative/admin/activity">
                 <Activity className="h-4 w-4 text-white" />
                 Activity Log
               </NavLink>
             </>
           )}
-          <NavLink href="/help">
+          <NavLink href="/administrative/help">
             <HelpCircle className="h-4 w-4 text-white" />
             Help &amp; Centre
           </NavLink>
-          <NavLink href="/settings">
+          <NavLink href="/administrative/settings">
             <Settings className="h-4 w-4 text-white" />
             Settings
           </NavLink>
@@ -170,7 +170,7 @@ export function Sidebar({
         <form
           action={async () => {
             "use server";
-            await signOut({ redirectTo: "/login" });
+            await signOut({ redirectTo: "/administrative/login" });
           }}
         >
           <button className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors">

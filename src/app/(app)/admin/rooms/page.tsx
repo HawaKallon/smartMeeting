@@ -18,7 +18,7 @@ export default async function AdminRoomsPage({
   if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
     return (
       <div className="space-y-6">
-        <BackButton href="/" label="Dashboard" />
+        <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
           <p className="text-red-400">You don't have permission to access this page</p>
         </div>
@@ -60,7 +60,7 @@ export default async function AdminRoomsPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div className="flex items-center justify-between">
         <div>

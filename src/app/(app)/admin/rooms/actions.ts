@@ -71,8 +71,8 @@ export async function createRoom(
       ministryId,
     });
 
-    revalidatePath("/rooms");
-    revalidatePath("/admin/rooms");
+    revalidatePath("/administrative/rooms");
+    revalidatePath("/administrative/admin/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to create room:", err);
@@ -140,8 +140,8 @@ export async function updateRoom(
       ministryId: room.ministryId,
     });
 
-    revalidatePath("/rooms");
-    revalidatePath("/admin/rooms");
+    revalidatePath("/administrative/rooms");
+    revalidatePath("/administrative/admin/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update room:", err);
@@ -178,8 +178,8 @@ export async function deleteRoom(roomId: string): Promise<{ ok?: boolean; error?
       ministryId: room.ministryId,
     });
 
-    revalidatePath("/rooms");
-    revalidatePath("/admin/rooms");
+    revalidatePath("/administrative/rooms");
+    revalidatePath("/administrative/admin/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to delete room:", err);
