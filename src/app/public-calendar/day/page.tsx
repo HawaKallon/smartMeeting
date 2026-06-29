@@ -57,7 +57,7 @@ export default async function PublicCalendarDayPage({
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-[1.5rem] border border-border bg-white p-8 text-center shadow-sm">
+        <div className="rounded-[1.5rem] border border-border bg-card p-8 text-center shadow-sm">
           <p className="text-muted-foreground">No events scheduled for this day</p>
         </div>
       ) : (
@@ -66,7 +66,7 @@ export default async function PublicCalendarDayPage({
             <Link
               key={event.id}
               href={`/public-calendar/event/${event.id}`}
-              className="block rounded-[1.5rem] border border-border bg-white p-5 shadow-sm transition-colors hover:bg-[#f9fbfe]"
+              className="block rounded-[1.5rem] border border-border bg-card p-5 shadow-sm transition-colors hover:bg-secondary/40"
             >
               <h3 className="text-lg font-semibold text-[#003580]">{event.title}</h3>
               <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
