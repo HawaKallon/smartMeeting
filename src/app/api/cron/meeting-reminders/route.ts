@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendMeetingReminderEmail } from "@/lib/email";
+import { absoluteAppUrl } from "@/lib/appUrl";
 
 // Meeting reminders — emailed to invitees who CONFIRMED their attendance,
 // roughly 1 hour before the meeting starts.
@@ -56,7 +57,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   let emailsSent = 0;
 
   for (const event of events) {
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         recipients.push({
           to: a.user.email,
           toName: a.user.name ?? a.user.email,
-          joinUrl: `${baseUrl}/administrative/events/${event.id}`,
+          joinUrl: absoluteAppUrl(`/administrative/events/${event.id}`),
         });
       } else if (a.externalEmail) {
         recipients.push({
