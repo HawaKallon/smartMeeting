@@ -81,7 +81,7 @@ export async function createPublicEvent(
       entityType: "PublicEvent",
       entityId: event.id,
       ministryId: user.ministryId,
-      details: { title: event.title },
+      metadata: { title: event.title },
     });
 
     revalidatePath("/public-calendar");
@@ -157,7 +157,7 @@ export async function updatePublicEvent(
       entityType: "PublicEvent",
       entityId: eventId,
       ministryId: user.ministryId,
-      details: { title: updated.title },
+      metadata: { title: updated.title },
     });
 
     revalidatePath("/public-calendar");
@@ -198,7 +198,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
       entityType: "PublicEvent",
       entityId: eventId,
       ministryId: user.ministryId,
-      details: { title: updated.title },
+      metadata: { title: updated.title },
     });
 
     revalidatePath("/public-calendar");
@@ -239,7 +239,7 @@ export async function unpublishPublicEvent(eventId: string): Promise<ActionState
       entityType: "PublicEvent",
       entityId: eventId,
       ministryId: user.ministryId,
-      details: { title: updated.title },
+      metadata: { title: updated.title },
     });
 
     revalidatePath("/public-calendar");
@@ -276,7 +276,7 @@ export async function deletePublicEvent(eventId: string): Promise<ActionState> {
       entityType: "PublicEvent",
       entityId: eventId,
       ministryId: user.ministryId,
-      details: { title: event.title },
+      metadata: { title: event.title },
     });
 
     revalidatePath("/public-calendar");
