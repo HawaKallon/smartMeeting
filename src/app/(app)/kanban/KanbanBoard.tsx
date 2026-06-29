@@ -34,15 +34,27 @@ interface Props {
 }
 
 const COLUMNS: { id: Status; label: string; color: string }[] = [
-  { id: "TODO",        label: "To Do",       color: "bg-gray-100" },
-  { id: "IN_PROGRESS", label: "In Progress",  color: "bg-blue-50" },
-  { id: "DONE",        label: "Done",         color: "bg-green-50" },
+  { id: "TODO", label: "To Do", color: "bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)]" },
+  { id: "IN_PROGRESS", label: "In Progress", color: "bg-[linear-gradient(180deg,#fffdf8_0%,#fff4d6_100%)]" },
+  { id: "DONE", label: "Done", color: "bg-[linear-gradient(180deg,#f8fffb_0%,#edf8f1_100%)]" },
 ];
 
-const STATUS_BADGE: Record<Status, string> = {
-  TODO:        "bg-gray-100 text-gray-600",
-  IN_PROGRESS: "bg-blue-100 text-blue-700",
-  DONE:        "bg-green-100 text-green-700",
+const COLUMN_STYLES: Record<Status, { border: string; badge: string; text: string }> = {
+  TODO: {
+    border: "border-[#cfe0f3]",
+    badge: "bg-[#e6effc] text-[#003580]",
+    text: "text-[#003580]",
+  },
+  IN_PROGRESS: {
+    border: "border-[#f0dfaa]",
+    badge: "bg-[#fff0bf] text-[#946200]",
+    text: "text-[#946200]",
+  },
+  DONE: {
+    border: "border-[#c7e2d0]",
+    badge: "bg-[#e0f2e7] text-[#007236]",
+    text: "text-[#007236]",
+  },
 };
 
 export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFilter }: Props) {
@@ -87,7 +99,7 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-5 overflow-x-auto pb-4">
         {COLUMNS.map((col) => {
           const colItems = visible.filter((i) => i.status === col.id);
           return (
@@ -115,23 +127,24 @@ function Column({
   id: Status; label: string; color: string; count: number; children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const styles = COLUMN_STYLES[id];
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 flex-shrink-0 flex-col rounded-xl border-2 transition-colors ${
-        isOver ? "border-gray-400 bg-gray-50" : "border-transparent"
+      className={`flex w-80 flex-shrink-0 flex-col rounded-[1.75rem] border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)] transition-colors ${
+        isOver ? `${styles.border} ring-2 ring-primary/10` : styles.border
       }`}
     >
-      <div className={`rounded-t-xl px-4 py-3 ${color}`}>
+      <div className={`rounded-t-[1.75rem] px-4 py-4 ${color}`}>
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-700">{label}</span>
-          <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-600">
+          <span className={`text-sm font-semibold ${styles.text}`}>{label}</span>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${styles.badge}`}>
             {count}
           </span>
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-3 min-h-[200px]">
+      <div className="flex min-h-[220px] flex-1 flex-col gap-3 p-4">
         {children}
       </div>
     </div>
@@ -174,24 +187,26 @@ function CardView({
 
   return (
     <div
-      className={`rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-shadow ${
-        isDragging ? "shadow-lg rotate-1" : draggable ? "cursor-grab hover:shadow-md" : "cursor-default"
+      className={`rounded-[1.4rem] border border-border bg-card p-4 shadow-[0_12px_28px_rgba(15,35,63,0.08)] transition-shadow ${
+        isDragging ? "rotate-1 shadow-[0_18px_42px_rgba(15,35,63,0.16)]" : draggable ? "cursor-grab hover:shadow-[0_16px_36px_rgba(15,35,63,0.12)]" : "cursor-default"
       }`}
     >
-      <p className="text-sm font-medium text-gray-900 leading-snug">{item.title}</p>
-      <p className="mt-1 text-xs text-gray-400">{item.eventTitle}</p>
-      <div className="mt-2 flex items-center justify-between">
-        {item.ownerName && (
-          <span className="text-xs text-gray-500">{item.ownerName}</span>
-        )}
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-semibold leading-snug text-foreground">{item.title}</p>
         {item.dueDate && (
-          <span className={`text-xs font-medium ${isOverdue ? "text-red-600" : "text-gray-400"}`}>
-            {isOverdue ? "Overdue · " : ""}
+          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${isOverdue ? "bg-red-50 text-red-700" : "bg-secondary/60 text-primary"}`}>
             {new Date(item.dueDate + "T00:00:00").toLocaleDateString("en-GB", {
               day: "numeric", month: "short",
             })}
           </span>
         )}
+      </div>
+      <p className="mt-2 text-xs font-medium text-muted-foreground">{item.eventTitle}</p>
+      <div className="mt-2 flex items-center justify-between">
+        {item.ownerName && (
+          <span className="text-xs text-muted-foreground">{item.ownerName}</span>
+        )}
+        {isOverdue && <span className="text-xs font-semibold text-red-600">Overdue</span>}
       </div>
     </div>
   );
