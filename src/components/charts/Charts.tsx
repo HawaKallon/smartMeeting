@@ -14,13 +14,18 @@ export function StatCard({
   icon?: LucideIcon;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-[#cfe0f3] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-6 shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+      <div className="absolute inset-x-0 top-0 h-1 bg-[#003580]" />
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        {Icon && <Icon className="h-5 w-5 text-muted-foreground/60" />}
+        <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+        {Icon && (
+          <span className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[#bfd1ee] bg-[#e4eefc] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+            <Icon className="h-5 w-5 text-[#003580]" />
+          </span>
+        )}
       </div>
-      <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      <p className="mt-6 text-3xl font-semibold tracking-tight text-[#003580]">{value}</p>
+      {hint && <p className="mt-1 text-xs font-medium text-[#4e678f]">{hint}</p>}
     </div>
   );
 }
@@ -40,7 +45,7 @@ export function BarList({ data }: { data: BarDatum[] }) {
             <span className="text-foreground/80">{d.label}</span>
             <span className="font-medium text-muted-foreground">{d.value}</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80">
             <div
               className="h-full rounded-full"
               style={{ width: `${(d.value / max) * 100}%`, backgroundColor: d.color ?? "var(--color-sidebar-primary, #6366f1)" }}
@@ -121,9 +126,13 @@ export function Donut({ segments, centerLabel }: { segments: DonutSegment[]; cen
 
 export function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
-      <h3 className="mb-4 text-sm font-semibold text-foreground">{title}</h3>
+    <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+      <div className="border-b border-border bg-secondary/55 px-6 py-4">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      </div>
+      <div className="p-6">
       {children}
+      </div>
     </div>
   );
 }
