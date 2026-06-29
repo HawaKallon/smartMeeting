@@ -24,7 +24,7 @@ export function IdleLogout({ timeoutMinutes }: IdleLogoutProps) {
       }
 
       timeoutRef.current = setTimeout(() => {
-        signOut({ redirect: "/login" });
+        signOut({ redirectTo: "/login" });
       }, timeoutMs);
     };
 
