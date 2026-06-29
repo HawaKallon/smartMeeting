@@ -5,7 +5,8 @@ import { NavLink, SidebarNavProvider } from "./SidebarNav";
 import {
   LayoutDashboard, CalendarDays, KanbanSquare,
   PlusCircle, ClipboardList, LogOut, Building2,
-  Bell, HelpCircle, Settings, BarChart3, User, Users, Activity, Lock, DoorOpen,
+  Bell, HelpCircle, Settings, BarChart3, User, Users, Activity,
+  Globe2,
 } from "lucide-react";
 
 export function Sidebar({
@@ -26,6 +27,7 @@ export function Sidebar({
     ...(isStaff ? ["/events/new", "/events", "/attendance", "/reports"] : []),
     "/profile",
     ...(isSuperAdminUser ? ["/admin", "/admin/ministries", "/admin/users", "/admin/rooms", "/admin/activity", "/reports"] : []),
+    ...((user.role === "ADMIN" || isSuperAdminUser) ? ["/admin/public-calendar"] : []),
     ...(user.role === "ADMIN" ? ["/admin/users", "/admin/rooms", "/admin/activity"] : []),
     "/help",
     "/settings",
@@ -133,6 +135,12 @@ export function Sidebar({
                 Activity Log
               </NavLink>
             </>
+          )}
+          {(user.role === "ADMIN" || isSuperAdminUser) && (
+            <NavLink href="/admin/public-calendar">
+              <Globe2 className="h-4 w-4 text-white" />
+              Public Calendar
+            </NavLink>
           )}
           <NavLink href="/help">
             <HelpCircle className="h-4 w-4 text-white" />

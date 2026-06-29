@@ -44,3 +44,6 @@ next-env.d.ts
 
 # uploaded audio
 /uploads
+
+# publicly served event banners (persistent runtime storage)
+/public-uploads
