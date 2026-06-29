@@ -6,7 +6,7 @@ import { SierraLeoneFlag } from "./SierraLeoneFlag";
 export function PublicCalendarShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-transparent text-slate-900">
-      <header className="border-b border-[#d8e1ee] bg-white/95 shadow-[0_8px_30px_rgba(0,53,128,0.06)] backdrop-blur">
+      <header className="border-b border-[#d3deef] bg-[#f8fbff]/95 shadow-[0_8px_30px_rgba(0,53,128,0.07)] backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-4">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#003580] text-white shadow-[0_14px_30px_rgba(0,53,128,0.18)]">
@@ -22,7 +22,7 @@ export function PublicCalendarShell({ children }: { children: React.ReactNode })
             </span>
           </Link>
 
-          <div className="flex items-center gap-3 rounded-full border border-[#d8e1ee] bg-[#f9fbfe] px-3 py-2 shadow-sm">
+          <div className="flex items-center gap-3 rounded-full border border-[#d3deef] bg-[#edf4fd] px-3 py-2 shadow-sm">
             <CoatOfArmsPlaceholder className="hidden h-14 w-28 rounded-2xl p-2 lg:flex" />
             <div className="flex items-center gap-3">
               <SierraLeoneFlag className="h-8 w-14" />
@@ -36,7 +36,7 @@ export function PublicCalendarShell({ children }: { children: React.ReactNode })
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">{children}</main>
 
-      <footer className="mt-auto border-t border-[#d8e1ee] bg-white">
+      <footer className="mt-auto border-t border-[#d3deef] bg-[#f7fbff]">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
             <p className="font-semibold text-[#003580]">&copy; {new Date().getFullYear()} Government of Sierra Leone</p>
