@@ -1,26 +1,33 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PublicCalendarShell } from "@/components/PublicCalendarShell";
+
+export const metadata: Metadata = {
+  title: "Public Events Calendar | Government of Sierra Leone",
+  description: "Official public events and announcements from the Government of Sierra Leone.",
+};
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const CATEGORY_COLORS: Record<string, string> = {
-  conference: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  meeting: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  announcement: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  workshop: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  training: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  conference: "border-blue-200 bg-blue-50 text-blue-800",
+  meeting: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  announcement: "border-violet-200 bg-violet-50 text-violet-800",
+  workshop: "border-orange-200 bg-orange-50 text-orange-800",
+  training: "border-amber-200 bg-amber-50 text-amber-800",
 };
 
 function monthBounds(year: number, month: number) {
-  const start = new Date(year, month, 1);
-  const end = new Date(year, month + 1, 1);
-  return { start, end };
+  return {
+    start: new Date(year, month, 1),
+    end: new Date(year, month + 1, 1),
+  };
 }
 
-function getCategoryColor(category?: string | null): string {
-  if (!category) return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-  return CATEGORY_COLORS[category.toLowerCase()] || "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+function categoryColor(category?: string | null) {
+  if (!category) return "border-slate-200 bg-slate-50 text-slate-700";
+  return CATEGORY_COLORS[category.toLowerCase()] ?? "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 export default async function PublicCalendarPage({
@@ -29,115 +36,179 @@ export default async function PublicCalendarPage({
   searchParams: Promise<{ y?: string; m?: string }>;
 }) {
   const sp = await searchParams;
-
   const today = new Date();
-  const year = sp.y ? Number(sp.y) : today.getFullYear();
-  const month = sp.m ? Number(sp.m) : today.getMonth();
-
+  const requestedYear = Number(sp.y);
+  const requestedMonth = Number(sp.m);
+  const year = Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= 2100
+    ? requestedYear
+    : today.getFullYear();
+  const month = Number.isInteger(requestedMonth) && requestedMonth >= 0 && requestedMonth <= 11
+    ? requestedMonth
+    : today.getMonth();
   const { start, end } = monthBounds(year, month);
 
   const events = await prisma.publicEvent.findMany({
-    where: {
-      status: "PUBLISHED",
-      startAt: { gte: start, lt: end },
-    },
+    where: { status: "PUBLISHED", startAt: { gte: start, lt: end } },
     orderBy: { startAt: "asc" },
     select: {
       id: true,
       title: true,
       category: true,
       startAt: true,
+      venueName: true,
     },
   });
 
   const byDay = new Map<number, typeof events>();
-  for (const e of events) {
-    const d = e.startAt.getDate();
-    if (!byDay.has(d)) byDay.set(d, []);
-    byDay.get(d)!.push(e);
+  for (const event of events) {
+    const day = event.startAt.getDate();
+    byDay.set(day, [...(byDay.get(day) ?? []), event]);
   }
 
-  const firstWeekday = start.getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [];
-  for (let i = 0; i < firstWeekday; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  for (let index = 0; index < start.getDay(); index++) cells.push(null);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) cells.push(day);
+  while (cells.length % 7 !== 0) cells.push(null);
 
-  const monthLabel = start.toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = start.toLocaleString("en-GB", { month: "long", year: "numeric" });
   const prev = month === 0 ? { y: year - 1, m: 11 } : { y: year, m: month - 1 };
   const next = month === 11 ? { y: year + 1, m: 0 } : { y: year, m: month + 1 };
+  const selectedMonthIsCurrent = year === today.getFullYear() && month === today.getMonth();
+  const datePath = (day: number) =>
+    `/public-calendar/day?d=${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   return (
     <PublicCalendarShell>
-      <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-foreground">{monthLabel}</h2>
-          <div className="flex gap-2">
+      <section className="mb-7 max-w-3xl">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1f8f4e]">Public information</p>
+        <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#12355b] sm:text-4xl">
+          Events and official announcements
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
+          View upcoming government events, conferences, workshops, and public notices in one official calendar.
+        </p>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Calendar month</p>
+            <h3 className="mt-1 text-2xl font-bold text-[#12355b]">{monthLabel}</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {events.length} published event{events.length === 1 ? "" : "s"}
+            </p>
+          </div>
+          <nav className="flex items-center gap-2" aria-label="Calendar month navigation">
             <Link
               href={`/?y=${prev.y}&m=${prev.m}`}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Previous month"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition hover:border-[#12355b] hover:text-[#12355b]"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </Link>
-            <Link href="/" className="px-3 py-1 rounded-lg border border-border bg-muted text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              href="/"
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[#12355b] hover:text-[#12355b]"
+            >
               Today
             </Link>
             <Link
               href={`/?y=${next.y}&m=${next.m}`}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Next month"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition hover:border-[#12355b] hover:text-[#12355b]"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </Link>
+          </nav>
+        </div>
+
+        <div className="hidden md:block">
+          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+            {WEEKDAYS.map((weekday) => (
+              <div key={weekday} className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+                {weekday}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 bg-slate-200 gap-px">
+            {cells.map((day, index) => {
+              const dayEvents = day ? byDay.get(day) ?? [] : [];
+              const isToday = Boolean(day && selectedMonthIsCurrent && day === today.getDate());
+              return (
+                <div key={`${day ?? "empty"}-${index}`} className={`min-h-36 p-2.5 ${day ? "bg-white" : "bg-slate-50"}`}>
+                  {day ? (
+                    <>
+                      <Link
+                        href={datePath(day)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition ${
+                          isToday ? "bg-[#1f8f4e] text-white" : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {day}
+                      </Link>
+                      <div className="mt-2 space-y-1.5">
+                        {dayEvents.slice(0, 3).map((event) => (
+                          <Link
+                            key={event.id}
+                            href={`/public-calendar/event/${event.id}`}
+                            className={`block truncate rounded border px-2 py-1.5 text-xs font-semibold transition hover:brightness-95 ${categoryColor(event.category)}`}
+                            title={event.title}
+                          >
+                            {event.title}
+                          </Link>
+                        ))}
+                        {dayEvents.length > 3 ? (
+                          <Link href={datePath(day)} className="block px-1 text-xs font-semibold text-[#1f6fa8] hover:underline">
+                            +{dayEvents.length - 3} more
+                          </Link>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {WEEKDAYS.map((day) => (
-            <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
-              {day}
+        <div className="divide-y divide-slate-200 md:hidden">
+          {events.length === 0 ? (
+            <div className="px-6 py-14 text-center">
+              <CalendarDays className="mx-auto h-10 w-10 text-slate-300" />
+              <p className="mt-3 font-semibold text-slate-700">No published events this month</p>
+              <p className="mt-1 text-sm text-slate-500">Use the arrows above to view another month.</p>
             </div>
-          ))}
+          ) : (
+            events.map((event) => (
+              <Link
+                key={event.id}
+                href={`/public-calendar/event/${event.id}`}
+                className="flex gap-4 px-5 py-4 transition hover:bg-slate-50"
+              >
+                <span className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-[#12355b] text-white">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-blue-100">
+                    {event.startAt.toLocaleString("en-GB", { month: "short" })}
+                  </span>
+                  <span className="text-xl font-bold">{event.startAt.getDate()}</span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-bold text-[#12355b]">{event.title}</span>
+                  <span className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">
+                    <Clock3 className="h-3.5 w-3.5" />
+                    {event.startAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  {event.venueName ? (
+                    <span className="mt-1 flex items-center gap-1.5 truncate text-xs text-slate-500">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" /> {event.venueName}
+                    </span>
+                  ) : null}
+                </span>
+              </Link>
+            ))
+          )}
         </div>
-
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((day, idx) => (
-            <Link
-              key={idx}
-              href={day ? `/public-calendar/day?d=${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : "#"}
-              className={`min-h-24 rounded-lg border p-2 transition-colors ${
-                day
-                  ? "border-border bg-card hover:bg-muted cursor-pointer"
-                  : "border-transparent bg-transparent cursor-default"
-              }`}
-            >
-              {day && (
-                <>
-                  <div className="text-sm font-semibold text-foreground mb-1">{day}</div>
-                  <div className="space-y-1">
-                    {(byDay.get(day) || []).map((event) => (
-                      <Link
-                        key={event.id}
-                        href={`/public-calendar/event/${event.id}`}
-                        className="block text-xs truncate rounded px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:opacity-80 transition-opacity"
-                      >
-                        {event.title}
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
-            </Link>
-          ))}
-        </div>
-      </div>
-      </div>
+      </section>
     </PublicCalendarShell>
   );
 }
