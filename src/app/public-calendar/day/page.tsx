@@ -46,7 +46,7 @@ export default async function PublicCalendarDayPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/public-calendar" label="Calendar" />
+      <BackButton href="/" label="Calendar" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">{dateStr}</h1>

@@ -97,7 +97,7 @@ export async function bookRoom(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/rooms");
+    revalidatePath("/administrative/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to book room:", err);
@@ -133,7 +133,7 @@ export async function cancelBooking(bookingId: string): Promise<{ ok?: boolean; 
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/rooms");
+    revalidatePath("/administrative/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to cancel booking:", err);

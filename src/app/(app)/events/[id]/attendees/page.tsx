@@ -53,7 +53,7 @@ export default async function AttendeesPage({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <BackButton href={`/events/${id}`} label={event.title} />
+        <BackButton href={`/administrative/events/${id}`} label={event.title} />
         <h1 className="mt-4 text-2xl font-bold text-foreground">Attendees</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage event attendees and invitations</p>
       </div>

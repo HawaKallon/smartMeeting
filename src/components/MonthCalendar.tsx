@@ -15,7 +15,7 @@ function sameDay(a: Date, b: Date) {
 
 /**
  * Hand-rolled month calendar grid (no dependency). Mirrors the grid math used
- * by the main calendar page (src/app/(app)/calendar/page.tsx). Pure Tailwind so
+ * by the main calendar page (src/app/(app)/administrative/calendar/page.tsx). Pure Tailwind so
  * it themes correctly in dark mode — unlike the native date picker popup.
  */
 export function MonthCalendar({

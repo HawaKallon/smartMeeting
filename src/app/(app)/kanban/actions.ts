@@ -51,5 +51,5 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
     ministryId: session.ministryId,
   });
 
-  revalidatePath("/kanban");
+  revalidatePath("/administrative/kanban");
 }
