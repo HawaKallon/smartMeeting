@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { assertRole, assertStaffRole, ministryScope, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
+import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms, sendActionItemSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
 
@@ -187,7 +188,7 @@ export async function publishMinutes(
     const eventDate = event.startAt.toLocaleDateString("en-GB", {
       weekday: "short", year: "numeric", month: "short", day: "numeric",
     });
-    const minutesUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/administrative/events/${eventId}/minutes`;
+    const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
 
     await Promise.allSettled(
       event.attendees
@@ -389,7 +390,7 @@ async function notifyActionItemOwner({
   ]);
   if (!owner || !event) return;
 
-  const minutesUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/administrative/events/${eventId}/minutes`;
+  const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
 
   await Promise.allSettled([
     sendActionItemEmail({
