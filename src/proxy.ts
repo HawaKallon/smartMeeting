@@ -41,9 +41,10 @@ function loginRedirect(req: NextRequest) {
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Preserve bookmarks and previously sent links while making the administrative
-  // namespace canonical in the browser.
-  if (pathname === "/login" || pathname === "/forbidden") {
+  // Preserve forbidden-page bookmarks while making the administrative
+  // namespace canonical in the browser. The legacy /login URL intentionally
+  // has no route so it returns the standard 404 page.
+  if (pathname === "/forbidden") {
     const url = req.nextUrl.clone();
     url.pathname = `${ADMIN_PREFIX}${pathname}`;
     return NextResponse.redirect(url);
@@ -62,12 +63,10 @@ export default auth((req) => {
     return NextResponse.redirect(url);
   }
 
-  // Login keeps its implementation at /login but is only exposed publicly at
-  // /administrative/login.
+  // The administrative login page is public; all other administrative routes
+  // require a valid session.
   if (pathname === `${ADMIN_PREFIX}/login`) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.rewrite(url);
+    return NextResponse.next();
   }
 
   const isAdministrative = matchesPrefix(pathname, ADMIN_PREFIX);
