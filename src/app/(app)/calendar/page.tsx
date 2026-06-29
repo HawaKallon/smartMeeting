@@ -67,7 +67,7 @@ export default async function CalendarPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -78,7 +78,7 @@ export default async function CalendarPage({
         </div>
         {canManageEvents(user.role) && (
           <Link
-            href="/events/new"
+            href="/administrative/events/new"
             className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -93,19 +93,19 @@ export default async function CalendarPage({
           <h2 className="text-xl font-semibold text-foreground">{monthLabel}</h2>
           <div className="flex gap-2">
             <Link
-              href={`/calendar?y=${prev.y}&m=${prev.m}`}
+              href={`/administrative/calendar?y=${prev.y}&m=${prev.m}`}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </Link>
             <Link
-              href="/calendar"
+              href="/administrative/calendar"
               className="px-3 py-2 rounded-lg border border-border bg-muted hover:bg-muted/80 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Today
             </Link>
             <Link
-              href={`/calendar?y=${next.y}&m=${next.m}`}
+              href={`/administrative/calendar?y=${next.y}&m=${next.m}`}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
@@ -153,7 +153,7 @@ export default async function CalendarPage({
                   <>
                     <div className="flex items-center justify-between mb-2">
                       <Link
-                        href={`/calendar/day?d=${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
+                        href={`/administrative/calendar/day?d=${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
                         className={`text-sm font-semibold hover:text-blue-400 transition-colors ${
                           isToday
                             ? "text-blue-400"
@@ -190,7 +190,7 @@ export default async function CalendarPage({
                           return (
                             <Link
                               key={e.id}
-                              href={`/events/${e.id}`}
+                              href={`/administrative/events/${e.id}`}
                               className={`block truncate rounded px-2 py-1.5 text-xs font-medium transition-all hover:shadow-md group ${bgColor} ${textColor}`}
                               title={e.title}
                             >

@@ -24,7 +24,7 @@ export default async function EditPublicEventPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/admin/public-calendar" label="Public Calendar" />
+      <BackButton href="/administrative/admin/public-calendar" label="Public Calendar" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Edit Event</h1>

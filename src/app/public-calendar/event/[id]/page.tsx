@@ -23,7 +23,7 @@ export default async function PublicEventDetailPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/public-calendar" label="Calendar" />
+      <BackButton href="/" label="Calendar" />
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {/* Banner image */}
@@ -148,7 +148,7 @@ export default async function PublicEventDetailPage({
 
       {/* Back to calendar link */}
       <div className="text-center">
-        <Link href="/public-calendar" className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+        <Link href="/" className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
           ← Back to calendar
         </Link>
       </div>

@@ -72,7 +72,7 @@ export default async function EventDetailPage({
 
   return (
     <div className="flex flex-col h-full gap-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       {/* Header */}
       <div className="flex items-start justify-between flex-shrink-0">
@@ -96,7 +96,7 @@ export default async function EventDetailPage({
         <div className="flex gap-2">
           {canManage && (
             <Link
-              href={`/events/${id}/edit`}
+              href={`/administrative/events/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
             >
               <Edit className="h-4 w-4" />
@@ -212,27 +212,27 @@ export default async function EventDetailPage({
             {isAdmin ? (
               <>
                 <ActionButton
-                  href={`/events/${id}/attendees`}
+                  href={`/administrative/events/${id}/attendees`}
                   icon={<Users className="h-4 w-4" />}
                   label="Attendees"
                 />
                 <ActionButton
-                  href={`/events/${id}/letters`}
+                  href={`/administrative/events/${id}/letters`}
                   icon={<FileText className="h-4 w-4" />}
                   label="Letters"
                 />
                 <ActionButton
-                  href={`/events/${id}/checkin-code`}
+                  href={`/administrative/events/${id}/checkin-code`}
                   icon={<Zap className="h-4 w-4" />}
                   label="Check-in QR"
                 />
                 <ActionButton
-                  href={`/events/${id}/attendance`}
+                  href={`/administrative/events/${id}/attendance`}
                   icon={<Users className="h-4 w-4" />}
                   label="Attendance"
                 />
                 <ActionButton
-                  href={`/events/${id}/report`}
+                  href={`/administrative/events/${id}/report`}
                   icon={<FileText className="h-4 w-4" />}
                   label="Write Report"
                 />
@@ -240,7 +240,7 @@ export default async function EventDetailPage({
             ) : null}
             {canViewMinutes ? (
               <ActionButton
-                href={`/events/${id}/minutes`}
+                href={`/administrative/events/${id}/minutes`}
                 icon={<FileText className="h-4 w-4" />}
                 label="Meeting Minutes"
               />

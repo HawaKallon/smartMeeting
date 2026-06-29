@@ -128,8 +128,8 @@ export async function inviteUser(
   }).catch((err) => console.error("[email] invite failed:", err));
 
   for (const targetId of targetEventIds) {
-    revalidatePath(`/events/${targetId}/attendees`);
-    revalidatePath(`/events/${targetId}`);
+    revalidatePath(`/administrative/events/${targetId}/attendees`);
+    revalidatePath(`/administrative/events/${targetId}`);
   }
   return { ok: true };
 }
@@ -257,8 +257,8 @@ export async function inviteExternal(
   }
 
   for (const targetId of targetEventIds) {
-    revalidatePath(`/events/${targetId}/attendees`);
-    revalidatePath(`/events/${targetId}`);
+    revalidatePath(`/administrative/events/${targetId}/attendees`);
+    revalidatePath(`/administrative/events/${targetId}`);
   }
   return { ok: true };
 }
@@ -293,8 +293,8 @@ export async function removeInvite(formData: FormData): Promise<void> {
     ministryId: staff.ministryId,
   });
 
-  revalidatePath(`/events/${eventId}/attendees`);
-  revalidatePath(`/events/${eventId}`);
+  revalidatePath(`/administrative/events/${eventId}/attendees`);
+  revalidatePath(`/administrative/events/${eventId}`);
 }
 
 // ── Staff manually updates an attendee's RSVP status ────────────────────────
@@ -344,8 +344,8 @@ export async function updateAttendeeStatus(
     ministryId: staff.ministryId,
   });
 
-  revalidatePath(`/events/${eventId}/attendees`);
-  revalidatePath(`/events/${eventId}`);
+  revalidatePath(`/administrative/events/${eventId}/attendees`);
+  revalidatePath(`/administrative/events/${eventId}`);
   return { ok: true };
 }
 
@@ -406,8 +406,8 @@ export async function selfRsvp(
   });
 
   for (const item of related) {
-    revalidatePath(`/events/${item.eventId}`);
-    revalidatePath(`/events/${item.eventId}/attendees`);
+    revalidatePath(`/administrative/events/${item.eventId}`);
+    revalidatePath(`/administrative/events/${item.eventId}/attendees`);
   }
   return { ok: true };
 }

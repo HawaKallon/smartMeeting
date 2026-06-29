@@ -65,7 +65,7 @@ export default async function CalendarDayPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/calendar" label="Calendar" />
+      <BackButton href="/administrative/calendar" label="Calendar" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">{dateLabel}</h1>
@@ -77,7 +77,7 @@ export default async function CalendarDayPage({
       {/* Navigation */}
       <div className="flex gap-2">
         <Link
-          href={`/calendar/day?d=${prevDateStr}`}
+          href={`/administrative/calendar/day?d=${prevDateStr}`}
           className="flex items-center gap-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -86,7 +86,7 @@ export default async function CalendarDayPage({
 
         {!isToday && (
           <Link
-            href={`/calendar/day?d=${todayStr}`}
+            href={`/administrative/calendar/day?d=${todayStr}`}
             className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
           >
             Today
@@ -94,7 +94,7 @@ export default async function CalendarDayPage({
         )}
 
         <Link
-          href={`/calendar/day?d=${nextDateStr}`}
+          href={`/administrative/calendar/day?d=${nextDateStr}`}
           className="flex items-center gap-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
         >
           Next
@@ -109,7 +109,7 @@ export default async function CalendarDayPage({
           <p className="mt-3 text-sm text-muted-foreground">No events scheduled for this day</p>
           {canAdd && (
             <Link
-              href={`/events/new?date=${selectedDateStr}`}
+              href={`/administrative/events/new?date=${selectedDateStr}`}
               className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -140,7 +140,7 @@ export default async function CalendarDayPage({
             return (
               <Link
                 key={event.id}
-                href={`/events/${event.id}`}
+                href={`/administrative/events/${event.id}`}
                 className="block rounded-lg border border-border bg-card p-6 hover:bg-muted/30 transition-colors group"
               >
                 <div className="flex items-start justify-between gap-4">
