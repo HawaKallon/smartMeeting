@@ -104,7 +104,7 @@ export async function updateEvent(
     let room = null;
     if (roomId) {
       room = await prisma.room.findFirst({
-        where: { id: roomId, ...ministryScope(user) },
+        where: { id: roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
         select: { latitude: true, longitude: true },
       });
     }
@@ -124,12 +124,22 @@ export async function updateEvent(
     // Carry the current invitee list onto every regenerated occurrence.
     const attendees = await prisma.eventAttendee.findMany({
       where: { eventId: anchor.id },
-      select: { userId: true, externalEmail: true, externalName: true },
+      select: {
+        userId: true,
+        externalEmail: true,
+        externalName: true,
+        status: true,
+        rsvpTokenHash: true,
+        respondedAt: true,
+      },
     });
     const invitees = attendees.map((a) => ({
       email: a.externalEmail ?? "",
       name: a.externalName ?? "",
       userId: a.userId,
+      status: a.status,
+      rsvpTokenHash: a.rsvpTokenHash,
+      respondedAt: a.respondedAt,
     }));
 
     const base = {
@@ -207,7 +217,7 @@ export async function updateEvent(
     let room = null;
     if (roomId) {
       room = await prisma.room.findFirst({
-        where: { id: roomId, ...ministryScope(user) },
+        where: { id: roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
         select: { latitude: true, longitude: true },
       });
     }
@@ -310,7 +320,7 @@ export async function deleteEvent(
       ...(event.seriesId && (scope === "FUTURE" || scope === "ALL")
         ? { seriesId: event.seriesId, ...(scope === "FUTURE" ? { startAt: { gte: event.startAt } } : {}) }
         : { id: eventId }),
-    };
+    } as Prisma.EventWhereInput;
 
     const res = await prisma.event.deleteMany({ where });
 

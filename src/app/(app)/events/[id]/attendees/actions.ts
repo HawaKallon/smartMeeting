@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { assertStaffRole, assertRole, ministryScope, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendInviteEmail } from "@/lib/email";
+import { describeRecurrence } from "@/lib/recurrence";
+import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
+import type { EventAttendee, Prisma } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
 
@@ -32,8 +35,21 @@ export async function inviteUser(
 
   const [event, user] = await Promise.all([
     prisma.event.findFirst({
-      where: { id: eventId, ...ministryScope(staff) },
-      select: { title: true, startAt: true, venueName: true, roomId: true, organizer: { select: { name: true, email: true } } },
+      where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
+      select: {
+        title: true,
+        description: true,
+        type: true,
+        classification: true,
+        startAt: true,
+        endAt: true,
+        venueName: true,
+        seriesId: true,
+        series: true,
+        room: { select: { name: true } },
+        ministry: { select: { name: true } },
+        organizer: { select: { name: true, email: true } },
+      },
     }),
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, ministryId: true } }),
   ]);
@@ -43,13 +59,43 @@ export async function inviteUser(
   // Ensure invited user is from the same ministry
   assertSameMinistry(staff, user.ministryId);
 
-  const existing = await prisma.eventAttendee.findUnique({
-    where: { eventId_userId: { eventId, userId } },
+  const targetEvents = event.seriesId
+    ? await prisma.event.findMany({
+        where: { seriesId: event.seriesId, endAt: { gt: new Date() } },
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+          venueName: true,
+          room: { select: { name: true } },
+        },
+        orderBy: { startAt: "asc" },
+      })
+    : [{
+        id: eventId,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        venueName: event.venueName,
+        room: event.room,
+      }];
+  const targetEventIds = targetEvents.length ? targetEvents.map((target) => target.id) : [eventId];
+  const emailEvent = targetEvents[0] ?? event;
+
+  const existing = await prisma.eventAttendee.findFirst({
+    where: { eventId: { in: targetEventIds }, userId },
   });
   if (existing) return { error: "This user is already invited." };
 
-  const attendee = await prisma.eventAttendee.create({
-    data: { eventId, userId, status: "INVITED" },
+  const { token, tokenHash } = createRsvpToken();
+  const attendee = await prisma.$transaction(async (tx) => {
+    let first: EventAttendee | null = null;
+    for (const targetId of targetEventIds) {
+      const created = await tx.eventAttendee.create({
+        data: { eventId: targetId, userId, status: "INVITED", rsvpTokenHash: tokenHash },
+      });
+      first ??= created;
+    }
+    return first!;
   });
 
   await audit({
@@ -61,29 +107,30 @@ export async function inviteUser(
     ministryId: staff.ministryId,
   });
 
-  // Fetch room name if assigned
-  let roomName: string | null = null;
-  if (event.roomId) {
-    const room = await prisma.room.findFirst({
-      where: { id: event.roomId, ...ministryScope(staff) },
-      select: { name: true },
-    });
-    roomName = room?.name ?? null;
-  }
-
   // Send invite email if user has an email address.
   await sendInviteEmail({
     to: user.email,
     toName: user.name ?? user.email,
     eventTitle: event.title,
-    startAt: event.startAt,
-    venueName: event.venueName,
-    roomName: roomName,
+    eventDescription: event.description,
+    eventType: event.type,
+    classification: event.classification,
+    startAt: emailEvent.startAt,
+    endAt: emailEvent.endAt,
+    venueName: emailEvent.venueName,
+    roomName: emailEvent.room?.name ?? null,
     organizerName: event.organizer.name ?? event.organizer.email,
+    organizerEmail: event.organizer.email,
+    ministryName: event.ministry.name,
+    recurrenceText: event.series ? describeRecurrence(event.series) : null,
+    acceptUrl: rsvpUrl(token, "CONFIRMED"),
+    declineUrl: rsvpUrl(token, "DECLINED"),
   }).catch((err) => console.error("[email] invite failed:", err));
 
-  revalidatePath(`/events/${eventId}/attendees`);
-  revalidatePath(`/events/${eventId}`);
+  for (const targetId of targetEventIds) {
+    revalidatePath(`/events/${targetId}/attendees`);
+    revalidatePath(`/events/${targetId}`);
+  }
   return { ok: true };
 }
 
@@ -111,18 +158,72 @@ export async function inviteExternal(
   const { eventId, externalName, externalEmail } = parsed.data;
 
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(staff) },
-    select: { title: true, startAt: true, venueName: true, roomId: true, organizer: { select: { name: true, email: true } } },
+    where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
+    select: {
+      title: true,
+      description: true,
+      type: true,
+      classification: true,
+      startAt: true,
+      endAt: true,
+      venueName: true,
+      seriesId: true,
+      series: true,
+      room: { select: { name: true } },
+      ministry: { select: { name: true } },
+      organizer: { select: { name: true, email: true } },
+    },
   });
   if (!event) return { error: "Event not found or you don't have access." };
 
-  const attendee = await prisma.eventAttendee.create({
-    data: {
-      eventId,
-      externalName,
-      externalEmail: externalEmail || null,
-      status: "INVITED",
-    },
+  const targetEvents = event.seriesId
+    ? await prisma.event.findMany({
+        where: { seriesId: event.seriesId, endAt: { gt: new Date() } },
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+          venueName: true,
+          room: { select: { name: true } },
+        },
+        orderBy: { startAt: "asc" },
+      })
+    : [{
+        id: eventId,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        venueName: event.venueName,
+        room: event.room,
+      }];
+  const targetEventIds = targetEvents.length ? targetEvents.map((target) => target.id) : [eventId];
+  const emailEvent = targetEvents[0] ?? event;
+
+  if (externalEmail) {
+    const duplicate = await prisma.eventAttendee.findFirst({
+      where: {
+        eventId: { in: targetEventIds },
+        externalEmail: { equals: externalEmail, mode: "insensitive" },
+      },
+    });
+    if (duplicate) return { error: "This email address is already invited." };
+  }
+
+  const credentials = externalEmail ? createRsvpToken() : null;
+  const attendee = await prisma.$transaction(async (tx) => {
+    let first: EventAttendee | null = null;
+    for (const targetId of targetEventIds) {
+      const created = await tx.eventAttendee.create({
+        data: {
+          eventId: targetId,
+          externalName,
+          externalEmail: externalEmail || null,
+          status: "INVITED",
+          rsvpTokenHash: credentials?.tokenHash ?? null,
+        },
+      });
+      first ??= created;
+    }
+    return first!;
   });
 
   await audit({
@@ -135,29 +236,30 @@ export async function inviteExternal(
   });
 
   if (externalEmail) {
-    // Fetch room name if assigned
-    let roomName: string | null = null;
-    if (event.roomId) {
-      const room = await prisma.room.findFirst({
-        where: { id: event.roomId, ...ministryScope(staff) },
-        select: { name: true },
-      });
-      roomName = room?.name ?? null;
-    }
-
     await sendInviteEmail({
       to: externalEmail,
       toName: externalName,
       eventTitle: event.title,
-      startAt: event.startAt,
-      venueName: event.venueName,
-      roomName: roomName,
+      eventDescription: event.description,
+      eventType: event.type,
+      classification: event.classification,
+      startAt: emailEvent.startAt,
+      endAt: emailEvent.endAt,
+      venueName: emailEvent.venueName,
+      roomName: emailEvent.room?.name ?? null,
       organizerName: event.organizer.name ?? event.organizer.email,
+      organizerEmail: event.organizer.email,
+      ministryName: event.ministry.name,
+      recurrenceText: event.series ? describeRecurrence(event.series) : null,
+      acceptUrl: rsvpUrl(credentials!.token, "CONFIRMED"),
+      declineUrl: rsvpUrl(credentials!.token, "DECLINED"),
     }).catch((err) => console.error("[email] invite failed:", err));
   }
 
-  revalidatePath(`/events/${eventId}/attendees`);
-  revalidatePath(`/events/${eventId}`);
+  for (const targetId of targetEventIds) {
+    revalidatePath(`/events/${targetId}/attendees`);
+    revalidatePath(`/events/${targetId}`);
+  }
   return { ok: true };
 }
 
@@ -172,7 +274,7 @@ export async function removeInvite(formData: FormData): Promise<void> {
 
   // Verify event exists and belongs to user's ministry
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(staff) },
+    where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
     select: { id: true },
   });
   if (!event) return;
@@ -220,7 +322,7 @@ export async function updateAttendeeStatus(
 
   // Verify event exists and belongs to user's ministry
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(staff) },
+    where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
     select: { id: true },
   });
   if (!event) return { error: "Event not found or you don't have access." };
@@ -228,7 +330,10 @@ export async function updateAttendeeStatus(
   const attendee = await prisma.eventAttendee.findUnique({ where: { id: attendeeId } });
   if (!attendee || attendee.eventId !== eventId) return { error: "Attendee not found." };
 
-  await prisma.eventAttendee.update({ where: { id: attendeeId }, data: { status } });
+  await prisma.eventAttendee.update({
+    where: { id: attendeeId },
+    data: { status, respondedAt: status === "INVITED" ? null : new Date() },
+  });
 
   await audit({
     actorId: staff.id,
@@ -275,20 +380,34 @@ export async function selfRsvp(
 
   const attendee = await prisma.eventAttendee.findUnique({
     where: { eventId_userId: { eventId, userId: session.id } },
+    include: { event: { select: { seriesId: true } } },
   });
   if (!attendee) return { error: "You do not have an invitation for this event." };
 
-  await prisma.eventAttendee.update({ where: { id: attendee.id }, data: { status } });
+  const related = attendee.event.seriesId
+    ? await prisma.eventAttendee.findMany({
+        where: { userId: session.id, event: { seriesId: attendee.event.seriesId } },
+        select: { id: true, eventId: true },
+      })
+    : [{ id: attendee.id, eventId }];
+
+  await prisma.eventAttendee.updateMany({
+    where: { id: { in: related.map((item) => item.id) } },
+    data: { status, respondedAt: new Date() },
+  });
 
   await audit({
     actorId: session.id,
     action: "SELF_RSVP",
     entityType: "EventAttendee",
     entityId: attendee.id,
-    metadata: { eventId, status },
+    metadata: { eventId, status, occurrences: related.length },
     ministryId: session.ministryId,
   });
 
-  revalidatePath(`/events/${eventId}`);
+  for (const item of related) {
+    revalidatePath(`/events/${item.eventId}`);
+    revalidatePath(`/events/${item.eventId}/attendees`);
+  }
   return { ok: true };
 }
