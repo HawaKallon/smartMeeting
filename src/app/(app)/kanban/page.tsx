@@ -59,7 +59,8 @@ export default async function KanbanPage({
       <BackButton href="/administrative" label="Dashboard" />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Action Items</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Task board</p>
+          <h1 className="mt-2 text-2xl font-bold text-foreground">Action Items</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {totals.todo} to do · {totals.inProgress} in progress · {totals.done} done
           </p>
@@ -71,7 +72,7 @@ export default async function KanbanPage({
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card px-8 py-16 text-center">
+        <div className="rounded-[1.75rem] border border-border bg-card px-8 py-16 text-center shadow-[0_16px_40px_rgba(15,35,63,0.07)]">
           <p className="text-sm text-muted-foreground">No action items yet.</p>
           <p className="mt-1 text-xs text-muted-foreground/60">
             Action items are created from meeting minutes.
