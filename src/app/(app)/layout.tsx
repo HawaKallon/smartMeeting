@@ -27,12 +27,12 @@ export default async function AppLayout({
     }),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { theme: true, sessionTimeout: true, compactMode: true },
+      select: { sessionTimeout: true, compactMode: true },
     }),
   ]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background" data-theme={preferences?.theme ?? "dark"}>
+    <div className="flex h-screen overflow-hidden bg-background">
       <IdleLogout timeoutMinutes={preferences?.sessionTimeout ?? 30} />
       <Sidebar user={user} />
       <div className="flex flex-1 flex-col overflow-hidden">
