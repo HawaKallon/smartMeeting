@@ -35,7 +35,7 @@ export default async function RoomsPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div className="flex items-center justify-between">
         <div>
@@ -43,7 +43,7 @@ export default async function RoomsPage() {
           <p className="mt-1 text-sm text-muted-foreground">Book conference rooms and spaces</p>
         </div>
         <Link
-          href="/events/new"
+          href="/administrative/events/new"
           className="flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
@@ -74,7 +74,7 @@ export default async function RoomsPage() {
         {rooms.map((room) => (
           <Link
             key={room.id}
-            href={`/rooms/${room.id}`}
+            href={`/administrative/rooms/${room.id}`}
             className="rounded-xl border border-border bg-card p-6 hover:bg-muted/30 transition-colors group"
           >
             <div className="flex items-start justify-between mb-3">

@@ -7,7 +7,7 @@ export default function BookRoomPage() {
       <h1 className="text-2xl font-bold text-foreground">Room Booking Disabled</h1>
       <p className="text-muted-foreground">
         Room booking is now integrated into event creation. 
-        Go to <a href="/events/new" className="text-blue-400 hover:underline">Create Event</a> to book a room.
+        Go to <a href="/administrative/events/new" className="text-blue-400 hover:underline">Create Event</a> to book a room.
       </p>
     </div>
   );

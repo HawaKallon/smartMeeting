@@ -79,7 +79,7 @@ export async function updateProfile(
       data: updateData,
     });
 
-    revalidatePath("/profile");
+    revalidatePath("/administrative/profile");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update profile:", err);

@@ -118,7 +118,7 @@ export async function createUser(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true, emailSent };
   } catch (err) {
     console.error("Failed to create user:", err);
@@ -169,7 +169,7 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
     console.error("Failed to delete user:", err);
@@ -203,7 +203,7 @@ export async function updateUserRole(
       ministryId: target.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update user role:", err);
@@ -235,7 +235,7 @@ export async function setUserActive(
       ministryId: target.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update user status:", err);
@@ -260,7 +260,7 @@ async function reissueCredentials(userId: string, action: "RESET_PASSWORD" | "RE
     ministryId: target.ministryId,
   });
 
-  revalidatePath("/admin/users");
+  revalidatePath("/administrative/admin/users");
   return { ok: true as const, emailSent };
 }
 

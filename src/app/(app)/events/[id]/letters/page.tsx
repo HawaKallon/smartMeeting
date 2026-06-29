@@ -31,7 +31,7 @@ export default async function LettersPage({
   return (
     <div className="space-y-6">
       <div>
-        <BackButton href={`/events/${id}`} label={event.title} />
+        <BackButton href={`/administrative/events/${id}`} label={event.title} />
         <div className="mt-4 flex items-center gap-3">
           <h1 className="text-2xl font-bold text-foreground">Letters</h1>
           {event.colorCategory && (

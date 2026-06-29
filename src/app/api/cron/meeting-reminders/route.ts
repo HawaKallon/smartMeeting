@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         recipients.push({
           to: a.user.email,
           toName: a.user.name ?? a.user.email,
-          joinUrl: `${baseUrl}/events/${event.id}`,
+          joinUrl: `${baseUrl}/administrative/events/${event.id}`,
         });
       } else if (a.externalEmail) {
         recipients.push({

@@ -22,7 +22,7 @@ export async function markRead(notificationId: string): Promise<{ ok?: boolean; 
       data: { read: true },
     });
 
-    revalidatePath("/notifications");
+    revalidatePath("/administrative/notifications");
     return { ok: true };
   } catch (err) {
     console.error("Failed to mark notification as read:", err);
@@ -39,7 +39,7 @@ export async function markAllRead(): Promise<void> {
       data: { read: true },
     });
 
-    revalidatePath("/notifications");
+    revalidatePath("/administrative/notifications");
   } catch (err) {
     console.error("Failed to mark all notifications as read:", err);
   }

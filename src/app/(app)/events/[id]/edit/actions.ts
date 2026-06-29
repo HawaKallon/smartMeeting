@@ -186,9 +186,9 @@ export async function updateEvent(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/calendar");
-    revalidatePath("/");
-    redirect(`/events/${firstId}`);
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/administrative");
+    redirect(`/administrative/events/${firstId}`);
   }
 
   const event = anchor;
@@ -274,8 +274,8 @@ export async function updateEvent(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/calendar");
-    revalidatePath("/");
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/administrative");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update event:", err);
@@ -333,8 +333,8 @@ export async function deleteEvent(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/calendar");
-    revalidatePath("/");
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/administrative");
     return { ok: true };
   } catch (err) {
     console.error("Failed to cancel event:", err);
@@ -400,8 +400,8 @@ export async function addCoOrganizer(
       ministryId: event.ministryId,
     });
 
-    revalidatePath(`/events/${eventId}`);
-    revalidatePath("/calendar");
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
     return { ok: true };
   } catch (err) {
     console.error("Failed to add co-organizer:", err);
@@ -437,8 +437,8 @@ export async function removeCoOrganizer(
       ministryId: event.ministryId,
     });
 
-    revalidatePath(`/events/${eventId}`);
-    revalidatePath("/calendar");
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
     return { ok: true };
   } catch (err) {
     console.error("Failed to remove co-organizer:", err);
