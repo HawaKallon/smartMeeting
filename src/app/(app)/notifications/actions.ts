@@ -30,7 +30,7 @@ export async function markRead(notificationId: string): Promise<{ ok?: boolean; 
   }
 }
 
-export async function markAllRead(): Promise<{ ok?: boolean; error?: string }> {
+export async function markAllRead(): Promise<void> {
   try {
     const user = await requireUser();
 
@@ -40,9 +40,7 @@ export async function markAllRead(): Promise<{ ok?: boolean; error?: string }> {
     });
 
     revalidatePath("/notifications");
-    return { ok: true };
   } catch (err) {
     console.error("Failed to mark all notifications as read:", err);
-    return { error: "Failed to update notifications" };
   }
 }
