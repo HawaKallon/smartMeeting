@@ -50,6 +50,16 @@ export async function assertSuperAdmin() {
   return session.user;
 }
 
+/** Page guard: Admin (ministry admin/tech team) or super-admin. */
+export async function requireAdminRole() {
+  return requireRole("ADMIN", "SUPER_ADMIN");
+}
+
+/** Action guard: Admin (ministry admin/tech team) or super-admin. */
+export async function assertAdminRole() {
+  return assertRole("ADMIN", "SUPER_ADMIN");
+}
+
 /** Scope helper: returns where clause for ministry filtering. Super-admins bypass filtering. */
 export function ministryScope(user: { role: MinistryRole; ministryId: string | null }) {
   if (isSuperAdmin(user.role)) return {};
