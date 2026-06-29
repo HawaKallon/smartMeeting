@@ -25,7 +25,7 @@ export default async function PublicEventDetailPage({
     <div className="space-y-6">
       <BackButton href="/" label="Calendar" />
 
-      <div className="overflow-hidden rounded-[2rem] border border-[#d8e1ee] bg-white shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
+      <div className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-card shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         {event.bannerImage && (
           <div className="relative w-full h-64 sm:h-96">
             <Image
@@ -92,7 +92,7 @@ export default async function PublicEventDetailPage({
             </div>
 
             {event.description && (
-              <div className="max-w-none rounded-[1.5rem] bg-[#f9fbfe] p-5">
+              <div className="max-w-none rounded-[1.5rem] bg-secondary/55 p-5">
                 <p className="whitespace-pre-wrap text-foreground">{event.description}</p>
               </div>
             )}
