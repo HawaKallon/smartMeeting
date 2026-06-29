@@ -58,7 +58,7 @@ function LoginPrompt({ token }: { token: string }) {
       <h1 className="text-lg font-semibold text-foreground">Sign in to check in</h1>
       <p className="text-sm text-muted-foreground">You must be logged in to check in to this meeting.</p>
       <a
-        href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+        href={`/administrative/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
         className="inline-block rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
       >
         Sign in

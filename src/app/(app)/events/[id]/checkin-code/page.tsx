@@ -34,7 +34,7 @@ export default async function CheckInCodePage({
   return (
     <div className="space-y-6">
       <div>
-        <BackButton href={`/events/${id}`} label={event.title} />
+        <BackButton href={`/administrative/events/${id}`} label={event.title} />
         <h1 className="mt-4 text-3xl font-bold text-foreground">{event.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Scan to check in</p>
       </div>

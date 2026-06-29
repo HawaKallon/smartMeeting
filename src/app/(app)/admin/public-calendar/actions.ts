@@ -85,8 +85,8 @@ export async function createPublicEvent(
     });
 
     revalidatePath("/public-calendar");
-    revalidatePath("/admin/public-calendar");
-    redirect(`/admin/public-calendar/${event.id}/edit`);
+    revalidatePath("/administrative/admin/public-calendar");
+    redirect(`/administrative/admin/public-calendar/${event.id}/edit`);
   } catch (err) {
     console.error("Failed to create public event:", err);
     return { error: "Failed to create event" };
@@ -161,7 +161,7 @@ export async function updatePublicEvent(
     });
 
     revalidatePath("/public-calendar");
-    revalidatePath("/admin/public-calendar");
+    revalidatePath("/administrative/admin/public-calendar");
     return { error: undefined };
   } catch (err) {
     console.error("Failed to update public event:", err);
@@ -202,7 +202,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
     });
 
     revalidatePath("/public-calendar");
-    revalidatePath("/admin/public-calendar");
+    revalidatePath("/administrative/admin/public-calendar");
     return undefined;
   } catch (err) {
     console.error("Failed to publish public event:", err);
@@ -243,7 +243,7 @@ export async function unpublishPublicEvent(eventId: string): Promise<ActionState
     });
 
     revalidatePath("/public-calendar");
-    revalidatePath("/admin/public-calendar");
+    revalidatePath("/administrative/admin/public-calendar");
     return undefined;
   } catch (err) {
     console.error("Failed to unpublish public event:", err);
@@ -280,8 +280,8 @@ export async function deletePublicEvent(eventId: string): Promise<ActionState> {
     });
 
     revalidatePath("/public-calendar");
-    revalidatePath("/admin/public-calendar");
-    redirect("/admin/public-calendar");
+    revalidatePath("/administrative/admin/public-calendar");
+    redirect("/administrative/admin/public-calendar");
   } catch (err) {
     console.error("Failed to delete public event:", err);
     return { error: "Failed to delete event" };

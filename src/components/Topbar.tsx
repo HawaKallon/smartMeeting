@@ -47,7 +47,7 @@ export function Topbar({
         <div className="h-6 w-px bg-border" />
 
         <Link
-          href="/profile"
+          href="/administrative/profile"
           className="flex items-center gap-2.5 rounded-lg hover:bg-muted/30 px-3 py-1.5 transition-colors"
         >
           <div className="text-right hidden sm:block">

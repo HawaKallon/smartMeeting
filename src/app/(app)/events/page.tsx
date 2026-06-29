@@ -35,7 +35,7 @@ export default async function AllEventsPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">All Events</h1>
@@ -102,7 +102,7 @@ function EventSection({
         {events.map((event) => (
           <Link
             key={event.id}
-            href={`/events/${event.id}`}
+            href={`/administrative/events/${event.id}`}
             className="block px-5 py-4 transition-colors hover:bg-muted/50"
           >
             <div className="flex items-start justify-between gap-4">

@@ -21,7 +21,7 @@ export default async function EventReportPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href={`/events/${id}`} label={event.title} />
+      <BackButton href={`/administrative/events/${id}`} label={event.title} />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Meeting Report</h1>

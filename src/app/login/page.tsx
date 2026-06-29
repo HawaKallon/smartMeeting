@@ -10,20 +10,20 @@ export default async function LoginPage({
 }) {
   const { callbackUrl, error } = await searchParams;
   const session = await auth();
-  if (session?.user) redirect(callbackUrl || "/");
+  if (session?.user) redirect(callbackUrl || "/administrative");
 
   async function login(formData: FormData) {
     "use server";
     const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
-    const cb = String(formData.get("callbackUrl") || "/");
+    const cb = String(formData.get("callbackUrl") || "/administrative");
     try {
       await signIn("credentials", { email, password, redirectTo: cb });
     } catch (error) {
       if (error instanceof AuthError) {
         const params = new URLSearchParams({ error: error.type });
-        if (cb && cb !== "/") params.set("callbackUrl", cb);
-        redirect(`/login?${params}`);
+        if (cb && cb !== "/administrative") params.set("callbackUrl", cb);
+        redirect(`/administrative/login?${params}`);
       }
       throw error; // re-throw NEXT_REDIRECT so Next.js handles the success redirect
     }
@@ -44,7 +44,7 @@ export default async function LoginPage({
         ) : null}
 
         <form action={login} className="mt-6 space-y-4">
-          <input type="hidden" name="callbackUrl" value={callbackUrl ?? "/"} />
+          <input type="hidden" name="callbackUrl" value={callbackUrl ?? "/administrative"} />
           <div>
             <label className="block text-sm font-medium text-foreground">Email</label>
             <input

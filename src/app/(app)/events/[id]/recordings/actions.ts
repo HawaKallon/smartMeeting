@@ -93,6 +93,6 @@ export async function uploadRecording(formData: FormData): Promise<UploadResult>
     };
   }
 
-  revalidatePath(`/events/${eventId}`);
+  revalidatePath(`/administrative/events/${eventId}`);
   return { ok: true, recordingId: recording.id };
 }
