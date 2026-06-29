@@ -25,8 +25,7 @@ export default async function PublicEventDetailPage({
     <div className="space-y-6">
       <BackButton href="/" label="Calendar" />
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {/* Banner image */}
+      <div className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-card shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         {event.bannerImage && (
           <div className="relative w-full h-64 sm:h-96">
             <Image
@@ -38,12 +37,11 @@ export default async function PublicEventDetailPage({
           </div>
         )}
 
-        {/* Content */}
         <div className="p-6 sm:p-8">
           <div className="space-y-4">
-            {/* Title and ministry */}
             <div>
-              <h1 className="text-3xl font-bold text-foreground">{event.title}</h1>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Published public event</p>
+              <h1 className="mt-2 text-3xl font-bold text-[#003580]">{event.title}</h1>
               {event.ministry && (
                 <p className="mt-2 text-sm text-muted-foreground">
                   Organized by <span className="font-medium">{event.ministry.name}</span>
@@ -51,7 +49,6 @@ export default async function PublicEventDetailPage({
               )}
             </div>
 
-            {/* Meta */}
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="h-4 w-4" />
@@ -88,20 +85,18 @@ export default async function PublicEventDetailPage({
               )}
 
               {event.category && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <span className="inline-flex items-center rounded-full border border-[#c9d9f2] bg-[#edf3fd] px-3 py-1 text-xs font-medium text-[#003580]">
                   {event.category}
                 </span>
               )}
             </div>
 
-            {/* Description */}
             {event.description && (
-              <div className="prose prose-invert max-w-none dark:prose-invert">
+              <div className="max-w-none rounded-[1.5rem] bg-secondary/55 p-5">
                 <p className="whitespace-pre-wrap text-foreground">{event.description}</p>
               </div>
             )}
 
-            {/* Contact section */}
             {(event.contactEmail || event.contactPhone) && (
               <div className="border-t border-border pt-6 mt-6">
                 <h2 className="font-semibold text-foreground mb-3">Contact</h2>
@@ -109,7 +104,7 @@ export default async function PublicEventDetailPage({
                   {event.contactEmail && (
                     <a
                       href={`mailto:${event.contactEmail}`}
-                      className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                      className="flex items-center gap-2 text-sm text-[#003580] hover:text-[#00265b]"
                     >
                       <Mail className="h-4 w-4" />
                       {event.contactEmail}
@@ -118,7 +113,7 @@ export default async function PublicEventDetailPage({
                   {event.contactPhone && (
                     <a
                       href={`tel:${event.contactPhone}`}
-                      className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                      className="flex items-center gap-2 text-sm text-[#003580] hover:text-[#00265b]"
                     >
                       <Phone className="h-4 w-4" />
                       {event.contactPhone}
@@ -128,14 +123,13 @@ export default async function PublicEventDetailPage({
               </div>
             )}
 
-            {/* External link */}
             {event.externalUrl && (
               <div className="pt-6">
                 <a
                   href={event.externalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#003580] px-5 py-3 font-medium text-white transition-colors hover:bg-[#00265b]"
                 >
                   Learn More
                   <ExternalLink className="h-4 w-4" />
@@ -146,9 +140,8 @@ export default async function PublicEventDetailPage({
         </div>
       </div>
 
-      {/* Back to calendar link */}
       <div className="text-center">
-        <Link href="/" className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+        <Link href="/" className="text-sm font-semibold text-[#003580] hover:text-[#00265b]">
           ← Back to calendar
         </Link>
       </div>
