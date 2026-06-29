@@ -78,7 +78,7 @@ export default async function RsvpPage({
 
   return (
     <main className="min-h-screen px-4 py-8 text-slate-900 sm:py-12">
-      <div className="mx-auto max-w-3xl overflow-hidden rounded-[2rem] border border-[#d8e1ee] bg-white shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-[2rem] border border-[#d3deef] bg-card shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         <header className="border-b border-[#d8e1ee] bg-[linear-gradient(135deg,#003580_0%,#0e4aa1_70%,#007236_100%)] px-6 py-7 text-white sm:px-9">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -99,7 +99,7 @@ export default async function RsvpPage({
             <p className="mt-4 text-sm leading-6 text-slate-600">Dear {recipientName}, please review the meeting details and record your response below.</p>
           </div>
 
-          <dl className="grid gap-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 sm:grid-cols-2">
+          <dl className="grid gap-4 rounded-[1.5rem] border border-slate-200 bg-secondary/45 p-5 sm:grid-cols-2">
             <Detail icon={<CalendarDays className="h-4 w-4" />} label={invitations.length > 1 ? "First occurrence" : "Date"} value={formatDate(event.startAt)} />
             <Detail icon={<Clock3 className="h-4 w-4" />} label="Time" value={`${formatTime(event.startAt)}–${formatTime(event.endAt)} GMT`} />
             <Detail icon={<MapPin className="h-4 w-4" />} label="Location" value={location} />
@@ -149,7 +149,7 @@ function Detail({ icon, label, value }: { icon: React.ReactNode; label: string; 
 function Unavailable({ message }: { message: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 text-slate-900">
-      <div className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
+      <div className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-card p-8 text-center shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         <ShieldCheck className="mx-auto h-9 w-9 text-slate-400" />
         <h1 className="mt-4 text-xl font-bold text-[#003580]">Invitation unavailable</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">{message}</p>
