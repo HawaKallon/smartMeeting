@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { absoluteAppUrl, getAppUrl } from "@/lib/appUrl";
 
 const TOKEN_BYTES = 32;
 
@@ -16,11 +17,11 @@ export function validRsvpToken(token: string): boolean {
 }
 
 export function publicAppUrl(): string {
-  return (process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return getAppUrl();
 }
 
 export function rsvpUrl(token: string, response?: "CONFIRMED" | "DECLINED"): string {
-  const url = new URL(`/rsvp/${encodeURIComponent(token)}`, publicAppUrl());
+  const url = new URL(absoluteAppUrl(`/rsvp/${encodeURIComponent(token)}`));
   if (response) url.searchParams.set("response", response);
   return url.toString();
 }
