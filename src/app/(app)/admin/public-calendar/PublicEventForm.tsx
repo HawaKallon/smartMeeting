@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import Image from "next/image";
 import { useCallback, useState } from "react";
-import { createPublicEvent, updatePublicEvent, publishPublicEvent, unpublishPublicEvent } from "./actions";
+import { createPublicEvent, updatePublicEvent, publishPublicEvent, unpublishPublicEvent, type ActionState } from "./actions";
 import type { PublicEvent } from "@/generated/prisma/client";
 
 interface PublicEventFormProps {
@@ -12,9 +12,10 @@ interface PublicEventFormProps {
 }
 
 export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
-  const [state, action, isPending] = useActionState(
-    event ? (fd) => updatePublicEvent(event.id, undefined, fd) : createPublicEvent,
-    undefined
+  const saveAction = event ? updatePublicEvent.bind(null, event.id) : createPublicEvent;
+  const [state, action, isPending] = useActionState<ActionState, FormData>(
+    saveAction,
+    undefined,
   );
   const [preview, setPreview] = useState<string | null>(event?.bannerImage || null);
 
