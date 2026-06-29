@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       ownerId: { not: null },
     },
     include: {
-      owner: { select: { name: true, email: true } },
+      owner: { select: { name: true, email: true, phone: true } },
       minutes: {
         select: {
           eventId: true,
