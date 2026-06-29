@@ -1,12 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaffRole } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { removeInvite } from "./actions";
-import { AttendeeRow } from "./AttendeeRow";
 import { AddAttendeeForm } from "./AddAttendeeForm";
-import { Users, Mail, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Users, CheckCircle, Clock, XCircle } from "lucide-react";
 
 export default async function AttendeesPage({
   params,
@@ -164,9 +162,16 @@ export default async function AttendeesPage({
                       </span>
                     </td>
                     <td className="px-6 py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${status.bg} ${status.text}`}>
-                        {status.label}
-                      </span>
+                      <div>
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${status.bg} ${status.text}`}>
+                          {status.label}
+                        </span>
+                        {a.respondedAt ? (
+                          <p className="mt-1.5 text-[11px] text-muted-foreground">
+                            Responded {a.respondedAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                          </p>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-6 py-3">
                       {checkin ? (
