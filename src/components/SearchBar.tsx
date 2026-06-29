@@ -17,7 +17,7 @@ export function SearchBar() {
 
   return (
     <form onSubmit={handleSearch} className="w-full">
-      <div className="flex w-full items-center gap-2 rounded-2xl border border-border bg-[#f9fbfe] px-4 py-3 text-sm text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <div className="flex w-full items-center gap-2 rounded-2xl border border-border bg-[#eef4fd] px-4 py-3 text-sm text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
         <SearchIcon className="h-4 w-4 flex-shrink-0 text-primary" />
         <input
           type="text"
