@@ -4,12 +4,14 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole, ministryScope, assertSameMinistry } from "@/lib/guard";
+import { assertStaffRole, ministryScope } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
 import { sendInviteEmail } from "@/lib/email";
+import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { generateOccurrences, describeRecurrence, MAX_OCCURRENCES } from "@/lib/recurrence";
 import type { RecurrenceFrequency } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 
 const EventSchema = z
   .object({
@@ -74,7 +76,7 @@ export async function createEvent(
   let room = null;
   if (data.roomId) {
     room = await prisma.room.findFirst({
-      where: { id: data.roomId, ...ministryScope(user) },
+      where: { id: data.roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
       select: { latitude: true, longitude: true },
     });
     if (!room) {
@@ -130,7 +132,13 @@ export async function createEvent(
   }
 
   // Resolve invitees once (registered user vs external guest), reused per occurrence.
-  type Resolved = { email: string; name: string; userId: string | null };
+  type Resolved = {
+    email: string;
+    name: string;
+    userId: string | null;
+    token: string;
+    rsvpTokenHash: string;
+  };
   let resolved: Resolved[] = [];
   const inviteesRaw = formData.get("invitees");
   if (inviteesRaw) {
@@ -142,7 +150,14 @@ export async function createEvent(
           where: { email: inv.email.toLowerCase() },
           select: { id: true, name: true },
         });
-        return { email: inv.email, name: u?.name ?? inv.name ?? inv.email, userId: u?.id ?? null };
+        const { token, tokenHash } = createRsvpToken();
+        return {
+          email: inv.email,
+          name: u?.name ?? inv.name ?? inv.email,
+          userId: u?.id ?? null,
+          token,
+          rsvpTokenHash: tokenHash,
+        };
       }),
     );
   }
@@ -194,14 +209,19 @@ export async function createEvent(
 
   // One invite email per invitee (not one per occurrence).
   if (resolved.length) {
-    let roomName: string | null = null;
-    if (data.roomId) {
-      const r = await prisma.room.findFirst({
-        where: { id: data.roomId, ...ministryScope(user) },
+    const [selectedRoom, ministry] = await Promise.all([
+      data.roomId
+        ? prisma.room.findFirst({
+            where: { id: data.roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
+            select: { name: true },
+          })
+        : null,
+      prisma.ministry.findUnique({
+        where: { id: user.ministryId! },
         select: { name: true },
-      });
-      roomName = r?.name ?? null;
-    }
+      }),
+    ]);
+    const roomName = selectedRoom?.name ?? null;
     const organizerName = user.name ?? user.email;
     const recurrenceText = recurring
       ? describeRecurrence({
@@ -217,11 +237,20 @@ export async function createEvent(
         sendInviteEmail({
           to: r.email,
           toName: r.name,
-          eventTitle: recurrenceText ? `${data.title} (${recurrenceText})` : data.title,
+          eventTitle: data.title,
+          eventDescription: data.description ?? null,
+          eventType: data.type,
+          classification: data.classification,
           startAt: slots[0].startAt,
+          endAt: slots[0].endAt,
           venueName: data.venueName ?? null,
           roomName,
           organizerName,
+          organizerEmail: user.email,
+          ministryName: ministry?.name ?? "Government Ministry",
+          recurrenceText,
+          acceptUrl: rsvpUrl(r.token, "CONFIRMED"),
+          declineUrl: rsvpUrl(r.token, "DECLINED"),
         }),
       ),
     );
@@ -270,7 +299,7 @@ export async function checkRoomAvailability(
     }
 
     // Check event conflicts
-    const eventWhere: any = {
+    const eventWhere: Prisma.EventWhereInput = {
       roomId,
       startAt: { lt: end },
       endAt: { gt: start },
