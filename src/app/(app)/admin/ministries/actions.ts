@@ -102,7 +102,7 @@ export async function createMinistry(
       ministryId: ministry.id,
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true, emailSent };
   } catch (err) {
     console.error("Failed to create ministry:", err);
@@ -170,7 +170,7 @@ export async function addMinistryAdmin(
       ministryId: ministry.id,
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true, emailSent };
   } catch (err) {
     console.error("Failed to add ministry admin:", err);
@@ -203,7 +203,7 @@ export async function toggleMinistryActive(
       metadata: { name: ministry.name },
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true };
   } catch (err) {
     console.error("Failed to toggle ministry:", err);
@@ -270,7 +270,7 @@ export async function updateMinistry(
       metadata: { name, emailDomain },
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update ministry:", err);

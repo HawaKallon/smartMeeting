@@ -52,7 +52,7 @@ export async function createLetter(
     ministryId: staff.ministryId,
   });
 
-  revalidatePath(`/events/${eventId}/letters`);
+  revalidatePath(`/administrative/events/${eventId}/letters`);
   return { ok: true, letterId: letter.id };
 }
 
@@ -109,7 +109,7 @@ export async function updateLetter(
     ministryId: staff.ministryId,
   });
 
-  revalidatePath(`/events/${eventId}/letters`);
+  revalidatePath(`/administrative/events/${eventId}/letters`);
   return { ok: true };
 }
 
@@ -135,5 +135,5 @@ export async function deleteLetter(formData: FormData): Promise<void> {
     metadata: { eventId },
   });
 
-  revalidatePath(`/events/${eventId}/letters`);
+  revalidatePath(`/administrative/events/${eventId}/letters`);
 }

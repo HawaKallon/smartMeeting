@@ -73,8 +73,8 @@ export async function respondToInvitation(
   });
 
   for (const invitation of invitations) {
-    revalidatePath(`/events/${invitation.eventId}`);
-    revalidatePath(`/events/${invitation.eventId}/attendees`);
+    revalidatePath(`/administrative/events/${invitation.eventId}`);
+    revalidatePath(`/administrative/events/${invitation.eventId}/attendees`);
   }
 
   return { ok: true, status: parsed.data.status };

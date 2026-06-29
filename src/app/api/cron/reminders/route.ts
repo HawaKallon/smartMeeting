@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     items.map(async (item) => {
       if (!item.owner || !item.dueDate) return;
 
-      const minutesUrl = `${baseUrl}/events/${item.minutes.eventId}/minutes`;
+      const minutesUrl = `${baseUrl}/administrative/events/${item.minutes.eventId}/minutes`;
       const eventTitle = item.minutes.event.title;
 
       await Promise.allSettled([

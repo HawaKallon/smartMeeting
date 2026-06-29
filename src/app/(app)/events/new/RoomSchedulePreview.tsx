@@ -29,7 +29,7 @@ export function RoomSchedulePreview({
 
     setLoading(true);
     fetch(
-      `/api/rooms/${roomId}/schedule?startAt=${startAt}&endAt=${endAt}`
+      `/api/administrative/rooms/${roomId}/schedule?startAt=${startAt}&endAt=${endAt}`
     )
       .then((res) => res.json())
       .then((data) => {

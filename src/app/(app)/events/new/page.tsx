@@ -22,7 +22,7 @@ export default async function NewEventPage({
   return (
     <div className="space-y-6">
       <div>
-        <BackButton href="/" label="Dashboard" />
+        <BackButton href="/administrative" label="Dashboard" />
         <h1 className="mt-4 text-3xl font-bold text-foreground">New Event</h1>
       </div>
 

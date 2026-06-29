@@ -20,7 +20,7 @@ export function RoomSelect({
       value={roomId}
       onChange={(e) => {
         if (e.target.value) {
-          router.push(`/rooms/availability?roomId=${e.target.value}&date=${date}`);
+          router.push(`/administrative/rooms/availability?roomId=${e.target.value}&date=${date}`);
         }
       }}
       className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground"

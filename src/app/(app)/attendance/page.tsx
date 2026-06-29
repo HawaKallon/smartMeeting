@@ -27,7 +27,7 @@ export default async function AttendanceReportsPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Attendance Reports</h1>
@@ -124,7 +124,7 @@ export default async function AttendanceReportsPage() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <Link
-                        href={`/events/${e.id}/attendance`}
+                        href={`/administrative/events/${e.id}/attendance`}
                         className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted/50"
                       >
                         Details →

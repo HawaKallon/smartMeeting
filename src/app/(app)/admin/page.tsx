@@ -47,7 +47,7 @@ export default async function PlatformOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Platform Overview</h1>

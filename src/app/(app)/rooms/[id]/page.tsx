@@ -33,7 +33,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
   if (!room) {
     return (
       <div className="space-y-6">
-        <BackButton href="/rooms" label="Rooms" />
+        <BackButton href="/administrative/rooms" label="Rooms" />
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
           <p className="text-red-400">Room not found</p>
         </div>
@@ -49,7 +49,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
 
   return (
     <div className="space-y-6">
-      <BackButton href="/rooms" label="Rooms" />
+      <BackButton href="/administrative/rooms" label="Rooms" />
 
       {/* Room Header */}
       <div className="space-y-4">
@@ -68,7 +68,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
             </div>
           </div>
           <Link
-            href="/rooms/book"
+            href="/administrative/rooms/book"
             className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
           >
             Book Room
@@ -171,7 +171,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
               upcomingEvents.map((event) => (
                 <Link
                   key={event.id}
-                  href={`/events/${event.id}`}
+                  href={`/administrative/events/${event.id}`}
                   className="block px-6 py-4 hover:bg-muted/20 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">

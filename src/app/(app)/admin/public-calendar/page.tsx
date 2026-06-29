@@ -15,7 +15,7 @@ export default async function AdminPublicCalendarPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/admin" label="Admin" />
+      <BackButton href="/administrative/admin" label="Admin" />
 
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -25,7 +25,7 @@ export default async function AdminPublicCalendarPage() {
           </p>
         </div>
         <Link
-          href="/admin/public-calendar/new"
+          href="/administrative/admin/public-calendar/new"
           className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
@@ -37,7 +37,7 @@ export default async function AdminPublicCalendarPage() {
         <div className="rounded-lg border border-border bg-card p-8 text-center">
           <p className="text-muted-foreground">No public events yet</p>
           <Link
-            href="/admin/public-calendar/new"
+            href="/administrative/admin/public-calendar/new"
             className="mt-4 inline-block text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
           >
             Create the first one →
@@ -83,14 +83,14 @@ export default async function AdminPublicCalendarPage() {
               </div>
               <div className="flex gap-2 shrink-0">
                 <Link
-                  href={`/admin/public-calendar/${event.id}/edit`}
+                  href={`/administrative/admin/public-calendar/${event.id}/edit`}
                   className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm font-medium text-foreground"
                 >
                   <Edit2 className="h-4 w-4" />
                   Edit
                 </Link>
                 <Link
-                  href={`/admin/public-calendar/${event.id}/delete`}
+                  href={`/administrative/admin/public-calendar/${event.id}/delete`}
                   className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium text-red-600 dark:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
