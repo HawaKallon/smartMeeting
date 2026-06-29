@@ -67,7 +67,7 @@ export function RsvpResponseForm({
             type="submit"
             disabled={pending || displayedStatus === "CONFIRMED"}
             className={`w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto ${
-              suggestedStatus === "CONFIRMED" ? "bg-emerald-800 ring-2 ring-emerald-300" : "bg-emerald-700 hover:bg-emerald-800"
+              suggestedStatus === "CONFIRMED" ? "bg-[#007236] ring-2 ring-emerald-200" : "bg-[#007236] hover:bg-[#00592a]"
             }`}
           >
             {pending ? "Recording…" : "Accept Invitation"}
@@ -82,7 +82,7 @@ export function RsvpResponseForm({
             className={`w-full rounded-md border px-5 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto ${
               suggestedStatus === "DECLINED"
                 ? "border-red-400 bg-red-50 text-red-800 ring-2 ring-red-200"
-                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-300 bg-white text-[#003580] hover:bg-slate-50"
             }`}
           >
             {pending ? "Recording…" : "Decline"}

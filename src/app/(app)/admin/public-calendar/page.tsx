@@ -19,14 +19,15 @@ export default async function AdminPublicCalendarPage() {
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Public Calendar</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Public publishing</p>
+          <h1 className="mt-2 text-2xl font-bold text-[#003580]">Public Calendar</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Manage public events visible to all visitors
           </p>
         </div>
         <Link
           href="/administrative/admin/public-calendar/new"
-          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#002a68]"
         >
           <Plus className="h-4 w-4" />
           New Event
@@ -34,11 +35,11 @@ export default async function AdminPublicCalendarPage() {
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <div className="rounded-[1.5rem] border border-border bg-card p-8 text-center shadow-sm">
           <p className="text-muted-foreground">No public events yet</p>
           <Link
             href="/administrative/admin/public-calendar/new"
-            className="mt-4 inline-block text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+            className="mt-4 inline-block text-sm font-semibold text-[#003580] hover:text-[#00265b]"
           >
             Create the first one →
           </Link>
@@ -48,18 +49,18 @@ export default async function AdminPublicCalendarPage() {
           {events.map((event) => (
             <div
               key={event.id}
-              className="rounded-lg border border-border bg-card p-4 flex items-start justify-between gap-4"
+              className="flex items-start justify-between gap-4 rounded-[1.5rem] border border-border bg-card p-5 shadow-sm"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold text-foreground text-lg truncate">{event.title}</h3>
                   {event.status === "PUBLISHED" ? (
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 whitespace-nowrap">
+                    <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#cfe5d7] bg-[#edf8f1] px-3 py-1 text-xs font-medium text-[#007236]">
                       <Globe className="h-3 w-3" />
                       Published
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 whitespace-nowrap">
+                    <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#fde8a6] bg-[#fff7dd] px-3 py-1 text-xs font-medium text-[#946200]">
                       <Lock className="h-3 w-3" />
                       Draft
                     </span>
@@ -84,14 +85,14 @@ export default async function AdminPublicCalendarPage() {
               <div className="flex gap-2 shrink-0">
                 <Link
                   href={`/administrative/admin/public-calendar/${event.id}/edit`}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm font-medium text-foreground"
+                  className="flex items-center gap-1 rounded-xl border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                 >
                   <Edit2 className="h-4 w-4" />
                   Edit
                 </Link>
                 <Link
                   href={`/administrative/admin/public-calendar/${event.id}/delete`}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium text-red-600 dark:text-red-400"
+                  className="flex items-center gap-1 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Link>
