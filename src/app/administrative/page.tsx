@@ -56,7 +56,8 @@ export default async function Dashboard() {
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Administrative overview</p>
+          <h1 className="mt-2 text-xl font-semibold text-foreground">
             Welcome, {firstName}! 👋
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{dateLabel}</p>
@@ -65,14 +66,14 @@ export default async function Dashboard() {
           <div className="flex gap-2">
             <Link
               href="/administrative/events/new"
-              className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#002a68]"
             >
               <PlusCircle className="h-4 w-4" />
               New Event
             </Link>
             <Link
               href="/administrative/attendance"
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               <ClipboardList className="h-4 w-4" />
               Reports
@@ -89,12 +90,14 @@ export default async function Dashboard() {
           value={upcoming.length}
           sub="scheduled ahead"
           href="/administrative/calendar"
+          variant="blue"
         />
         <StatCard
           icon={<TrendingUp className="h-5 w-5 text-orange-500" />}
           label="Events Today"
           value={todayCount}
           sub="happening today"
+          variant="gold"
         />
         <StatCard
           icon={<CheckSquare className="h-5 w-5 text-emerald-500" />}
@@ -102,18 +105,20 @@ export default async function Dashboard() {
           value={myItems}
           sub="action items pending"
           href="/administrative/kanban"
+          variant="green"
         />
         <StatCard
           icon={<Users className="h-5 w-5 text-violet-500" />}
           label="Pending RSVPs"
           value={pendingRsvps}
           sub="awaiting your response"
+          variant="slate"
         />
       </div>
 
       {/* Upcoming events table */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+      <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-[0_20px_60px_rgba(0,53,128,0.08)]">
+        <div className="flex items-center justify-between border-b border-border bg-secondary/60 px-5 py-4">
           <h2 className="text-sm font-semibold text-foreground">Upcoming Events</h2>
           <Link
             href="/administrative/calendar"
@@ -125,12 +130,12 @@ export default async function Dashboard() {
 
         {upcoming.length === 0 ? (
           <div className="px-5 py-12 text-center">
-            <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/20" />
+            <CalendarDays className="mx-auto h-8 w-8 text-primary/25" />
             <p className="mt-3 text-sm text-muted-foreground">No upcoming events scheduled.</p>
             {isStaff && (
               <Link
                 href="/administrative/events/new"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-[#002a68]"
               >
                 <PlusCircle className="h-4 w-4" /> Create first event
               </Link>
@@ -139,7 +144,7 @@ export default async function Dashboard() {
         ) : (
           <table className="w-full caption-bottom text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-border bg-secondary/40">
                 {["Event", "Date & Time", "Venue", "Type", "Check-ins", ""].map((h) => (
                   <th key={h} className="px-5 py-3 text-left text-xs font-medium text-muted-foreground">
                     {h}
@@ -153,7 +158,7 @@ export default async function Dashboard() {
                 return (
                   <tr
                     key={e.id}
-                    className={`transition-colors hover:bg-muted/30 ${i < upcoming.length - 1 ? "border-b border-border/50" : ""}`}
+                    className={`transition-colors hover:bg-secondary/35 ${i < upcoming.length - 1 ? "border-b border-border/50" : ""}`}
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2">
@@ -164,7 +169,7 @@ export default async function Dashboard() {
                         )}
                         <span className="font-medium text-foreground">{e.title}</span>
                         {isToday && (
-                          <span className="rounded-md bg-blue-500/15 px-1.5 py-0.5 text-xs font-medium text-blue-400">Today</span>
+                          <span className="rounded-md bg-primary/12 px-1.5 py-0.5 text-xs font-medium text-primary">Today</span>
                         )}
                       </div>
                     </td>
@@ -178,7 +183,7 @@ export default async function Dashboard() {
                       {e.room ? `${e.room.name} (${e.room.location})` : "—"}
                     </td>
                     <td className="px-5 py-3">
-                      <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground capitalize">
+                      <span className="rounded-md bg-secondary/70 px-2 py-0.5 text-xs font-medium text-primary capitalize">
                         {e.type.toLowerCase()}
                       </span>
                     </td>
@@ -200,21 +205,60 @@ export default async function Dashboard() {
 }
 
 function StatCard({
-  icon, label, value, sub, href,
+  icon, label, value, sub, href, variant,
 }: {
-  icon: React.ReactNode; label: string; value: number; sub: string; href?: string;
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  sub: string;
+  href?: string;
+  variant: "blue" | "gold" | "green" | "slate";
 }) {
+  const styles = {
+    blue: {
+      card: "border-[#c5d7f2] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] hover:border-[#b3c9ee] hover:bg-[linear-gradient(180deg,#f4f9ff_0%,#e8f2ff_100%)]",
+      iconWrap: "border-[#bfd1ee] bg-[#e4eefc] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]",
+      value: "text-[#003580]",
+      accent: "bg-[#003580]",
+      hint: "text-[#4e678f]",
+    },
+    gold: {
+      card: "border-[#f3df9d] bg-[linear-gradient(180deg,#fffdfa_0%,#fff6dc_100%)] hover:border-[#edd27c] hover:bg-[linear-gradient(180deg,#fff9ef_0%,#fff2cd_100%)]",
+      iconWrap: "border-[#f0d98e] bg-[#fff0bf] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]",
+      value: "text-[#8f6400]",
+      accent: "bg-[#fab700]",
+      hint: "text-[#8d6a17]",
+    },
+    green: {
+      card: "border-[#c7e2d0] bg-[linear-gradient(180deg,#f8fffb_0%,#edf8f1_100%)] hover:border-[#b0d5be] hover:bg-[linear-gradient(180deg,#f3fdf7_0%,#e6f5ec_100%)]",
+      iconWrap: "border-[#bddbc8] bg-[#e0f2e7] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]",
+      value: "text-[#007236]",
+      accent: "bg-[#007236]",
+      hint: "text-[#4d7f64]",
+    },
+    slate: {
+      card: "border-[#d6dfec] bg-[linear-gradient(180deg,#fbfdff_0%,#f1f5fb_100%)] hover:border-[#c4d1e2] hover:bg-[linear-gradient(180deg,#f8fbff_0%,#ebf1f9_100%)]",
+      iconWrap: "border-[#ced8e6] bg-[#e8eef7] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]",
+      value: "text-[#1f3d67]",
+      accent: "bg-[#7d8eab]",
+      hint: "text-[#60728d]",
+    },
+  }[variant];
+
   const inner = (
-    <div className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/20">
-      <div className="flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted">
+    <div className={`relative overflow-hidden rounded-[1.75rem] border p-5 shadow-[0_18px_45px_rgba(15,35,63,0.08)] transition-all ${styles.card}`}>
+      <div className={`absolute inset-x-0 top-0 h-1 ${styles.accent}`} />
+      <div className="flex items-start justify-between gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-[1.1rem] border ${styles.iconWrap}`}>
           {icon}
         </div>
-        {href && <ArrowUpRight className="h-4 w-4 text-muted-foreground/30" />}
+        {href && <ArrowUpRight className="h-4 w-4 text-muted-foreground/40" />}
       </div>
-      <p className="mt-3 text-2xl font-medium text-foreground">{value}</p>
-      <p className="mt-0.5 text-sm text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground/60">{sub}</p>
+      <div className="mt-6">
+        <p className={`text-3xl font-semibold tracking-tight ${styles.value}`}>{value}</p>
+        <p className="mt-1 text-sm font-semibold text-foreground">{label}</p>
+        <p className={`mt-1 text-xs font-medium ${styles.hint}`}>{sub}</p>
+      </div>
     </div>
   );
   return href ? <Link href={href}>{inner}</Link> : inner;
