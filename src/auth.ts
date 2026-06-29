@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { audit } from "@/lib/audit";
 import { isGovEmail, emailDomainOf } from "@/lib/govEmail";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import authConfig from "./auth.config";
@@ -72,6 +73,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             });
           }
         }
+
+        await audit({
+          actorId: user.id,
+          action: "LOGIN",
+          entityType: "User",
+          entityId: user.id,
+          ministryId,
+          metadata: {
+            email: user.email,
+            role: user.role,
+          },
+        });
 
         return {
           id: user.id,
