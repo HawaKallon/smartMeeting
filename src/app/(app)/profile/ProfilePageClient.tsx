@@ -34,13 +34,14 @@ export function ProfilePageClient({ user, stats }: ProfilePageClientProps) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Personal account</p>
+          <h1 className="mt-2 text-2xl font-bold text-foreground">Profile</h1>
           <p className="mt-1 text-sm text-muted-foreground">View and manage your account</p>
         </div>
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#002a68]"
           >
             <Pencil className="h-4 w-4" />
             Edit Profile
