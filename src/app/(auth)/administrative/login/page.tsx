@@ -5,6 +5,8 @@ import { AuthError } from "next-auth";
 import { ArrowLeft, CalendarCheck2, Landmark, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { signIn, auth } from "@/auth";
 import { PasswordInput } from "@/components/PasswordInput";
+import { CoatOfArmsPlaceholder } from "@/components/CoatOfArmsPlaceholder";
+import { SierraLeoneFlag } from "@/components/SierraLeoneFlag";
 
 // The auth route group keeps this public page outside the protected app layout.
 export const metadata: Metadata = {
@@ -39,48 +41,22 @@ export default async function LoginPage({
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#eef2f5] text-slate-900">
-      <header className="border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#12355b] text-white shadow-sm">
-              <Landmark className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#1f8f4e]">
-                Government of Sierra Leone
-              </p>
-              <h1 className="mt-0.5 text-lg font-bold tracking-tight text-[#12355b]">
-                Administrative Sign In
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
-            <span
-              className="flex h-7 w-11 overflow-hidden rounded-[4px] border border-slate-300 bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.35)_inset]"
-              aria-hidden="true"
-            >
-              <span className="flex-1 bg-[#1f8f4e]" />
-              <span className="flex-1 bg-white" />
-              <span className="flex-1 bg-[#1f6fa8]" />
-            </span>
-            <span className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 sm:inline">
-              Sierra Leone
-            </span>
-          </div>
-        </div>
-      </header>
-
+    <main className="flex min-h-screen flex-col text-slate-900">
       <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <section className="grid w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl md:min-h-[650px] md:grid-cols-[1.05fr_1fr]">
-          <aside className="relative hidden overflow-hidden bg-[#12355b] p-12 text-white md:flex md:flex-col md:justify-between">
+        <section className="grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-[#d8e1ee] bg-white shadow-[0_30px_90px_rgba(0,53,128,0.12)] md:min-h-[700px] md:grid-cols-[1.1fr_0.95fr]">
+          <aside className="relative hidden overflow-hidden bg-[linear-gradient(145deg,#003580_0%,#0a4aa0_58%,#007236_100%)] p-12 text-white md:flex md:flex-col md:justify-between">
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full border-[48px] border-white/5" aria-hidden="true" />
-            <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-[#1f8f4e]/20" aria-hidden="true" />
+            <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-[#fab700]/20" aria-hidden="true" />
 
             <div className="relative">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/20 bg-white/10">
-                <Landmark className="h-7 w-7" />
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/20 bg-white/10">
+                  <Landmark className="h-7 w-7" />
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <SierraLeoneFlag className="h-8 w-14 border-white/20" />
+                  <CoatOfArmsPlaceholder className="h-28 w-32 border-white/20 bg-white/10 text-white" />
+                </div>
               </div>
               <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
                 Government of Sierra Leone
@@ -102,27 +78,30 @@ export default async function LoginPage({
 
           <div className="flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-16">
             <div className="mb-9 md:hidden">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#12355b] text-white">
-                <Landmark className="h-6 w-6" />
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#003580] text-white">
+                  <Landmark className="h-6 w-6" />
+                </div>
+                <SierraLeoneFlag className="h-8 w-14" />
               </div>
-              <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#1f8f4e]">Government of Sierra Leone</p>
+              <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#007236]">Government of Sierra Leone</p>
             </div>
 
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#1f8f4e]">Administrative portal</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#12355b]">Sign in to continue</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Use your official government email address and assigned credentials.
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#007236]">Administrative portal</p>
+              <h2 className="mt-2 text-4xl font-bold tracking-tight text-[#003580]">Sign in to continue</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Use your official government email address and assigned credentials to access the internal ministry meeting workspace.
               </p>
             </div>
 
             {error ? (
-              <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
                 The email address or password entered is incorrect.
               </div>
             ) : null}
 
-            <form action={login} className="mt-7 space-y-5">
+            <form action={login} className="mt-8 space-y-5">
               <input type="hidden" name="callbackUrl" value={callbackUrl ?? "/administrative"} />
               <div>
                 <label htmlFor="email" className="text-sm font-semibold text-slate-700">Official email address</label>
@@ -135,7 +114,7 @@ export default async function LoginPage({
                     required
                     autoComplete="email"
                     placeholder="name@ministry.gov.sl"
-                    className="w-full rounded-lg border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1f6fa8] focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className="w-full rounded-2xl border border-[#d8e1ee] bg-[#fbfdff] py-3.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#003580] focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
                   />
                 </div>
               </div>
@@ -147,22 +126,22 @@ export default async function LoginPage({
                     name="password"
                     autoComplete="current-password"
                     required
-                    inputClassName="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 pr-11 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1f6fa8] focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    buttonClassName="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-[#12355b]"
+                    inputClassName="w-full rounded-2xl border border-[#d8e1ee] bg-[#fbfdff] px-4 py-3.5 pr-11 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#003580] focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
+                    buttonClassName="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-[#003580]"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full rounded-lg bg-[#12355b] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0d2947] focus:outline-none focus:ring-2 focus:ring-[#1f6fa8] focus:ring-offset-2"
+                className="w-full rounded-2xl bg-[#003580] px-4 py-3.5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(0,53,128,0.18)] transition hover:bg-[#002a68] focus:outline-none focus:ring-2 focus:ring-[#d7e5fb] focus:ring-offset-2"
               >
                 Sign in securely
               </button>
             </form>
 
             <div className="mt-8 border-t border-slate-200 pt-6">
-              <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#1f6fa8] hover:underline">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#003580] hover:underline">
                 <ArrowLeft className="h-4 w-4" /> Return to the public calendar
               </Link>
               <p className="mt-5 text-xs leading-5 text-slate-500">
@@ -183,7 +162,7 @@ export default async function LoginPage({
 function Feature({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-3 text-sm text-blue-50/90">
-      <span className="text-emerald-300">{icon}</span>
+      <span className="text-[#fab700]">{icon}</span>
       <span>{text}</span>
     </div>
   );

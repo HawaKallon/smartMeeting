@@ -52,7 +52,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             name="title"
             defaultValue={event?.title || ""}
             required
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             placeholder="e.g., Ministry Conference 2024"
           />
         </div>
@@ -67,7 +67,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             name="description"
             defaultValue={event?.description || ""}
             rows={4}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             placeholder="Detailed description of the event"
           />
         </div>
@@ -82,7 +82,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             id="category"
             name="category"
             defaultValue={event?.category || ""}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             placeholder="e.g., Conference, Workshop, Announcement"
           />
         </div>
@@ -99,7 +99,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
               name="startAt"
               defaultValue={event?.startAt?.toISOString().slice(0, 16) || ""}
               required
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             />
           </div>
           <div>
@@ -112,7 +112,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
               name="endAt"
               defaultValue={event?.endAt?.toISOString().slice(0, 16) || ""}
               required
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             />
           </div>
         </div>
@@ -127,7 +127,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             id="venueName"
             name="venueName"
             defaultValue={event?.venueName || ""}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             placeholder="e.g., Main Hall, Conference Room A"
           />
         </div>
@@ -166,7 +166,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
               id="contactEmail"
               name="contactEmail"
               defaultValue={event?.contactEmail || ""}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
               placeholder="contact@example.com"
             />
           </div>
@@ -179,7 +179,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
               id="contactPhone"
               name="contactPhone"
               defaultValue={event?.contactPhone || ""}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
               placeholder="+1 (555) 123-4567"
             />
           </div>
@@ -195,13 +195,13 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             id="externalUrl"
             name="externalUrl"
             defaultValue={event?.externalUrl || ""}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             placeholder="https://example.com/register"
           />
         </div>
 
         {state?.error && (
-          <div className="rounded-lg bg-red-100 dark:bg-red-900/30 p-3 text-sm text-red-800 dark:text-red-200">
+          <div className="rounded-xl bg-red-100 p-3 text-sm text-red-800">
             {state.error}
           </div>
         )}
@@ -211,7 +211,7 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
           <button
             type="submit"
             disabled={isPending}
-            className="px-4 py-2 rounded-lg bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+            className="rounded-xl bg-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-[#002a68] disabled:opacity-50"
           >
             {isPending ? "Saving..." : isNew ? "Create Event" : "Save Changes"}
           </button>
@@ -225,14 +225,14 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
           {event?.status === "DRAFT" ? (
             <button
               onClick={handlePublish}
-              className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
+              className="rounded-xl bg-[#007236] px-4 py-2.5 font-medium text-white transition-colors hover:bg-[#00592a]"
             >
               Publish Event
             </button>
           ) : (
             <button
               onClick={handleUnpublish}
-              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+              className="rounded-xl bg-[#fab700] px-4 py-2.5 font-medium text-[#1f2f49] transition-colors hover:bg-[#e0a500]"
             >
               Unpublish Event
             </button>

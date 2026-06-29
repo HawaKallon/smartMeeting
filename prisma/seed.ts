@@ -162,7 +162,7 @@ async function main() {
     const ministryId = ministryMap[u.ministryCode];
     await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, role: u.role, ministryId },
+      update: { name: u.name, role: u.role, ministryId, passwordHash: defaultPasswordHash },
       create: {
         email: u.email,
         name: u.name,
@@ -184,7 +184,7 @@ async function main() {
   for (const u of SUPER_ADMIN_USERS) {
     await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, role: u.role, ministryId: null },
+      update: { name: u.name, role: u.role, ministryId: null, passwordHash: superAdminPasswordHash },
       create: {
         email: u.email,
         name: u.name,
@@ -221,7 +221,7 @@ async function main() {
   console.log("\n✅ Seeding complete!");
   console.log("\n🔑 Login credentials:");
   console.log("  Ministry users: password123");
-  console.log("  Super admin: <set at seed>");
+  console.log("  Super admin: platform88pass");
 }
 
 main()

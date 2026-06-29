@@ -33,6 +33,64 @@ function emailText(value: string): string {
   return escapeHtml(value).replaceAll("\n", "<br>");
 }
 
+function emailShell({
+  eyebrow,
+  title,
+  ministryName,
+  intro,
+  body,
+  footer,
+}: {
+  eyebrow: string;
+  title: string;
+  ministryName: string;
+  intro: string;
+  body: string;
+  footer: string;
+}) {
+  return `<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  <body style="margin:0;padding:0;background:#f4f7fb;color:#172033;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fb;padding:28px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#ffffff;border:1px solid #d8e1ee;border-radius:18px;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#003580 0%,#0a4ca3 70%,#007236 100%);padding:28px 32px;color:#ffffff;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#d8e6fb;">Government of Sierra Leone</div>
+                    <div style="margin-top:7px;font-size:22px;font-weight:700;line-height:1.3;">${ministryName}</div>
+                  </td>
+                  <td align="right" style="width:140px;">
+                    <div style="display:inline-block;border:1px dashed rgba(255,255,255,0.35);border-radius:16px;padding:14px 12px;text-align:center;min-width:108px;">
+                      <div style="width:56px;height:56px;line-height:56px;margin:0 auto;border-radius:999px;border:3px solid #fab700;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Coat</div>
+                      <div style="margin-top:10px;font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:#e9f3ff;">Placeholder</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#007236;">${eyebrow}</div>
+              <h1 style="margin:10px 0 14px;font-size:28px;line-height:1.25;color:#003580;">${title}</h1>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.75;color:#334155;">${intro}</p>
+              ${body}
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top:1px solid #e5edf7;background:#f9fbfe;padding:18px 32px;font-size:11px;line-height:1.6;color:#64748b;">${footer}</td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+}
+
 // ── Welcome / New User Invitation ─────────────────────────────────────────────
 
 export async function sendWelcomeEmail({
@@ -53,18 +111,21 @@ export async function sendWelcomeEmail({
     const result = await resend.emails.send({
       from: FROM, to,
       subject: "Welcome to Smart Meeting",
-      html: `
-        <h2>Welcome to Smart Meeting</h2>
-        <p>Hello ${toName},</p>
-        <p>Your account has been created and is ready to use. Sign in with the temporary credentials below, then change your password from your profile.</p>
-        <p style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;">
-          <strong>Email:</strong> ${to}<br>
-          <strong>Temporary password:</strong> <code style="font-size:15px;">${tempPassword}</code>
-        </p>
-        <p><a href="${loginUrl}" style="background-color: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Log In to Smart Meeting</a></p>
-        <p>For your security, please change this temporary password after your first login.</p>
-        <p>Best regards,<br>Smart Meeting Team</p>
-      `,
+      html: emailShell({
+        eyebrow: "Administrative access",
+        title: "Welcome to Smart Meeting",
+        ministryName: "Smart Meeting Administration",
+        intro: `Hello ${escapeHtml(toName)}, your account has been created and is ready for first-time access. Sign in with the temporary credentials below, then change your password from your profile after login.`,
+        body: `
+          <div style="border:1px solid #d8e1ee;border-radius:14px;background:#f9fbfe;padding:18px 20px;margin-bottom:24px;">
+            <div style="font-size:13px;font-weight:700;color:#003580;margin-bottom:10px;">Access details</div>
+            <div style="font-size:14px;line-height:1.8;color:#334155;"><strong>Email:</strong> ${escapeHtml(to)}<br><strong>Temporary password:</strong> <code style="font-size:15px;background:#ffffff;border:1px solid #d8e1ee;border-radius:8px;padding:2px 8px;">${escapeHtml(tempPassword)}</code></div>
+          </div>
+          <p style="margin:0 0 22px;"><a href="${escapeHtml(loginUrl)}" style="display:inline-block;background:#003580;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 22px;border-radius:12px;">Log In to Smart Meeting</a></p>
+          <p style="margin:0;font-size:14px;line-height:1.7;color:#334155;">For security, please change this temporary password after your first login.</p>
+        `,
+        footer: "This is an administrative access message issued through the Smart Meeting &amp; Attendance Logger.",
+      }),
     });
     console.log(`[email] sent welcome to ${to}:`, result.data?.id);
     return true;
@@ -193,57 +254,37 @@ export async function sendInviteEmail({
         `On behalf of ${ministryName}`,
         `Government of Sierra Leone`,
       ].filter(Boolean).join("\n"),
-      html: `<!doctype html>
-<html lang="en">
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-  <body style="margin:0;padding:0;background:#f1f5f9;color:#172033;font-family:Arial,Helvetica,sans-serif;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Official meeting invitation from ${safe.ministryName}</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f1f5f9;padding:28px 12px;">
-      <tr><td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #dbe3ee;border-radius:10px;overflow:hidden;">
-          <tr>
-            <td style="background:#12355b;border-bottom:5px solid #1d7a46;padding:26px 32px;color:#ffffff;">
-              <div style="font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#dbeafe;">Government of Sierra Leone</div>
-              <div style="margin-top:7px;font-size:21px;font-weight:700;line-height:1.3;">${safe.ministryName}</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px;">
-              <div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#1d7a46;">Official Meeting Invitation</div>
-              <h1 style="margin:10px 0 20px;font-size:25px;line-height:1.3;color:#12355b;">${safe.eventTitle}</h1>
-              <p style="margin:0 0 14px;font-size:15px;line-height:1.7;">Dear ${safe.toName},</p>
-              <p style="margin:0 0 24px;font-size:15px;line-height:1.7;">${safe.organizerName}, on behalf of ${safe.ministryName}, formally invites you to attend the meeting detailed below.</p>
+      html: emailShell({
+        eyebrow: "Official meeting invitation",
+        title: safe.eventTitle,
+        ministryName: safe.ministryName,
+        intro: `Dear ${safe.toName}, ${safe.organizerName}, on behalf of ${safe.ministryName}, formally invites you to attend the meeting detailed below.`,
+        body: `
+          <div style="border:1px solid #d8e1ee;border-radius:14px;background:#f9fbfe;padding:16px 20px;margin-bottom:24px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+              ${safe.eventType ? detailRow("Type", safe.eventType) : ""}
+              ${safe.classification ? detailRow("Classification", safe.classification) : ""}
+              ${detailRow("Date", safe.date)}
+              ${detailRow("Time", safe.time)}
+              ${detailRow("Location", safe.location)}
+              ${safe.recurrence ? detailRow("Schedule", safe.recurrence) : ""}
+              ${detailRow("Organizer", safe.organizerName)}
+            </table>
+          </div>
 
-              <div style="border:1px solid #dbe3ee;border-radius:8px;background:#f8fafc;padding:14px 18px;margin-bottom:22px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                  ${safe.eventType ? detailRow("Type", safe.eventType) : ""}
-                  ${safe.classification ? detailRow("Classification", safe.classification) : ""}
-                  ${detailRow("Date", safe.date)}
-                  ${detailRow("Time", safe.time)}
-                  ${detailRow("Location", safe.location)}
-                  ${safe.recurrence ? detailRow("Schedule", safe.recurrence) : ""}
-                  ${detailRow("Organizer", safe.organizerName)}
-                </table>
-              </div>
+          ${safe.description ? `<div style="margin-bottom:24px;"><div style="margin-bottom:7px;font-size:13px;font-weight:700;color:#003580;text-transform:uppercase;letter-spacing:.6px;">Purpose / Agenda</div><div style="font-size:14px;line-height:1.7;color:#334155;">${safe.description}</div></div>` : ""}
 
-              ${safe.description ? `<div style="margin-bottom:24px;"><div style="margin-bottom:7px;font-size:13px;font-weight:700;color:#12355b;text-transform:uppercase;letter-spacing:.6px;">Purpose / Agenda</div><div style="font-size:14px;line-height:1.7;color:#334155;">${safe.description}</div></div>` : ""}
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#334155;">Kindly confirm whether you will attend:</p>
+          <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+            <td style="padding:0 10px 10px 0;"><a href="${safe.acceptUrl}" style="display:inline-block;background:#007236;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 22px;border-radius:12px;">Accept Invitation</a></td>
+            <td style="padding:0 0 10px;"><a href="${safe.declineUrl}" style="display:inline-block;background:#ffffff;color:#8b1e1e;text-decoration:none;font-size:14px;font-weight:700;padding:12px 21px;border:1px solid #f2c9c9;border-radius:12px;">Decline</a></td>
+          </tr></table>
 
-              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Kindly confirm whether you will attend:</p>
-              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-                <td style="padding:0 10px 10px 0;"><a href="${safe.acceptUrl}" style="display:inline-block;background:#1d7a46;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 22px;border-radius:6px;">Accept Invitation</a></td>
-                <td style="padding:0 0 10px;"><a href="${safe.declineUrl}" style="display:inline-block;background:#ffffff;color:#7f1d1d;text-decoration:none;font-size:14px;font-weight:700;padding:11px 21px;border:1px solid #fecaca;border-radius:6px;">Decline</a></td>
-              </tr></table>
-
-              <p style="margin:15px 0 24px;font-size:12px;line-height:1.6;color:#64748b;">For security, these response links are personal to your invitation. Please do not forward this email.</p>
-              <p style="margin:0;font-size:14px;line-height:1.7;">Yours faithfully,<br><strong>${safe.organizerName}</strong><br>On behalf of ${safe.ministryName}</p>
-            </td>
-          </tr>
-          <tr><td style="border-top:1px solid #e2e8f0;background:#f8fafc;padding:18px 32px;font-size:11px;line-height:1.6;color:#64748b;">This is an official internal meeting notification issued through the Smart Meeting &amp; Attendance Logger. Replies are directed to the meeting organizer.</td></tr>
-        </table>
-      </td></tr>
-    </table>
-  </body>
-</html>`,
+          <p style="margin:15px 0 24px;font-size:12px;line-height:1.6;color:#64748b;">For security, these response links are personal to your invitation. Please do not forward this email.</p>
+          <p style="margin:0;font-size:14px;line-height:1.7;color:#334155;">Yours faithfully,<br><strong>${safe.organizerName}</strong><br>On behalf of ${safe.ministryName}</p>
+        `,
+        footer: "This is an official internal meeting notification issued through the Smart Meeting &amp; Attendance Logger. Replies are directed to the meeting organizer.",
+      }),
     });
     console.log(`[email] sent invite to ${to}:`, result.data?.id);
   } catch (err) {
