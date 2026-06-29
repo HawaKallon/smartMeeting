@@ -12,7 +12,7 @@ function formatSeconds(seconds: number | null | undefined): string {
 export function AudioPlayer({
   src,
   durationSec,
-}: {9
+}: {
   src: string;
   durationSec?: number | null;
 }) {
