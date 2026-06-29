@@ -39,11 +39,37 @@ export default async function LoginPage({
 
   return (
     <main className="flex min-h-screen flex-col bg-[#eef2f5] text-slate-900">
-      <div className="grid h-1.5 grid-cols-3" aria-hidden="true">
-        <span className="bg-[#1f8f4e]" />
-        <span className="bg-white" />
-        <span className="bg-[#1f6fa8]" />
-      </div>
+      <header className="border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#12355b] text-white shadow-sm">
+              <Landmark className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#1f8f4e]">
+                Government of Sierra Leone
+              </p>
+              <h1 className="mt-0.5 text-lg font-bold tracking-tight text-[#12355b]">
+                Administrative Sign In
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm">
+            <span
+              className="flex h-7 w-11 overflow-hidden rounded-[4px] border border-slate-300 bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.35)_inset]"
+              aria-hidden="true"
+            >
+              <span className="flex-1 bg-[#1f8f4e]" />
+              <span className="flex-1 bg-white" />
+              <span className="flex-1 bg-[#1f6fa8]" />
+            </span>
+            <span className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 sm:inline">
+              Sierra Leone
+            </span>
+          </div>
+        </div>
+      </header>
 
       <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <section className="grid w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl md:min-h-[650px] md:grid-cols-[1.05fr_1fr]">
@@ -146,7 +172,7 @@ export default async function LoginPage({
         </section>
       </div>
 
-      <footer className="px-4 pb-6 text-center text-xs text-slate-500">
+      <footer className="px-4 py-6 text-center text-xs text-slate-500">
         &copy; {new Date().getFullYear()} Government of Sierra Leone
       </footer>
     </main>
