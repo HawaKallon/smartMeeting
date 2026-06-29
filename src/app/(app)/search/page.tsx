@@ -18,7 +18,7 @@ export default async function SearchPage({
       <div className="space-y-6">
         <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-border bg-card p-12 text-center">
-          <Inbox className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <Inbox className="mx-auto h-8 w-8 text-primary/25" />
           <p className="mt-3 text-sm text-muted-foreground">Enter a search query to get started</p>
         </div>
       </div>
@@ -107,15 +107,16 @@ export default async function SearchPage({
       <BackButton href="/administrative" label="Dashboard" />
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Search Results</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Global search</p>
+        <h1 className="mt-2 text-2xl font-bold text-foreground">Search Results</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Results for "<span className="font-semibold">{query}</span>"
         </p>
       </div>
 
       {!hasResults ? (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
-          <Inbox className="mx-auto h-8 w-8 text-muted-foreground/30" />
+        <div className="rounded-[1.75rem] border border-border bg-card p-12 text-center shadow-[0_16px_40px_rgba(15,35,63,0.07)]">
+          <Inbox className="mx-auto h-8 w-8 text-primary/25" />
           <p className="mt-3 text-sm text-muted-foreground">No results found</p>
         </div>
       ) : (
@@ -132,7 +133,7 @@ export default async function SearchPage({
                   <Link
                     key={e.id}
                     href={`/administrative/events/${e.id}`}
-                    className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
+                    className="block rounded-[1.35rem] border border-border bg-card p-4 shadow-sm transition-colors hover:bg-secondary/30"
                   >
                     <p className="font-medium text-foreground">{e.title}</p>
                     <div className="mt-2 flex items-center justify-between">
@@ -159,7 +160,7 @@ export default async function SearchPage({
                   <Link
                     key={m.id}
                     href={`/administrative/events/${m.eventId}/minutes`}
-                    className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
+                    className="block rounded-[1.35rem] border border-border bg-card p-4 shadow-sm transition-colors hover:bg-secondary/30"
                   >
                     <p className="font-medium text-foreground">{m.event.title}</p>
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
@@ -183,7 +184,7 @@ export default async function SearchPage({
                   <Link
                     key={r.id}
                     href={`/administrative/rooms/${r.id}`}
-                    className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
+                    className="block rounded-[1.35rem] border border-border bg-card p-4 shadow-sm transition-colors hover:bg-secondary/30"
                   >
                     <p className="font-medium text-foreground">{r.name}</p>
                     <div className="mt-1 flex items-center justify-between">
@@ -209,7 +210,7 @@ export default async function SearchPage({
                   <Link
                     key={u.id}
                     href={`/administrative/admin/users`}
-                    className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
+                    className="block rounded-[1.35rem] border border-border bg-card p-4 shadow-sm transition-colors hover:bg-secondary/30"
                   >
                     <p className="font-medium text-foreground">{u.name || u.email}</p>
                     <p className="text-xs text-muted-foreground">{u.email}</p>
