@@ -61,8 +61,11 @@ export async function assertAdminRole() {
 }
 
 /** Scope helper: returns where clause for ministry filtering. Super-admins bypass filtering. */
-export function ministryScope(user: { role: MinistryRole; ministryId: string | null }) {
+export function ministryScope(
+  user: { role: MinistryRole; ministryId: string | null },
+): Record<string, never> | { ministryId: string } {
   if (isSuperAdmin(user.role)) return {};
+  if (!user.ministryId) throw new Error("FORBIDDEN");
   return { ministryId: user.ministryId };
 }
 
