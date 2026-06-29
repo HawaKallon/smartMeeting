@@ -177,7 +177,7 @@ export function Sidebar({
             }}
             className="shrink-0"
           >
-            <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-secondary/60 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
+            <button className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-secondary/60 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
               <LogOut className="h-4 w-4" />
             </button>
           </form>
