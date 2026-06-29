@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { signOut } from "next-auth/react";
 
 interface IdleLogoutProps {
-  timeoutMinutes: number; // -1 = never, any other number = minutes of inactivity
+  timeoutMinutes: number;
 }
 
 export function IdleLogout({ timeoutMinutes }: IdleLogoutProps) {
