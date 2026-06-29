@@ -49,14 +49,15 @@ export default async function PublicCalendarDayPage({
       <BackButton href="/" label="Calendar" />
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">{dateStr}</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Daily schedule</p>
+        <h1 className="mt-2 text-2xl font-bold text-[#003580]">{dateStr}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {events.length} event{events.length !== 1 ? "s" : ""}
         </p>
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <div className="rounded-[1.5rem] border border-border bg-card p-8 text-center shadow-sm">
           <p className="text-muted-foreground">No events scheduled for this day</p>
         </div>
       ) : (
@@ -65,9 +66,9 @@ export default async function PublicCalendarDayPage({
             <Link
               key={event.id}
               href={`/public-calendar/event/${event.id}`}
-              className="block rounded-lg border border-border bg-card p-4 hover:bg-muted transition-colors"
+              className="block rounded-[1.5rem] border border-border bg-card p-5 shadow-sm transition-colors hover:bg-secondary/40"
             >
-              <h3 className="font-semibold text-foreground text-lg">{event.title}</h3>
+              <h3 className="text-lg font-semibold text-[#003580]">{event.title}</h3>
               <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
@@ -93,7 +94,7 @@ export default async function PublicCalendarDayPage({
                   </div>
                 )}
                 {event.category && (
-                  <span className="inline-block px-2 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs font-medium">
+                  <span className="inline-block rounded-full border border-[#c9d9f2] bg-[#edf3fd] px-3 py-1 text-xs font-medium text-[#003580]">
                     {event.category}
                   </span>
                 )}

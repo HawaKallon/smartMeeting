@@ -1,44 +1,49 @@
 @import "tailwindcss";
 
-/* ── Square UI Dark Theme — direct hex values, no variable indirection ── */
 @theme {
-  --color-background:                 #09090b;
-  --color-foreground:                 #fafafa;
-  --color-card:                       #18181b;
-  --color-card-foreground:            #fafafa;
-  --color-popover:                    #18181b;
-  --color-popover-foreground:         #fafafa;
-  --color-primary:                    #fafafa;
-  --color-primary-foreground:         #18181b;
-  --color-secondary:                  #27272a;
-  --color-secondary-foreground:       #fafafa;
-  --color-muted:                      #27272a;
-  --color-muted-foreground:           #a1a1aa;
-  --color-accent:                     #27272a;
-  --color-accent-foreground:          #fafafa;
-  --color-destructive:                #f87171;
-  --color-destructive-foreground:     #fafafa;
-  --color-border:                     #27272a;
-  --color-input:                      #3f3f46;
-  --color-ring:                       #52525b;
-  --color-sidebar:                    #18181b;
-  --color-sidebar-foreground:         #fafafa;
-  --color-sidebar-primary:            #3b82f6;
-  --color-sidebar-primary-foreground: #fafafa;
-  --color-sidebar-accent:             #27272a;
-  --color-sidebar-accent-foreground:  #fafafa;
-  --color-sidebar-border:             #27272a;
+  --color-background: #fbfdff;
+  --color-foreground: #11243d;
+  --color-card: #f7fbff;
+  --color-card-foreground: #11243d;
+  --color-popover: #f8fbff;
+  --color-popover-foreground: #11243d;
+  --color-primary: #003580;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #e2ecfa;
+  --color-secondary-foreground: #003580;
+  --color-muted: #edf3fb;
+  --color-muted-foreground: #5f6f85;
+  --color-accent: #fab700;
+  --color-accent-foreground: #1f2f49;
+  --color-destructive: #c2410c;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #d3deef;
+  --color-input: #f5f9fe;
+  --color-ring: #007236;
+  --color-sidebar: #f7fbff;
+  --color-sidebar-foreground: #003580;
+  --color-sidebar-primary: #007236;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #eaf2fc;
+  --color-sidebar-accent-foreground: #003580;
+  --color-sidebar-border: #d8e1ee;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --radius: 0.625rem;
+  --radius: 0.875rem;
 }
 
 @layer base {
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
 
-  html, body {
-    background-color: #09090b;
-    color: #fafafa;
+  html,
+  body {
+    background:
+      radial-gradient(circle at top, rgba(250, 183, 0, 0.1), transparent 24%),
+      radial-gradient(circle at left top, rgba(0, 53, 128, 0.08), transparent 32%),
+      linear-gradient(180deg, #f2f8ff 0%, #fbfdff 18%, #f7fbff 100%);
+    color: #11243d;
   }
 
   body {
@@ -47,117 +52,37 @@
     min-height: 100vh;
   }
 
-  input, textarea, select {
-    color: #fafafa;
-    background-color: #27272a;
+  a {
+    color: inherit;
+  }
+
+  input,
+  textarea,
+  select {
+    color: #11243d;
+    background-color: #fdfefe;
+  }
+
+  ::selection {
+    background: rgba(0, 114, 54, 0.18);
+    color: #11243d;
   }
 }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #52525b; }
-
-/* Light theme — applied when data-theme="light" */
-[data-theme="light"] {
-  --color-background:                 #ffffff;
-  --color-foreground:                 #09090b;
-  --color-card:                       #f5f5f5;
-  --color-card-foreground:            #09090b;
-  --color-popover:                    #f5f5f5;
-  --color-popover-foreground:         #09090b;
-  --color-primary:                    #09090b;
-  --color-primary-foreground:         #ffffff;
-  --color-secondary:                  #e4e4e7;
-  --color-secondary-foreground:       #09090b;
-  --color-muted:                      #e4e4e7;
-  --color-muted-foreground:           #71717a;
-  --color-accent:                     #e4e4e7;
-  --color-accent-foreground:          #09090b;
-  --color-destructive:                #ef4444;
-  --color-destructive-foreground:     #ffffff;
-  --color-border:                     #e4e4e7;
-  --color-input:                      #d4d4d8;
-  --color-ring:                       #a1a1aa;
-  --color-sidebar:                    #f5f5f5;
-  --color-sidebar-foreground:         #09090b;
-  --color-sidebar-primary:            #2563eb;
-  --color-sidebar-primary-foreground: #ffffff;
-  --color-sidebar-accent:             #e4e4e7;
-  --color-sidebar-accent-foreground:  #09090b;
-  --color-sidebar-border:             #e4e4e7;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-[data-theme="light"] html,
-[data-theme="light"] body {
-  background-color: #ffffff;
-  color: #09090b;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-[data-theme="light"] input,
-[data-theme="light"] textarea,
-[data-theme="light"] select {
-  color: #09090b;
-  background-color: #e4e4e7;
+::-webkit-scrollbar-thumb {
+  background: #b7cae6;
+  border-radius: 999px;
 }
 
-[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
-}
-
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1aa;
-}
-
-/* Auto theme — follow system preference */
-@media (prefers-color-scheme: light) {
-  [data-theme="auto"] {
-    --color-background:                 #ffffff;
-    --color-foreground:                 #09090b;
-    --color-card:                       #f5f5f5;
-    --color-card-foreground:            #09090b;
-    --color-popover:                    #f5f5f5;
-    --color-popover-foreground:         #09090b;
-    --color-primary:                    #09090b;
-    --color-primary-foreground:         #ffffff;
-    --color-secondary:                  #e4e4e7;
-    --color-secondary-foreground:       #09090b;
-    --color-muted:                      #e4e4e7;
-    --color-muted-foreground:           #71717a;
-    --color-accent:                     #e4e4e7;
-    --color-accent-foreground:          #09090b;
-    --color-destructive:                #ef4444;
-    --color-destructive-foreground:     #ffffff;
-    --color-border:                     #e4e4e7;
-    --color-input:                      #d4d4d8;
-    --color-ring:                       #a1a1aa;
-    --color-sidebar:                    #f5f5f5;
-    --color-sidebar-foreground:         #09090b;
-    --color-sidebar-primary:            #2563eb;
-    --color-sidebar-primary-foreground: #ffffff;
-    --color-sidebar-accent:             #e4e4e7;
-    --color-sidebar-accent-foreground:  #09090b;
-    --color-sidebar-border:             #e4e4e7;
-  }
-
-  [data-theme="auto"] html,
-  [data-theme="auto"] body {
-    background-color: #ffffff;
-    color: #09090b;
-  }
-
-  [data-theme="auto"] input,
-  [data-theme="auto"] textarea,
-  [data-theme="auto"] select {
-    color: #09090b;
-    background-color: #e4e4e7;
-  }
-
-  [data-theme="auto"] ::-webkit-scrollbar-thumb {
-    background: #d4d4d8;
-  }
-
-  [data-theme="auto"] ::-webkit-scrollbar-thumb:hover {
-    background: #a1a1aa;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: #87a8d2;
 }
