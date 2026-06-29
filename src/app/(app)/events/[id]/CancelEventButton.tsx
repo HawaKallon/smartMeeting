@@ -23,7 +23,7 @@ export function CancelEventButton({ eventId, isSeries }: { eventId: string; isSe
       setError(res.error);
       return;
     }
-    router.push("/calendar");
+    router.push("/administrative/calendar");
   }
 
   return (

@@ -17,7 +17,7 @@ export function AvailabilityDatePicker({
       value={date}
       onChange={(d) => {
         if (d && d !== date) {
-          router.push(`/rooms/availability?roomId=${roomId}&date=${d}`);
+          router.push(`/administrative/rooms/availability?roomId=${roomId}&date=${d}`);
         }
       }}
     />

@@ -22,7 +22,7 @@ export function UserFilters({
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
     else next.delete(key);
-    router.push(`/admin/users?${next.toString()}`);
+    router.push(`/administrative/admin/users?${next.toString()}`);
   }
 
   return (

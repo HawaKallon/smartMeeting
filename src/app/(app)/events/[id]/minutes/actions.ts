@@ -84,7 +84,7 @@ export async function generateMinutesSummary(
     ministryId: admin.ministryId,
   });
 
-  revalidatePath(`/events/${eventId}/minutes`);
+  revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true, summary };
 }
 
@@ -128,7 +128,7 @@ export async function saveMinutesDraft(
     metadata: { eventId },
   });
 
-  revalidatePath(`/events/${eventId}/minutes`);
+  revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
 }
 
@@ -187,7 +187,7 @@ export async function publishMinutes(
     const eventDate = event.startAt.toLocaleDateString("en-GB", {
       weekday: "short", year: "numeric", month: "short", day: "numeric",
     });
-    const minutesUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/events/${eventId}/minutes`;
+    const minutesUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/administrative/events/${eventId}/minutes`;
 
     await Promise.allSettled(
       event.attendees
@@ -212,7 +212,7 @@ export async function publishMinutes(
     );
   }
 
-  revalidatePath(`/events/${eventId}/minutes`);
+  revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
 }
 
@@ -269,7 +269,7 @@ export async function addActionItem(
     await notifyActionItemOwner({ ownerId, title, dueDate: item.dueDate, eventId, minutesId });
   }
 
-  revalidatePath(`/events/${eventId}/minutes`);
+  revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
 }
 
@@ -341,7 +341,7 @@ export async function updateActionItem(
     });
   }
 
-  revalidatePath(`/events/${eventId}/minutes`);
+  revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
 }
 
@@ -372,7 +372,7 @@ export async function deleteActionItem(formData: FormData): Promise<void> {
     metadata: { minutesId, eventId },
   });
 
-  revalidatePath(`/events/${eventId}/minutes`);
+  revalidatePath(`/administrative/events/${eventId}/minutes`);
 }
 
 // ── Internal helper ──────────────────────────────────────────────────────────
@@ -389,7 +389,7 @@ async function notifyActionItemOwner({
   ]);
   if (!owner || !event) return;
 
-  const minutesUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/events/${eventId}/minutes`;
+  const minutesUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/administrative/events/${eventId}/minutes`;
 
   await Promise.allSettled([
     sendActionItemEmail({

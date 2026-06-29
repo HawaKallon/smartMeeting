@@ -7,7 +7,7 @@ export default function ForbiddenPage() {
       <p className="text-sm text-muted-foreground">
         Your ministry role does not permit access to this page.
       </p>
-      <Link href="/" className="text-sm font-medium text-sidebar-primary hover:underline">
+      <Link href="/administrative" className="text-sm font-medium text-sidebar-primary hover:underline">
         Back to dashboard
       </Link>
     </main>

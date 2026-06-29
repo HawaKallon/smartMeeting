@@ -12,7 +12,7 @@ export function ExportButtons({ isSuperAdmin = false }: { isSuperAdmin?: boolean
   async function downloadPdf() {
     setPdfLoading(true);
     try {
-      const res = await fetch("/api/reports/pdf");
+      const res = await fetch("/api/administrative/reports/pdf");
       if (!res.ok) throw new Error("Failed to generate PDF");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -30,17 +30,17 @@ export function ExportButtons({ isSuperAdmin = false }: { isSuperAdmin?: boolean
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <a className={btn} href="/api/reports/export?dataset=events" download>
+      <a className={btn} href="/api/administrative/reports/export?dataset=events" download>
         <Download className="h-4 w-4" /> Events CSV
       </a>
-      <a className={btn} href="/api/reports/export?dataset=attendance" download>
+      <a className={btn} href="/api/administrative/reports/export?dataset=attendance" download>
         <Download className="h-4 w-4" /> Attendance CSV
       </a>
-      <a className={btn} href="/api/reports/export?dataset=users" download>
+      <a className={btn} href="/api/administrative/reports/export?dataset=users" download>
         <Download className="h-4 w-4" /> Users CSV
       </a>
       {isSuperAdmin && (
-        <a className={btn} href="/api/reports/export?dataset=ministries" download>
+        <a className={btn} href="/api/administrative/reports/export?dataset=ministries" download>
           <Download className="h-4 w-4" /> Ministries CSV
         </a>
       )}

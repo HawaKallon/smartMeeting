@@ -51,7 +51,7 @@ export default async function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Home" />
+      <BackButton href="/administrative" label="Home" />
 
       {/* Page header */}
       <div className="flex items-start justify-between">
@@ -64,14 +64,14 @@ export default async function Dashboard() {
         {isStaff && (
           <div className="flex gap-2">
             <Link
-              href="/events/new"
+              href="/administrative/events/new"
               className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
             >
               <PlusCircle className="h-4 w-4" />
               New Event
             </Link>
             <Link
-              href="/attendance"
+              href="/administrative/attendance"
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
             >
               <ClipboardList className="h-4 w-4" />
@@ -88,7 +88,7 @@ export default async function Dashboard() {
           label="Upcoming Events"
           value={upcoming.length}
           sub="scheduled ahead"
-          href="/calendar"
+          href="/administrative/calendar"
         />
         <StatCard
           icon={<TrendingUp className="h-5 w-5 text-orange-500" />}
@@ -101,7 +101,7 @@ export default async function Dashboard() {
           label="My Open Tasks"
           value={myItems}
           sub="action items pending"
-          href="/kanban"
+          href="/administrative/kanban"
         />
         <StatCard
           icon={<Users className="h-5 w-5 text-violet-500" />}
@@ -116,7 +116,7 @@ export default async function Dashboard() {
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
           <h2 className="text-sm font-semibold text-foreground">Upcoming Events</h2>
           <Link
-            href="/calendar"
+            href="/administrative/calendar"
             className="flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             View all <ArrowUpRight className="h-3 w-3" />
@@ -129,7 +129,7 @@ export default async function Dashboard() {
             <p className="mt-3 text-sm text-muted-foreground">No upcoming events scheduled.</p>
             {isStaff && (
               <Link
-                href="/events/new"
+                href="/administrative/events/new"
                 className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
               >
                 <PlusCircle className="h-4 w-4" /> Create first event
@@ -184,7 +184,7 @@ export default async function Dashboard() {
                     </td>
                     <td className="px-5 py-3 font-medium text-foreground">{e._count.attendances}</td>
                     <td className="px-5 py-3">
-                      <Link href={`/events/${e.id}`} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      <Link href={`/administrative/events/${e.id}`} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                         Open →
                       </Link>
                     </td>

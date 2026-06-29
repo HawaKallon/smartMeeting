@@ -36,7 +36,7 @@ export async function provisionUser({
   });
 
   // Send welcome email (with temp password) via the shared, verified-domain sender.
-  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login`;
+  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/administrative/login`;
   const emailSent = await sendWelcomeEmail({ to: email, toName: name, loginUrl, tempPassword });
 
   return { user, emailSent };
@@ -58,7 +58,7 @@ export async function regenerateTempPassword(
     data: { passwordHash },
   });
 
-  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login`;
+  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/administrative/login`;
   const emailSent = await sendWelcomeEmail({
     to: user.email,
     toName: user.name ?? user.email,
