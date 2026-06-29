@@ -64,29 +64,27 @@ export default async function AdminRoomsPage({
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Manage Rooms</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Platform administration</p>
+          <h1 className="mt-2 text-2xl font-bold text-foreground">Manage Rooms</h1>
           <p className="mt-1 text-sm text-muted-foreground">Create and manage conference rooms</p>
         </div>
       </div>
 
-      {/* Create Room Form */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <Plus className="h-5 w-5" />
           Add New Room
         </h2>
         <CreateRoomForm isSuperAdmin={superAdmin} ministries={ministries} />
       </div>
 
-      {/* Filters */}
       {superAdmin && <RoomFilters ministries={ministries} />}
 
-      {/* Rooms List */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-border bg-secondary/45">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Room Name
                 </th>
@@ -116,7 +114,7 @@ export default async function AdminRoomsPage({
               {rooms.map((room, idx) => (
                 <tr
                   key={room.id}
-                  className={`transition-colors hover:bg-muted/30 ${idx < rooms.length - 1 ? "border-b border-border/50" : ""}`}
+                  className={`transition-colors hover:bg-secondary/30 ${idx < rooms.length - 1 ? "border-b border-border/50" : ""}`}
                 >
                   <td className="px-6 py-3">
                     <span className="font-semibold text-foreground">{room.name}</span>
@@ -144,7 +142,7 @@ export default async function AdminRoomsPage({
                         {(room.amenities as string[]).map((amenity) => (
                           <span
                             key={amenity}
-                            className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-400"
+                            className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600"
                           >
                             {amenity}
                           </span>
@@ -166,7 +164,7 @@ export default async function AdminRoomsPage({
 
         {rooms.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <Plus className="mx-auto h-8 w-8 text-muted-foreground/30" />
+            <Plus className="mx-auto h-8 w-8 text-primary/25" />
             <p className="mt-3 text-sm text-muted-foreground">No rooms created yet</p>
           </div>
         )}
