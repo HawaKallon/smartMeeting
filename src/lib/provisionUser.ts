@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/email";
+import { absoluteAppUrl } from "@/lib/appUrl";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import type { User } from "@/generated/prisma/client";
 
@@ -36,7 +37,7 @@ export async function provisionUser({
   });
 
   // Send welcome email (with temp password) via the shared, verified-domain sender.
-  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/administrative/login`;
+  const loginUrl = absoluteAppUrl("/administrative/login");
   const emailSent = await sendWelcomeEmail({ to: email, toName: name, loginUrl, tempPassword });
 
   return { user, emailSent };
@@ -58,7 +59,7 @@ export async function regenerateTempPassword(
     data: { passwordHash },
   });
 
-  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/administrative/login`;
+  const loginUrl = absoluteAppUrl("/administrative/login");
   const emailSent = await sendWelcomeEmail({
     to: user.email,
     toName: user.name ?? user.email,
