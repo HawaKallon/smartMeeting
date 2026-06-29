@@ -13,13 +13,15 @@ const PRIORITY: Record<string, string> = {
 };
 
 const s = StyleSheet.create({
-  page:      { paddingHorizontal: 60, paddingVertical: 60, fontFamily: "Helvetica" },
-  banner:    { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 4, marginBottom: 32, alignSelf: "flex-start" },
+  page:      { paddingHorizontal: 60, paddingVertical: 52, fontFamily: "Helvetica", backgroundColor: "#ffffff" },
+  masthead:  { backgroundColor: "#003580", borderBottomWidth: 4, borderBottomColor: "#007236", borderRadius: 12, paddingHorizontal: 20, paddingVertical: 18, marginBottom: 24 },
+  eyebrow:   { fontSize: 9, color: "#dbeafe", fontFamily: "Helvetica-Bold", letterSpacing: 1.2, textTransform: "uppercase" },
+  banner:    { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, marginBottom: 20, alignSelf: "flex-start" },
   bannerTxt: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#ffffff", letterSpacing: 1 },
-  ministry:  { fontSize: 10, color: "#6b7280", marginBottom: 6 },
-  title:     { fontSize: 22, fontFamily: "Helvetica-Bold", color: "#111827", marginBottom: 4 },
-  meta:      { fontSize: 9, color: "#9ca3af", marginBottom: 32 },
-  divider:   { borderBottomWidth: 1, borderBottomColor: "#e5e7eb", marginBottom: 24 },
+  ministry:  { fontSize: 18, fontFamily: "Helvetica-Bold", color: "#ffffff", marginTop: 6 },
+  title:     { fontSize: 22, fontFamily: "Helvetica-Bold", color: "#003580", marginBottom: 4 },
+  meta:      { fontSize: 9, color: "#6b7280", marginBottom: 28 },
+  divider:   { borderBottomWidth: 1, borderBottomColor: "#d8e1ee", marginBottom: 24 },
   body:      { fontSize: 11, color: "#374151", lineHeight: 1.7 },
   footer:    { marginTop: 48, fontSize: 9, color: "#9ca3af" },
 });
@@ -40,10 +42,13 @@ function LetterDoc({ d }: { d: LetterData }) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
+        <View style={s.masthead}>
+          <Text style={s.eyebrow}>Government of Sierra Leone</Text>
+          <Text style={s.ministry}>Official Ministry Correspondence</Text>
+        </View>
         <View style={{ ...s.banner, backgroundColor: accent }}>
           <Text style={s.bannerTxt}>{priority}</Text>
         </View>
-        <Text style={s.ministry}>MINISTRY — SMART MEETING SYSTEM</Text>
         <Text style={s.title}>{d.title}</Text>
         <Text style={s.meta}>
           {d.eventTitle} · {d.eventDate}
