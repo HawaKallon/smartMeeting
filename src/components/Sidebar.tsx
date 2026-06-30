@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { signOut } from "@/auth";
 import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
 import type { MinistryRole } from "@/generated/prisma/enums";
@@ -37,8 +38,14 @@ export function Sidebar({
     <aside className="hidden h-screen w-72 flex-shrink-0 flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#f1f7fe_100%)] sm:flex">
       <div className="border-b border-sidebar-border px-5 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sidebar-primary shadow-[0_10px_24px_rgba(0,114,54,0.18)]">
-            <Building2 className="h-5 w-5 text-white" />
+          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
+            <Image
+              src="/44-00-152_sierra_leone-png.png"
+              alt="Sierra Leone coat of arms"
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+            />
           </div>
           <div>
             <span className="block text-[11px] font-bold uppercase tracking-[0.2em] text-[#007236]">
