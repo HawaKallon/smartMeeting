@@ -51,7 +51,7 @@ export default async function PublicCalendarDayPage({
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Daily schedule</p>
         <h1 className="mt-2 text-2xl font-bold text-[#003580]">{dateStr}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-slate-600">
           {events.length} event{events.length !== 1 ? "s" : ""}
         </p>
       </div>
