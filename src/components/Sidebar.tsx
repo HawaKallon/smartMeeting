@@ -23,7 +23,7 @@ export function Sidebar({
   const navHrefs = Array.from(new Set([
     "/administrative",
     "/administrative/calendar",
-    "/administrative/kanban",
+    "/administrative/action-items",
     "/administrative/notifications",
     ...(isStaff ? ["/administrative/events/new", "/administrative/events", "/administrative/attendance", "/administrative/reports"] : []),
     "/administrative/profile",
@@ -68,7 +68,7 @@ export function Sidebar({
             Calendar
           </NavLink>
 
-          <NavLink href="/administrative/kanban">
+          <NavLink href="/administrative/action-items">
             <KanbanSquare className="h-4 w-4" />
             Action Items
           </NavLink>

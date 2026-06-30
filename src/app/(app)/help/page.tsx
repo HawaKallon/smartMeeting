@@ -29,7 +29,7 @@ export default function HelpPage() {
     },
     {
       q: "How do I track action items assigned to me?",
-      a: "Visit the Action Items section from the Dashboard or sidebar. You'll see all tasks assigned to you with due dates and event context. You can mark items as Done when completed.",
+      a: "Visit the Action Items section from the Dashboard or sidebar. You’ll find it under /administrative/action-items, with all tasks assigned to you, their due dates, and event context. You can move items to Done when completed.",
     },
     {
       q: "What happens to my recordings after an event?",
