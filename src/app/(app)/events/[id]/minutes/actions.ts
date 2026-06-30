@@ -3,12 +3,13 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertRole, assertStaffRole, ministryScope, assertSameMinistry } from "@/lib/guard";
+import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms, sendActionItemSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
 
@@ -29,7 +30,7 @@ export async function generateMinutesSummary(
   _prev: GenerateSummaryState,
   formData: FormData,
 ): Promise<GenerateSummaryState> {
-  const admin = await assertStaffRole();
+  const user = await requireUser();
 
   const parsed = GenerateSummarySchema.safeParse({
     eventId: formData.get("eventId"),
@@ -40,19 +41,19 @@ export async function generateMinutesSummary(
 
   // Verify event belongs to user's ministry
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(admin) },
-    select: { id: true },
+    where: { id: eventId },
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
   });
-  if (!event) return { error: "Event not found or you don't have access." };
+  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const existing = await prisma.minutes.findFirst({
-    where: { eventId, event: ministryScope(admin) },
+    where: { eventId },
   });
   if (existing?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
   // Pull the meeting notes (body) from the minutes record.
   const minutes = await prisma.minutes.findFirst({
-    where: { eventId, event: ministryScope(admin) },
+    where: { eventId },
     select: { body: true },
   });
   if (!minutes) return { error: "No meeting notes found to summarize." };
@@ -77,12 +78,12 @@ export async function generateMinutesSummary(
   });
 
   await audit({
-    actorId: admin.id,
+    actorId: user.id,
     action: "GENERATE_MINUTES_SUMMARY",
     entityType: "Minutes",
     entityId: updatedMinutes.id,
     metadata: { eventId },
-    ministryId: admin.ministryId,
+    ministryId: event.ministryId,
   });
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);
@@ -101,7 +102,7 @@ export async function saveMinutesDraft(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const admin = await assertStaffRole();
+  const user = await requireUser();
 
   const parsed = SaveDraftSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -111,6 +112,12 @@ export async function saveMinutesDraft(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const { eventId, body, summary } = parsed.data;
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+  });
+  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const existing = await prisma.minutes.findUnique({ where: { eventId } });
   if (existing?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
@@ -122,11 +129,12 @@ export async function saveMinutesDraft(
   });
 
   await audit({
-    actorId: admin.id,
+    actorId: user.id,
     action: "SAVE_MINUTES_DRAFT",
     entityType: "Minutes",
     entityId: minutes.id,
     metadata: { eventId },
+    ministryId: event.ministryId,
   });
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);
@@ -156,6 +164,15 @@ export async function publishMinutes(
 
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
   if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { title: true, startAt: true, ministryId: true, attendees: {
+      where: { status: { in: ["INVITED", "CONFIRMED"] } },
+      include: { user: { select: { name: true, email: true } } },
+    } },
+  });
+  if (!event) return { error: "Event not found." };
+  assertSameMinistry(approver, event.ministryId);
   if (minutes.status === "PUBLISHED") return { error: "Already published." };
 
   await prisma.minutes.update({
@@ -169,49 +186,36 @@ export async function publishMinutes(
     entityType: "Minutes",
     entityId: minutesId,
     metadata: { eventId },
+    ministryId: event.ministryId,
   });
 
   // Notify all invited/confirmed attendees about published minutes.
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: {
-      title: true,
-      startAt: true,
-      attendees: {
-        where: { status: { in: ["INVITED", "CONFIRMED"] } },
-        include: { user: { select: { name: true, email: true } } },
-      },
-    },
+  const eventDate = event.startAt.toLocaleDateString("en-GB", {
+    weekday: "short", year: "numeric", month: "short", day: "numeric",
   });
+  const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
 
-  if (event) {
-    const eventDate = event.startAt.toLocaleDateString("en-GB", {
-      weekday: "short", year: "numeric", month: "short", day: "numeric",
-    });
-    const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
-
-    await Promise.allSettled(
-      event.attendees
-        .filter((a) => a.user?.email)
-        .map((a) =>
-          Promise.allSettled([
-            sendMinutesEmail({
-              to: a.user!.email,
-              toName: a.user!.name ?? a.user!.email,
-              eventTitle: event.title,
-              eventDate,
-              summary: minutes.summary,
-              minutesUrl,
-            }),
-            sendMinutesSms({
-              to: a.user!.email, // phone number would be a separate field in a real system
-              toName: a.user!.name ?? a.user!.email,
-              eventTitle: event.title,
-            }),
-          ])
-        ),
-    );
-  }
+  await Promise.allSettled(
+    event.attendees
+      .filter((a) => a.user?.email)
+      .map((a) =>
+        Promise.allSettled([
+          sendMinutesEmail({
+            to: a.user!.email,
+            toName: a.user!.name ?? a.user!.email,
+            eventTitle: event.title,
+            eventDate,
+            summary: minutes.summary,
+            minutesUrl,
+          }),
+          sendMinutesSms({
+            to: a.user!.email,
+            toName: a.user!.name ?? a.user!.email,
+            eventTitle: event.title,
+          }),
+        ])
+      ),
+  );
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
@@ -231,7 +235,7 @@ export async function addActionItem(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const admin = await assertStaffRole();
+  const user = await requireUser();
 
   const parsed = AddItemSchema.safeParse({
     minutesId: formData.get("minutesId"),
@@ -243,6 +247,12 @@ export async function addActionItem(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const { minutesId, eventId, title, ownerId, dueDate } = parsed.data;
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+  });
+  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
   if (!minutes) return { error: "Minutes not found." };
@@ -258,11 +268,12 @@ export async function addActionItem(
   });
 
   await audit({
-    actorId: admin.id,
+    actorId: user.id,
     action: "ADD_ACTION_ITEM",
     entityType: "ActionItem",
     entityId: item.id,
     metadata: { minutesId, eventId, title },
+    ministryId: event.ministryId,
   });
 
   // Notify the owner if one was assigned.
@@ -290,7 +301,7 @@ export async function updateActionItem(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const admin = await assertStaffRole();
+  const user = await requireUser();
 
   const parsed = UpdateItemSchema.safeParse({
     itemId: formData.get("itemId"),
@@ -304,6 +315,12 @@ export async function updateActionItem(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const { itemId, minutesId, eventId, title, ownerId, dueDate, status } = parsed.data;
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+  });
+  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const item = await prisma.actionItem.findUnique({ where: { id: itemId } });
   if (!item || item.minutesId !== minutesId) return { error: "Action item not found." };
@@ -324,11 +341,12 @@ export async function updateActionItem(
   });
 
   await audit({
-    actorId: admin.id,
+    actorId: user.id,
     action: "UPDATE_ACTION_ITEM",
     entityType: "ActionItem",
     entityId: itemId,
     metadata: { minutesId, eventId, title, status },
+    ministryId: event.ministryId,
   });
 
   // Notify new owner if ownership changed.
@@ -349,13 +367,19 @@ export async function updateActionItem(
 // ── Delete Action Item ───────────────────────────────────────────────────────
 
 export async function deleteActionItem(formData: FormData): Promise<void> {
-  const admin = await assertStaffRole();
+  const user = await requireUser();
 
   const itemId = String(formData.get("itemId") ?? "");
   const minutesId = String(formData.get("minutesId") ?? "");
   const eventId = String(formData.get("eventId") ?? "");
 
   if (!itemId || !minutesId || !eventId) return;
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+  });
+  if (!event || !canManageExistingEvent(user, event)) return;
 
   const item = await prisma.actionItem.findUnique({ where: { id: itemId } });
   if (!item || item.minutesId !== minutesId) return;
@@ -366,11 +390,12 @@ export async function deleteActionItem(formData: FormData): Promise<void> {
   await prisma.actionItem.delete({ where: { id: itemId } });
 
   await audit({
-    actorId: admin.id,
+    actorId: user.id,
     action: "DELETE_ACTION_ITEM",
     entityType: "ActionItem",
     entityId: itemId,
     metadata: { minutesId, eventId },
+    ministryId: event.ministryId,
   });
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);

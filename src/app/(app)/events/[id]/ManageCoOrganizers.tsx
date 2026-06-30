@@ -47,7 +47,7 @@ export function ManageCoOrganizers({
                 disabled={pending}
                 onClick={() => run(() => removeCoOrganizer(eventId, c.id))}
                 className="text-muted-foreground hover:text-red-400 disabled:opacity-50"
-                title="Remove co-organizer"
+                title="Remove assistant"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -64,7 +64,7 @@ export function ManageCoOrganizers({
           className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none disabled:opacity-50"
         >
           <option value="">
-            {candidates.length === 0 ? "No other ministry users" : "Add a co-organizer…"}
+            {candidates.length === 0 ? "No other ministry users" : "Add an assistant…"}
           </option>
           {candidates.map((u) => (
             <option key={u.id} value={u.id}>

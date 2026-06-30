@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { requireStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 import { removeInvite } from "./actions";
 import { AddAttendeeForm } from "./AddAttendeeForm";
 import { Users, CheckCircle, Clock, XCircle } from "lucide-react";
@@ -12,13 +13,16 @@ export default async function AttendeesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireStaffRole();
+  const user = await requireUser();
 
   const event = await prisma.event.findUnique({
     where: { id },
     select: {
       id: true,
       title: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       attendees: {
         orderBy: { createdAt: "asc" },
         include: { user: { select: { id: true, name: true, email: true } } },
@@ -29,6 +33,7 @@ export default async function AttendeesPage({
     },
   });
   if (!event) notFound();
+  if (!canManageExistingEvent(user, event)) notFound();
 
   const checkinsByUserId = new Map(
     event.attendances.map((a) => [a.userId, a])
@@ -39,6 +44,10 @@ export default async function AttendeesPage({
     .filter((uid): uid is string => uid !== null);
 
   const allUsers = await prisma.user.findMany({
+    where: {
+      ministryId: event.ministryId,
+      role: { not: "SUPER_ADMIN" },
+    },
     select: { id: true, name: true, email: true },
     orderBy: [{ name: "asc" }, { email: "asc" }],
   });
