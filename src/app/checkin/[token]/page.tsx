@@ -12,8 +12,8 @@ export default async function CheckInPage({
   const session = await auth();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-sm">
+    <main className="flex min-h-screen items-center justify-center bg-[#f6faff] p-4 text-slate-900">
+      <div className="w-full max-w-sm rounded-[1.5rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_18px_40px_rgba(0,53,128,0.08)]">
         {!resolved ? (
           <Message title="Invalid code" body="This check-in code was not recognized." />
         ) : resolved.expired ? (
@@ -45,8 +45,8 @@ export default async function CheckInPage({
 function Message({ title, body }: { title: string; body: string }) {
   return (
     <div className="text-center">
-      <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+      <h1 className="text-lg font-semibold text-[#003580]">{title}</h1>
+      <p className="mt-1 text-sm text-slate-600">{body}</p>
     </div>
   );
 }
@@ -55,11 +55,11 @@ function LoginPrompt({ token }: { token: string }) {
   const callbackUrl = `/checkin/${token}`;
   return (
     <div className="text-center space-y-4">
-      <h1 className="text-lg font-semibold text-foreground">Sign in to check in</h1>
-      <p className="text-sm text-muted-foreground">You must be logged in to check in to this meeting.</p>
+      <h1 className="text-lg font-semibold text-[#003580]">Sign in to check in</h1>
+      <p className="text-sm text-slate-600">You must be logged in to check in to this meeting.</p>
       <a
         href={`/administrative/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-        className="inline-block rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
+        className="inline-block rounded-xl bg-[#003580] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#00265b]"
       >
         Sign in
       </a>
