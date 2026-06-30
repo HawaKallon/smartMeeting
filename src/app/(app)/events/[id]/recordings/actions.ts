@@ -5,9 +5,10 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole, ministryScope } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { transcribeFile } from "@/lib/transcription";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const ALLOWED = [".mp3", ".wav", ".m4a", ".webm", ".ogg"];
@@ -16,7 +17,7 @@ const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 export type UploadResult = { ok: true; recordingId: string } | { ok: false; error: string };
 
 export async function uploadRecording(formData: FormData): Promise<UploadResult> {
-  const admin = await assertStaffRole();
+  const user = await requireUser();
 
   const eventId = String(formData.get("eventId") ?? "");
   const file = formData.get("file");
@@ -29,9 +30,18 @@ export async function uploadRecording(formData: FormData): Promise<UploadResult>
   }
 
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(admin) },
+    where: { id: eventId },
+    select: {
+      id: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
+      classification: true,
+    },
   });
-  if (!event) return { ok: false, error: "Event not found or you don't have access." };
+  if (!event || !canManageExistingEvent(user, event)) {
+    return { ok: false, error: "Event not found or you don't have access." };
+  }
 
   const ext = path.extname(file.name).toLowerCase();
   if (!ALLOWED.includes(ext)) {
@@ -55,12 +65,12 @@ export async function uploadRecording(formData: FormData): Promise<UploadResult>
   });
 
   await audit({
-    actorId: admin.id,
+    actorId: user.id,
     action: "UPLOAD_RECORDING",
     entityType: "Recording",
     entityId: recording.id,
     metadata: { eventId, fileName: file.name, bytes: file.size },
-    ministryId: admin.ministryId,
+    ministryId: event.ministryId,
   });
 
   // Transcribe. Done inline here; structured so it can move to a worker/queue
@@ -75,12 +85,12 @@ export async function uploadRecording(formData: FormData): Promise<UploadResult>
       data: { status: "TRANSCRIBED" },
     });
     await audit({
-      actorId: admin.id,
+      actorId: user.id,
       action: "TRANSCRIBE_RECORDING",
       entityType: "Recording",
       entityId: recording.id,
       metadata: { provider, segmentCount: segments.length },
-      ministryId: admin.ministryId,
+      ministryId: event.ministryId,
     });
   } catch (err) {
     await prisma.recording.update({
