@@ -90,14 +90,6 @@ export default async function PublicCalendarPage({
           <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
             View upcoming government events, conferences, workshops, and public notices through the official public calendar of the Government of Sierra Leone.
           </p>
-          <div className="mt-5 inline-flex rounded-2xl border border-[#d3deef] bg-[#edf4fd] px-4 py-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Official notice</p>
-              <p className="mt-1 text-sm leading-6 text-slate-600">
-                Public listings appear here once they are approved and published by the responsible ministry authority.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
