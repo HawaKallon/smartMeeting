@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { requireStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 import { ReportForm } from "./ReportForm";
 
 export default async function EventReportPage({
@@ -10,14 +11,23 @@ export default async function EventReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireStaffRole();
+  const user = await requireUser();
 
   const event = await prisma.event.findUnique({
     where: { id },
-    select: { id: true, title: true, startAt: true, venueName: true },
+    select: {
+      id: true,
+      title: true,
+      startAt: true,
+      venueName: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
+    },
   });
 
   if (!event) notFound();
+  if (!canManageExistingEvent(user, event)) notFound();
 
   return (
     <div className="space-y-6">
