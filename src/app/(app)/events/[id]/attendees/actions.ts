@@ -3,11 +3,12 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole, assertRole, ministryScope, assertSameMinistry } from "@/lib/guard";
+import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendInviteEmail } from "@/lib/email";
 import { describeRecurrence } from "@/lib/recurrence";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 import type { EventAttendee, Prisma } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
@@ -23,7 +24,7 @@ export async function inviteUser(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const staff = await assertStaffRole();
+  const staff = await requireUser();
 
   const parsed = InviteUserSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -35,8 +36,12 @@ export async function inviteUser(
 
   const [event, user] = await Promise.all([
     prisma.event.findFirst({
-      where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
+      where: { id: eventId } as Prisma.EventWhereInput,
       select: {
+        id: true,
+        ministryId: true,
+        organizerId: true,
+        coOrganizers: { select: { id: true } },
         title: true,
         description: true,
         type: true,
@@ -53,7 +58,7 @@ export async function inviteUser(
     }),
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, ministryId: true } }),
   ]);
-  if (!event) return { error: "Event not found or you don't have access." };
+  if (!event || !canManageExistingEvent(staff, event)) return { error: "Event not found or you don't have access." };
   if (!user) return { error: "User not found." };
 
   // Ensure invited user is from the same ministry
@@ -104,7 +109,7 @@ export async function inviteUser(
     entityType: "EventAttendee",
     entityId: attendee.id,
     metadata: { eventId, userId },
-    ministryId: staff.ministryId,
+    ministryId: event.ministryId,
   });
 
   // Send invite email if user has an email address.
@@ -146,7 +151,7 @@ export async function inviteExternal(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const staff = await assertStaffRole();
+  const staff = await requireUser();
 
   const parsed = InviteExternalSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -158,8 +163,12 @@ export async function inviteExternal(
   const { eventId, externalName, externalEmail } = parsed.data;
 
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
+    where: { id: eventId } as Prisma.EventWhereInput,
     select: {
+      id: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       title: true,
       description: true,
       type: true,
@@ -174,7 +183,7 @@ export async function inviteExternal(
       organizer: { select: { name: true, email: true } },
     },
   });
-  if (!event) return { error: "Event not found or you don't have access." };
+  if (!event || !canManageExistingEvent(staff, event)) return { error: "Event not found or you don't have access." };
 
   const targetEvents = event.seriesId
     ? await prisma.event.findMany({
@@ -232,7 +241,7 @@ export async function inviteExternal(
     entityType: "EventAttendee",
     entityId: attendee.id,
     metadata: { eventId, externalName, externalEmail },
-    ministryId: staff.ministryId,
+    ministryId: event.ministryId,
   });
 
   if (externalEmail) {
@@ -266,7 +275,7 @@ export async function inviteExternal(
 // ── Remove an invite ─────────────────────────────────────────────────────────
 
 export async function removeInvite(formData: FormData): Promise<void> {
-  const staff = await assertStaffRole();
+  const staff = await requireUser();
 
   const attendeeId = String(formData.get("attendeeId") ?? "");
   const eventId = String(formData.get("eventId") ?? "");
@@ -274,10 +283,10 @@ export async function removeInvite(formData: FormData): Promise<void> {
 
   // Verify event exists and belongs to user's ministry
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
-    select: { id: true },
+    where: { id: eventId } as Prisma.EventWhereInput,
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
   });
-  if (!event) return;
+  if (!event || !canManageExistingEvent(staff, event)) return;
 
   const attendee = await prisma.eventAttendee.findUnique({ where: { id: attendeeId } });
   if (!attendee || attendee.eventId !== eventId) return;
@@ -290,7 +299,7 @@ export async function removeInvite(formData: FormData): Promise<void> {
     entityType: "EventAttendee",
     entityId: attendeeId,
     metadata: { eventId },
-    ministryId: staff.ministryId,
+    ministryId: event.ministryId,
   });
 
   revalidatePath(`/administrative/events/${eventId}/attendees`);
@@ -309,7 +318,7 @@ export async function updateAttendeeStatus(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const staff = await assertStaffRole();
+  const staff = await requireUser();
 
   const parsed = UpdateStatusSchema.safeParse({
     attendeeId: formData.get("attendeeId"),
@@ -322,10 +331,10 @@ export async function updateAttendeeStatus(
 
   // Verify event exists and belongs to user's ministry
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ...ministryScope(staff) } as Prisma.EventWhereInput,
-    select: { id: true },
+    where: { id: eventId } as Prisma.EventWhereInput,
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
   });
-  if (!event) return { error: "Event not found or you don't have access." };
+  if (!event || !canManageExistingEvent(staff, event)) return { error: "Event not found or you don't have access." };
 
   const attendee = await prisma.eventAttendee.findUnique({ where: { id: attendeeId } });
   if (!attendee || attendee.eventId !== eventId) return { error: "Attendee not found." };
@@ -341,7 +350,7 @@ export async function updateAttendeeStatus(
     entityType: "EventAttendee",
     entityId: attendeeId,
     metadata: { eventId, status },
-    ministryId: staff.ministryId,
+    ministryId: event.ministryId,
   });
 
   revalidatePath(`/administrative/events/${eventId}/attendees`);
