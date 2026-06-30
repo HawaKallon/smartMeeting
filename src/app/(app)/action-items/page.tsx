@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { canManageEvents } from "@/lib/roles";
 import { KanbanBoard } from "./KanbanBoard";
 import { OwnerFilter } from "./OwnerFilter";
+import type { Prisma } from "@/generated/prisma/client";
 
-export default async function KanbanPage({
+export default async function ActionItemsPage({
   searchParams,
 }: {
   searchParams: Promise<{ owner?: string }>;
@@ -15,12 +16,15 @@ export default async function KanbanPage({
 
   const isStaff = canManageEvents(user.role);
 
-  const whereOwner = isStaff
-    ? ownerFilter && ownerFilter !== "all" ? { ownerId: ownerFilter } : {}
+  const where: Prisma.ActionItemWhereInput = isStaff
+    ? {
+        minutes: { event: { ministryId: user.ministryId ?? undefined } },
+        ...(ownerFilter && ownerFilter !== "all" ? { ownerId: ownerFilter } : {}),
+      }
     : { ownerId: user.id };
 
   const rawItems = await prisma.actionItem.findMany({
-    where: whereOwner,
+    where,
     orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
     include: {
       owner: { select: { id: true, name: true, email: true } },
@@ -43,6 +47,10 @@ export default async function KanbanPage({
 
   const users = isStaff
     ? await prisma.user.findMany({
+        where: {
+          ministryId: user.ministryId ?? undefined,
+          role: { not: "SUPER_ADMIN" },
+        },
         select: { id: true, name: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }],
       })

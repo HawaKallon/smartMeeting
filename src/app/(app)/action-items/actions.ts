@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
-import type { MinistryRole } from "@/generated/prisma/enums";
 
 const Schema = z.object({
   itemId: z.string().min(1),
@@ -13,7 +12,6 @@ const Schema = z.object({
 });
 
 export async function changeItemStatus(formData: FormData): Promise<void> {
-  // Any authenticated user can update items they own; staff can update any item.
   const session = await assertRole(
     "MINISTER", "PERMANENT_SECRETARY", "DEPUTY_MINISTER",
     "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN",
@@ -32,13 +30,13 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
       id: itemId,
       minutes: { event: { ministryId: session.ministryId || undefined } },
     },
-    select: { id: true, ownerId: true, minutesId: true, minutes: { select: { event: { select: { ministryId: true } } } } },
+    select: { id: true, ownerId: true, minutes: { select: { event: { select: { ministryId: true } } } } },
   });
   if (!item) return;
 
   const isStaff = session.role === "ADMIN_STAFF" || session.role === "ADMIN";
   const isOwner = item.ownerId === session.id;
-  if (!isStaff && !isOwner) return; // non-staff can only move their own cards
+  if (!isStaff && !isOwner) return;
 
   await prisma.actionItem.update({ where: { id: itemId }, data: { status } });
 
@@ -51,5 +49,5 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
     ministryId: session.ministryId,
   });
 
-  revalidatePath("/administrative/kanban");
+  revalidatePath("/administrative/action-items");
 }
