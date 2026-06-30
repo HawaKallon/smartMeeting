@@ -33,7 +33,7 @@ function AppShellFrame({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <div className={`hidden shrink-0 transition-[width] duration-500 ease-in-out sm:block ${collapsed ? "w-[6.5rem]" : "w-72"}`}>
+      <div className={`hidden shrink-0 transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:block ${collapsed ? "w-[6.5rem]" : "w-72"}`}>
         <Sidebar user={user} />
       </div>
 
