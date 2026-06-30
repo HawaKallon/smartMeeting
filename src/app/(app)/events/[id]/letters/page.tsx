@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 import { COLOR_META } from "@/lib/colors";
 import { deleteLetter } from "./actions";
 import { LetterComposer } from "./LetterComposer";
@@ -15,18 +16,22 @@ export default async function LettersPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireStaffRole();
+  const user = await requireUser();
 
   const event = await prisma.event.findUnique({
     where: { id },
     select: {
       id: true,
       title: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       colorCategory: true,
       letters: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!event) notFound();
+  if (!canManageExistingEvent(user, event)) notFound();
 
   return (
     <div className="space-y-6">
