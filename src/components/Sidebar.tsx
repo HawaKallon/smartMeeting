@@ -37,22 +37,22 @@ export function Sidebar({
   return (
     <aside className="hidden h-screen w-72 flex-shrink-0 flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#f1f7fe_100%)] sm:flex">
       <div className="border-b border-sidebar-border px-5 py-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
             <Image
               src="/44-00-152_sierra_leone-png.png"
               alt="Sierra Leone coat of arms"
-              width={40}
-              height={40}
-              className="h-10 w-10 object-contain"
+              width={44}
+              height={44}
+              className="h-11 w-11 object-contain"
             />
           </div>
-          <div className="min-w-0">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-[#007236]">
-              Government of Sierra Leone
-            </span>
-            <span className="mt-1 block text-lg font-semibold leading-none text-sidebar-foreground">
+          <div className="min-w-0 space-y-1">
+            <span className="block text-[19px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
               SmartMeeting
+            </span>
+            <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-[#007236]/80">
+              Government of Sierra Leone
             </span>
           </div>
         </div>
