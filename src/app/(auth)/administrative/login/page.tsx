@@ -1,11 +1,11 @@
+import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { ArrowLeft, CalendarCheck2, Landmark, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CalendarCheck2, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { signIn, auth } from "@/auth";
 import { PasswordInput } from "@/components/PasswordInput";
-import { CoatOfArmsPlaceholder } from "@/components/CoatOfArmsPlaceholder";
 import { SierraLeoneFlag } from "@/components/SierraLeoneFlag";
 
 // The auth route group keeps this public page outside the protected app layout.
@@ -50,13 +50,16 @@ export default async function LoginPage({
 
             <div className="relative">
               <div className="flex items-start justify-between gap-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/20 bg-white/10">
-                  <Landmark className="h-7 w-7" />
+                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white">
+                  <Image
+                    src="/44-00-152_sierra_leone-png.png"
+                    alt="Sierra Leone coat of arms"
+                    width={52}
+                    height={52}
+                    className="h-13 w-13 object-contain"
+                  />
                 </div>
-                <div className="flex flex-col items-end gap-3">
-                  <SierraLeoneFlag className="h-8 w-14 border-white/20" />
-                  <CoatOfArmsPlaceholder className="h-28 w-32 border-white/20 bg-white/10 text-white" />
-                </div>
+                <SierraLeoneFlag className="h-8 w-14 border-white/20" />
               </div>
               <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
                 Government of Sierra Leone
@@ -79,8 +82,14 @@ export default async function LoginPage({
           <div className="flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-16">
             <div className="mb-9 md:hidden">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#003580] text-white">
-                  <Landmark className="h-6 w-6" />
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-[#d3deef] bg-white">
+                  <Image
+                    src="/44-00-152_sierra_leone-png.png"
+                    alt="Sierra Leone coat of arms"
+                    width={44}
+                    height={44}
+                    className="h-11 w-11 object-contain"
+                  />
                 </div>
                 <SierraLeoneFlag className="h-8 w-14" />
               </div>
