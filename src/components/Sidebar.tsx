@@ -1,12 +1,15 @@
+"use client";
+
 import Image from "next/image";
-import { signOut } from "@/auth";
+import { signOut } from "next-auth/react";
 import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import { NavLink, SidebarNavProvider } from "./SidebarNav";
+import { useSidebarState } from "./SidebarState";
 import {
   LayoutDashboard, CalendarDays, KanbanSquare,
-  PlusCircle, ClipboardList, LogOut, Building2,
-  Bell, HelpCircle, Settings, BarChart3, User, Users, Activity, Lock, DoorOpen,
+  PlusCircle, ClipboardList, LogOut, Building2, ChevronLeft, ChevronRight,
+  Bell, HelpCircle, Settings, BarChart3, User, Users, Activity,
 } from "lucide-react";
 
 export function Sidebar({
@@ -18,6 +21,7 @@ export function Sidebar({
   const isSuperAdminUser = isSuperAdmin(user.role);
   const isAdmin = user.role === "ADMIN" || isSuperAdminUser;
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
+  const { collapsed, toggleCollapsed } = useSidebarState();
 
   // Build the list of all hrefs shown for this user (deduped)
   const navHrefs = Array.from(new Set([
@@ -35,9 +39,19 @@ export function Sidebar({
   ]));
 
   return (
-    <aside className="hidden h-screen w-72 flex-shrink-0 flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#f1f7fe_100%)] sm:flex">
-      <div className="border-b border-sidebar-border px-5 py-5">
-        <div className="flex items-center gap-3.5">
+    <aside className="relative hidden h-screen w-full flex-shrink-0 flex-col overflow-visible border-r border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#f1f7fe_100%)] sm:flex">
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-pressed={collapsed}
+        className="absolute right-0 top-24 z-30 hidden h-11 w-6 translate-x-1/2 items-center justify-center rounded-r-full rounded-l-none border border-l-0 border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#edf4fd_100%)] text-[#003580] shadow-[8px_10px_24px_rgba(0,53,128,0.12)] transition-all duration-300 hover:bg-[#f1f7fe] sm:flex"
+      >
+        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+      </button>
+
+      <div className={`border-b border-sidebar-border py-5 ${collapsed ? "px-4" : "px-5"}`}>
+        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3.5"}`}>
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
             <Image
               src="/44-00-152_sierra_leone-png.png"
@@ -47,161 +61,101 @@ export function Sidebar({
               className="h-11 w-11 object-contain"
             />
           </div>
-          <div className="min-w-0 space-y-1">
-            <span className="block text-[19px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
-              SmartMeeting
-            </span>
-            <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-[#007236]/80">
-              Government of Sierra Leone
-            </span>
-          </div>
+          {!collapsed ? (
+            <div className="min-w-0 space-y-1">
+              <span className="block text-[19px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
+                SmartMeeting
+              </span>
+              <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-[#007236]/80">
+                Government of Sierra Leone
+              </span>
+            </div>
+          ) : null}
         </div>
       </div>
 
       <SidebarNavProvider hrefs={navHrefs}>
-        <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
-        <NavSection label="Main">
-          <NavLink href="/administrative">
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </NavLink>
-          <NavLink href="/administrative/calendar">
-            <CalendarDays className="h-4 w-4" />
-            Calendar
-          </NavLink>
-
-          <NavLink href="/administrative/action-items">
-            <KanbanSquare className="h-4 w-4" />
-            Action Items
-          </NavLink>
-          <NavLink href="/administrative/notifications">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </NavLink>
+        <nav className={`flex-1 space-y-6 overflow-y-auto py-5 ${collapsed ? "px-3" : "px-4"}`}>
+        <NavSection label="Main" collapsed={collapsed}>
+          <NavLink href="/administrative" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" collapsed={collapsed} />
+          <NavLink href="/administrative/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" collapsed={collapsed} />
+          <NavLink href="/administrative/action-items" icon={<KanbanSquare className="h-4 w-4" />} label="Action Items" collapsed={collapsed} />
+          <NavLink href="/administrative/notifications" icon={<Bell className="h-4 w-4" />} label="Notifications" collapsed={collapsed} />
         </NavSection>
 
         {isStaff && (
-          <NavSection label="Management">
-            <NavLink href="/administrative/events/new">
-              <PlusCircle className="h-4 w-4" />
-              New Event
-            </NavLink>
-            <NavLink href="/administrative/events">
-              <CalendarDays className="h-4 w-4" />
-              All Events
-            </NavLink>
-            <NavLink href="/administrative/attendance">
-              <ClipboardList className="h-4 w-4" />
-              Attendance
-            </NavLink>
-            <NavLink href="/administrative/reports">
-              <BarChart3 className="h-4 w-4" />
-              Reports
-            </NavLink>
+          <NavSection label="Management" collapsed={collapsed}>
+            <NavLink href="/administrative/events/new" icon={<PlusCircle className="h-4 w-4" />} label="New Event" collapsed={collapsed} />
+            <NavLink href="/administrative/events" icon={<CalendarDays className="h-4 w-4" />} label="All Events" collapsed={collapsed} />
+            <NavLink href="/administrative/attendance" icon={<ClipboardList className="h-4 w-4" />} label="Attendance" collapsed={collapsed} />
+            <NavLink href="/administrative/reports" icon={<BarChart3 className="h-4 w-4" />} label="Reports" collapsed={collapsed} />
           </NavSection>
         )}
 
-        <NavSection label="System">
-          <NavLink href="/administrative/profile">
-            <User className="h-4 w-4" />
-            Profile
-          </NavLink>
+        <NavSection label="System" collapsed={collapsed}>
+          <NavLink href="/administrative/profile" icon={<User className="h-4 w-4" />} label="Profile" collapsed={collapsed} />
           {isSuperAdminUser && (
             <>
-              <NavLink href="/administrative/admin">
-                <BarChart3 className="h-4 w-4" />
-                Platform Overview
-              </NavLink>
-              <NavLink href="/administrative/admin/ministries">
-                <Building2 className="h-4 w-4" />
-                Manage Ministries
-              </NavLink>
-              <NavLink href="/administrative/admin/users">
-                <Users className="h-4 w-4" />
-                Manage Users
-              </NavLink>
-              <NavLink href="/administrative/admin/rooms">
-                <Building2 className="h-4 w-4" />
-                Manage Rooms
-              </NavLink>
-              <NavLink href="/administrative/admin/activity">
-                <Activity className="h-4 w-4" />
-                Activity Log
-              </NavLink>
-              <NavLink href="/administrative/reports">
-                <BarChart3 className="h-4 w-4" />
-                Reports
-              </NavLink>
+              <NavLink href="/administrative/admin" icon={<BarChart3 className="h-4 w-4" />} label="Platform Overview" collapsed={collapsed} />
+              <NavLink href="/administrative/admin/ministries" icon={<Building2 className="h-4 w-4" />} label="Manage Ministries" collapsed={collapsed} />
+              <NavLink href="/administrative/admin/users" icon={<Users className="h-4 w-4" />} label="Manage Users" collapsed={collapsed} />
+              <NavLink href="/administrative/admin/rooms" icon={<Building2 className="h-4 w-4" />} label="Manage Rooms" collapsed={collapsed} />
+              <NavLink href="/administrative/admin/activity" icon={<Activity className="h-4 w-4" />} label="Activity Log" collapsed={collapsed} />
+              <NavLink href="/administrative/reports" icon={<BarChart3 className="h-4 w-4" />} label="Reports" collapsed={collapsed} />
             </>
           )}
           {isAdmin && (
-            <NavLink href="/administrative/admin/public-calendar">
-              <CalendarDays className="h-4 w-4" />
-              Public Calendar
-            </NavLink>
+            <NavLink href="/administrative/admin/public-calendar" icon={<CalendarDays className="h-4 w-4" />} label="Public Calendar" collapsed={collapsed} />
           )}
           {user.role === "ADMIN" && (
             <>
-              <NavLink href="/administrative/admin/users">
-                <Users className="h-4 w-4" />
-                Manage Users
-              </NavLink>
-              <NavLink href="/administrative/admin/rooms">
-                <Building2 className="h-4 w-4" />
-                Manage Rooms
-              </NavLink>
-              <NavLink href="/administrative/admin/activity">
-                <Activity className="h-4 w-4" />
-                Activity Log
-              </NavLink>
+              <NavLink href="/administrative/admin/users" icon={<Users className="h-4 w-4" />} label="Manage Users" collapsed={collapsed} />
+              <NavLink href="/administrative/admin/rooms" icon={<Building2 className="h-4 w-4" />} label="Manage Rooms" collapsed={collapsed} />
+              <NavLink href="/administrative/admin/activity" icon={<Activity className="h-4 w-4" />} label="Activity Log" collapsed={collapsed} />
             </>
           )}
-          <NavLink href="/administrative/help">
-            <HelpCircle className="h-4 w-4" />
-            Help &amp; Centre
-          </NavLink>
-          <NavLink href="/administrative/settings">
-            <Settings className="h-4 w-4" />
-            Settings
-          </NavLink>
+          <NavLink href="/administrative/help" icon={<HelpCircle className="h-4 w-4" />} label="Help & Centre" collapsed={collapsed} />
+          <NavLink href="/administrative/settings" icon={<Settings className="h-4 w-4" />} label="Settings" collapsed={collapsed} />
         </NavSection>
         </nav>
       </SidebarNavProvider>
 
-      <div className="border-t border-sidebar-border bg-[#edf4fd] p-4">
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-3 shadow-sm">
+      <div className={`border-t border-sidebar-border bg-[#edf4fd] ${collapsed ? "p-3" : "p-4"}`}>
+        <div className={`rounded-2xl border border-border bg-card shadow-sm ${collapsed ? "flex flex-col items-center gap-3 px-2 py-3" : "flex items-center gap-3 px-3 py-3"}`}>
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-white">
             {initial}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">
-              {user.name ?? user.email}
-            </p>
-            <p className="text-xs text-sidebar-foreground/55">{ROLE_LABELS[user.role]}</p>
-          </div>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/administrative/login" });
-            }}
-            className="shrink-0"
+          {!collapsed ? (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
+                {user.name ?? user.email}
+              </p>
+              <p className="text-xs text-sidebar-foreground/55">{ROLE_LABELS[user.role]}</p>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            title="Sign out"
+            aria-label="Sign out"
+            onClick={() => signOut({ callbackUrl: "/administrative/login" })}
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-secondary/60 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
-            <button className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-secondary/60 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
-              <LogOut className="h-4 w-4" />
-            </button>
-          </form>
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>
   );
 }
 
-function NavSection({ label, children }: { label: string; children: React.ReactNode }) {
+function NavSection({ label, children, collapsed }: { label: string; children: React.ReactNode; collapsed: boolean }) {
   return (
     <div>
-      <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
-        {label}
-      </p>
+      {!collapsed ? (
+        <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+          {label}
+        </p>
+      ) : null}
       <div className="space-y-0.5">{children}</div>
     </div>
   );
