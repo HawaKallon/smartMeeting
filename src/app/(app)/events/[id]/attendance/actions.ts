@@ -3,9 +3,10 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole, ministryScope } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { checkInClosed } from "@/lib/checkin";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 
 const ManualSchema = z.object({
   eventId: z.string().min(1),
@@ -24,7 +25,7 @@ export async function manualCheckIn(
   formData: FormData,
 ): Promise<ActionState> {
   try {
-    const admin = await assertStaffRole();
+    const user = await requireUser();
 
     const parsed = ManualSchema.safeParse({
       eventId: formData.get("eventId"),
@@ -41,13 +42,18 @@ export async function manualCheckIn(
     // Check-in closes once the meeting has ended — no late attendance, even
     // for staff manual entry.
     const event = await prisma.event.findFirst({
-      where: {
-        id: eventId,
-        ...ministryScope(admin),
+      where: { id: eventId },
+      select: {
+        endAt: true,
+        ministryId: true,
+        organizerId: true,
+        coOrganizers: { select: { id: true } },
       },
-      select: { endAt: true },
     });
     if (!event) return { error: "Event not found or you don't have access." };
+    if (!canManageExistingEvent(user, event)) {
+      return { error: "Event not found or you don't have access." };
+    }
     if (checkInClosed(event.endAt)) {
       return { error: "This meeting has ended. Check-in is closed." };
     }
@@ -106,12 +112,12 @@ export async function manualCheckIn(
     });
 
     await audit({
-      actorId: admin.id,
+      actorId: user.id,
       action: "MANUAL_CHECK_IN",
       entityType: "Attendance",
       entityId: attendance.id,
       metadata: { eventId, userId, externalName: guestName, externalEmail: guestEmail },
-      ministryId: admin.ministryId,
+      ministryId: event.ministryId,
     });
 
     // Revalidate all relevant pages so check-in shows everywhere.
