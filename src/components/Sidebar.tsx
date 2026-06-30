@@ -45,13 +45,16 @@ export function Sidebar({
         onClick={toggleCollapsed}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-pressed={collapsed}
-        className="absolute right-0 top-24 z-30 hidden h-11 w-6 translate-x-1/2 items-center justify-center rounded-r-full rounded-l-none border border-l-0 border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#edf4fd_100%)] text-[#003580] shadow-[8px_10px_24px_rgba(0,53,128,0.12)] transition-all duration-300 hover:bg-[#f1f7fe] sm:flex"
+        className="absolute right-[-1px] top-24 z-30 hidden h-16 w-10 translate-x-[48%] items-center justify-center rounded-r-[999px] rounded-l-none border border-l-0 border-[#cfdced] bg-[linear-gradient(180deg,#fafdff_0%,#eef4fc_100%)] shadow-[10px_14px_30px_rgba(0,53,128,0.10)] transition-all duration-300 hover:bg-[linear-gradient(180deg,#ffffff_0%,#f2f7ff_100%)] sm:flex"
       >
-        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#003580] shadow-[0_8px_18px_rgba(0,53,128,0.16)] ring-1 ring-[#d7e3f1] transition-transform duration-300">
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </span>
       </button>
 
       <div className={`border-b border-sidebar-border py-5 ${collapsed ? "px-4" : "px-5"}`}>
-        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3.5"}`}>
+        <div className="flex items-start justify-between gap-3 overflow-hidden">
+          <div className="flex min-w-0 flex-1 items-center overflow-hidden">
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
             <Image
               src="/44-00-152_sierra_leone-png.png"
@@ -61,7 +64,11 @@ export function Sidebar({
               className="h-11 w-11 object-contain"
             />
           </div>
-          {!collapsed ? (
+          <div
+            className={`min-w-0 overflow-hidden pl-3.5 transition-[max-width,opacity,transform,padding] duration-300 ease-out ${
+              collapsed ? "max-w-0 translate-x-2 opacity-0 pl-0" : "max-w-[13rem] translate-x-0 opacity-100"
+            }`}
+          >
             <div className="min-w-0 space-y-1">
               <span className="block text-[19px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
                 SmartMeeting
@@ -70,7 +77,9 @@ export function Sidebar({
                 Government of Sierra Leone
               </span>
             </div>
-          ) : null}
+          </div>
+          </div>
+
         </div>
       </div>
 
@@ -121,18 +130,22 @@ export function Sidebar({
       </SidebarNavProvider>
 
       <div className={`border-t border-sidebar-border bg-[#edf4fd] ${collapsed ? "p-3" : "p-4"}`}>
-        <div className={`rounded-2xl border border-border bg-card shadow-sm ${collapsed ? "flex flex-col items-center gap-3 px-2 py-3" : "flex items-center gap-3 px-3 py-3"}`}>
+        <div className={`rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 ${collapsed ? "flex flex-col items-center gap-3 px-2 py-3" : "flex items-center gap-3 px-3 py-3"}`}>
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-white">
             {initial}
           </div>
-          {!collapsed ? (
-            <div className="min-w-0 flex-1">
+          <div
+            className={`min-w-0 overflow-hidden transition-[max-width,opacity,transform,margin] duration-300 ease-out ${
+              collapsed ? "max-w-0 translate-x-2 opacity-0" : "max-w-[11rem] flex-1 translate-x-0 opacity-100"
+            }`}
+          >
+            <div className="min-w-0">
               <p className="truncate text-sm font-medium text-sidebar-foreground">
                 {user.name ?? user.email}
               </p>
               <p className="text-xs text-sidebar-foreground/55">{ROLE_LABELS[user.role]}</p>
             </div>
-          ) : null}
+          </div>
           <button
             type="button"
             title="Sign out"
@@ -151,11 +164,13 @@ export function Sidebar({
 function NavSection({ label, children, collapsed }: { label: string; children: React.ReactNode; collapsed: boolean }) {
   return (
     <div>
-      {!collapsed ? (
-        <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+      <p
+        className={`overflow-hidden px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-[max-height,opacity,margin] duration-200 ${
+          collapsed ? "mb-0 max-h-0 opacity-0" : "mb-1 max-h-6 opacity-100"
+        }`}
+      >
           {label}
-        </p>
-      ) : null}
+      </p>
       <div className="space-y-0.5">{children}</div>
     </div>
   );
