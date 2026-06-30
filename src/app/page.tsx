@@ -3,7 +3,6 @@ import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PublicCalendarShell } from "@/components/PublicCalendarShell";
-import { CoatOfArmsPlaceholder } from "@/components/CoatOfArmsPlaceholder";
 
 export const metadata: Metadata = {
   title: "Public Events Calendar | Government of Sierra Leone",
@@ -82,8 +81,8 @@ export default async function PublicCalendarPage({
   return (
     <PublicCalendarShell>
       <div className="w-full space-y-8">
-      <section className="grid gap-6 rounded-[2rem] border border-[#d3deef] bg-card px-6 py-7 shadow-[0_24px_70px_rgba(0,53,128,0.08)] lg:grid-cols-[1.35fr_0.8fr] lg:px-8">
-        <div className="max-w-3xl">
+      <section className="rounded-[2rem] border border-[#d3deef] bg-[#fafdff] px-6 py-7 shadow-[0_24px_70px_rgba(0,53,128,0.08)] lg:px-8">
+        <div className="max-w-4xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Public information</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#003580] sm:text-5xl">
             Events and official announcements
@@ -92,20 +91,9 @@ export default async function PublicCalendarPage({
             View upcoming government events, conferences, workshops, and public notices through the official public calendar of the Government of Sierra Leone.
           </p>
         </div>
-        <div className="rounded-[1.75rem] bg-[linear-gradient(135deg,#003580_0%,#0b4ca4_60%,#007236_100%)] p-1">
-          <div className="flex h-full flex-col justify-between rounded-[1.5rem] bg-[#f3f8ff] p-5">
-            <CoatOfArmsPlaceholder className="min-h-40 bg-[#f8fbff]" />
-            <div className="mt-5 rounded-2xl bg-secondary/60 p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Official notice</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Public listings appear here once they are approved and published by the responsible ministry authority.
-              </p>
-            </div>
-          </div>
-        </div>
       </section>
 
-      <section className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-card shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
+      <section className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-[#fafdff] shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Calendar month</p>
