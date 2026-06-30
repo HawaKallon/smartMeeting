@@ -47,11 +47,13 @@ export function Sidebar({
               className="h-10 w-10 object-contain"
             />
           </div>
-          <div>
-            <span className="block text-[11px] font-bold uppercase tracking-[0.2em] text-[#007236]">
+          <div className="min-w-0">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-[#007236]">
               Government of Sierra Leone
             </span>
-            <span className="mt-1 block text-base font-semibold text-sidebar-foreground">SmartMeeting</span>
+            <span className="mt-1 block text-lg font-semibold leading-none text-sidebar-foreground">
+              SmartMeeting
+            </span>
           </div>
         </div>
       </div>
