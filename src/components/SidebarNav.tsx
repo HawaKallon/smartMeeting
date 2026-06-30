@@ -25,20 +25,39 @@ export function SidebarNavProvider({ hrefs, children }: { hrefs: string[]; child
   );
 }
 
-export function NavLink({ href, children }: { href: string; children: ReactNode }) {
+export function NavLink({
+  href,
+  icon,
+  label,
+  collapsed = false,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  collapsed?: boolean;
+}) {
   const activeHref = useContext(ActiveNavContext);
   const isActive = activeHref === href;
 
   return (
     <Link
       href={href}
-      className={`flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm transition-all ${
+      aria-label={label}
+      title={collapsed ? label : undefined}
+      className={`group flex h-11 items-center rounded-xl text-sm transition-all ${
         isActive
-          ? "bg-[linear-gradient(135deg,rgba(0,53,128,0.14),rgba(0,53,128,0.08))] font-semibold text-[#003580] shadow-[inset_3px_0_0_0_#003580,inset_0_0_0_1px_rgba(0,53,128,0.12),0_10px_24px_rgba(0,53,128,0.08)]"
-          : "text-sidebar-foreground/65 hover:bg-[rgba(0,53,128,0.06)] hover:text-[#003580]"
+          ? collapsed
+            ? "justify-center bg-[linear-gradient(135deg,rgba(0,53,128,0.14),rgba(0,53,128,0.08))] font-semibold text-[#003580] shadow-[inset_0_0_0_1px_rgba(0,53,128,0.12),0_10px_24px_rgba(0,53,128,0.08)]"
+            : "gap-2.5 px-3 font-semibold text-[#003580] shadow-[inset_3px_0_0_0_#003580,inset_0_0_0_1px_rgba(0,53,128,0.12),0_10px_24px_rgba(0,53,128,0.08)] bg-[linear-gradient(135deg,rgba(0,53,128,0.14),rgba(0,53,128,0.08))]"
+          : collapsed
+            ? "justify-center text-sidebar-foreground/65 hover:bg-[rgba(0,53,128,0.06)] hover:text-[#003580]"
+            : "gap-2.5 px-3 text-sidebar-foreground/65 hover:bg-[rgba(0,53,128,0.06)] hover:text-[#003580]"
       }`}
     >
-      {children}
+      <span className="flex h-5 w-5 items-center justify-center">
+        {icon}
+      </span>
+      {!collapsed ? <span className="truncate">{label}</span> : null}
     </Link>
   );
 }
