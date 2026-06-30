@@ -59,18 +59,7 @@ export default async function LoginPage({
                     className="h-13 w-13 object-contain"
                   />
                 </div>
-                <div className="flex flex-col items-end gap-3">
-                  <SierraLeoneFlag className="h-8 w-14 border-white/20" />
-                  <div className="flex h-28 w-32 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white p-2">
-                    <Image
-                      src="/44-00-152_sierra_leone-png.png"
-                      alt="Sierra Leone coat of arms"
-                      width={112}
-                      height={112}
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                </div>
+                <SierraLeoneFlag className="h-8 w-14 border-white/20" />
               </div>
               <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
                 Government of Sierra Leone
