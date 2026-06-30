@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { BackButton } from "@/components/BackButton";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canManageEvents, canApproveMinutes } from "@/lib/roles";
+import { canManageExistingEvent, canViewMinutesForEvent } from "@/lib/eventAccess";
 import { MinutesEditor } from "./MinutesEditor";
 import { ActionItemsPanel } from "./ActionItemsPanel";
 import { PublishButton } from "./PublishButton";
@@ -24,6 +24,9 @@ export default async function MinutesPage({
     select: {
       id: true,
       title: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       recordings: {
         where: { status: "TRANSCRIBED" },
         orderBy: { createdAt: "desc" },
@@ -33,6 +36,7 @@ export default async function MinutesPage({
     },
   });
   if (!event) notFound();
+  if (!canViewMinutesForEvent(user, event)) notFound();
 
   // Lazy-init minutes from transcript text if no record yet.
   let minutes = await prisma.minutes.findUnique({
@@ -60,12 +64,16 @@ export default async function MinutesPage({
   }
 
   const users = await prisma.user.findMany({
+    where: {
+      ministryId: event.ministryId,
+      role: { not: "SUPER_ADMIN" },
+    },
     select: { id: true, name: true, email: true },
     orderBy: [{ name: "asc" }, { email: "asc" }],
   });
 
-  const isAdmin = canManageEvents(user.role);
-  const isApprover = canApproveMinutes(user.role);
+  const isAdmin = canManageExistingEvent(user, event);
+  const isApprover = canViewMinutesForEvent(user, event) && !isAdmin;
   const isPublished = minutes.status === "PUBLISHED";
 
   // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
