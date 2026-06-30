@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { requireStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 import { checkInClosed } from "@/lib/checkin";
 import { ManualCheckInForm } from "./ManualCheckInForm";
 import { Users, CheckCircle, Lock } from "lucide-react";
@@ -12,11 +13,12 @@ export default async function AttendancePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireStaffRole();
+  const user = await requireUser();
 
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
+      coOrganizers: { select: { id: true } },
       attendees: {
         select: {
           id: true,
@@ -33,6 +35,7 @@ export default async function AttendancePage({
     },
   });
   if (!event) notFound();
+  if (!canManageExistingEvent(user, event)) notFound();
 
   // Build list of invitees not yet checked in. Covers both registered users
   // (matched by userId) and external guests. An external guest counts as

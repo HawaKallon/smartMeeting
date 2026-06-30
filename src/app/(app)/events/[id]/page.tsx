@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canManageEvents, canApproveMinutes, canManageEvent, canReassignEvent } from "@/lib/roles";
+import { canViewMinutesForEvent } from "@/lib/eventAccess";
 import { COLOR_META } from "@/lib/colors";
 import { ManageCoOrganizers } from "./ManageCoOrganizers";
 // import { Uploader } from "./recordings/Uploader";
@@ -39,17 +40,20 @@ export default async function EventDetailPage({
   });
   if (!event) return notFound();
 
-  const isAdmin = canManageEvents(user.role);
-  const canViewMinutes = isAdmin || canApproveMinutes(user.role);
-
   const coOrganizerIds = event.coOrganizers.map((c) => c.id);
   const eventPerm = {
     ministryId: event.ministryId,
     organizerId: event.organizerId,
     coOrganizerIds,
   };
+  const isAdmin = canManageEvents(user.role);
   const canManage = canManageEvent(user, eventPerm);
   const canReassign = canReassignEvent(user, eventPerm);
+  const canViewMinutes = canViewMinutesForEvent(user, {
+    ministryId: event.ministryId,
+    organizerId: event.organizerId,
+    coOrganizers: event.coOrganizers,
+  });
 
   // Eligible co-organizer candidates: same-ministry users who aren't already
   // the organizer or a co-organizer (only needed when the viewer can reassign).
@@ -149,12 +153,12 @@ export default async function EventDetailPage({
         />
       </div>
 
-      {/* Organizers / co-organizers */}
+      {/* Organizer / assistants */}
       {(canReassign || event.coOrganizers.length > 0) && (
         <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             <Users className="h-4 w-4" />
-            Organizers
+            Organizer &amp; Assistants
           </h2>
           <p className="mb-4 text-sm text-foreground">
             <span className="font-medium">{event.organizer.name ?? event.organizer.email}</span>
@@ -201,15 +205,15 @@ export default async function EventDetailPage({
         </div>
       )}
 
-      {/* Admin Actions */}
-      {(isAdmin || canViewMinutes) && (
+      {/* Event Actions */}
+      {(canManage || canViewMinutes) && (
         <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
             <Zap className="h-4 w-4" />
             Actions
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {isAdmin ? (
+            {canManage ? (
               <>
                 <ActionButton
                   href={`/administrative/events/${id}/attendees`}
