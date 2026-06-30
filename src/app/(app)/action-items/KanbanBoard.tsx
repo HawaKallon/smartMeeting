@@ -28,9 +28,9 @@ type Item = {
 
 interface Props {
   items: Item[];
-  canMoveAny: boolean; // staff can move any card; others only their own
+  canMoveAny: boolean;
   currentUserId: string;
-  ownerFilter: string; // userId to filter by, or "all"
+  ownerFilter: string;
 }
 
 const COLUMNS: { id: Status; label: string; color: string }[] = [
@@ -66,7 +66,7 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
 
   const visible = ownerFilter === "all"
     ? items
-    : items.filter((i) => i.ownerName !== null); // already pre-filtered server-side
+    : items.filter((i) => i.ownerName !== null);
 
   const activeItem = activeId ? items.find((i) => i.id === activeId) ?? null : null;
 
@@ -86,7 +86,6 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
     const item = items.find((i) => i.id === active.id);
     if (!item || item.status === newStatus) return;
 
-    // Optimistic update
     setItems((prev) =>
       prev.map((i) => (i.id === item.id ? { ...i, status: newStatus } : i)),
     );
@@ -119,8 +118,6 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
   );
 }
 
-// ── Column ───────────────────────────────────────────────────────────────────
-
 function Column({
   id, label, color, count, children,
 }: {
@@ -151,8 +148,6 @@ function Column({
   );
 }
 
-// ── Card (draggable wrapper) ─────────────────────────────────────────────────
-
 function Card({ item, draggable, isActive }: { item: Item; draggable: boolean; isActive: boolean }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: item.id,
@@ -174,8 +169,6 @@ function Card({ item, draggable, isActive }: { item: Item; draggable: boolean; i
     </div>
   );
 }
-
-// ── Card visual ───────────────────────────────────────────────────────────────
 
 function CardView({
   item, draggable = true, isDragging = false,
