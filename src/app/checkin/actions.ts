@@ -113,6 +113,7 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     entityType: "Attendance",
     entityId: attendance.id,
     metadata: { eventId: event.id, method: attendance.method, withinGeofence: within },
+    ministryId: event.ministryId,
   });
 
   // Revalidate event pages so attendee list and counts reflect the check-in.
