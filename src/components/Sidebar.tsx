@@ -52,39 +52,38 @@ export function Sidebar({
         </span>
       </button>
 
-      <div className={`border-b border-sidebar-border py-5 ${collapsed ? "px-4" : "px-5"}`}>
+      <div className={`border-b border-sidebar-border py-5 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? "px-4" : "px-5"}`}>
         <div className="flex items-start justify-between gap-3 overflow-hidden">
           <div className="flex min-w-0 flex-1 items-center overflow-hidden">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
-            <Image
-              src="/44-00-152_sierra_leone-png.png"
-              alt="Sierra Leone coat of arms"
-              width={44}
-              height={44}
-              className="h-11 w-11 object-contain"
-            />
-          </div>
-          <div
-            className={`min-w-0 overflow-hidden pl-3.5 transition-[max-width,opacity,transform,padding] duration-300 ease-out ${
-              collapsed ? "max-w-0 translate-x-2 opacity-0 pl-0" : "max-w-[13rem] translate-x-0 opacity-100"
-            }`}
-          >
-            <div className="min-w-0 space-y-1">
-              <span className="block text-[19px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
-                SmartMeeting
-              </span>
-              <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-[#007236]/80">
-                Government of Sierra Leone
-              </span>
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
+              <Image
+                src="/44-00-152_sierra_leone-png.png"
+                alt="Sierra Leone coat of arms"
+                width={44}
+                height={44}
+                className="h-11 w-11 object-contain"
+              />
+            </div>
+            <div
+              className={`min-w-0 overflow-hidden pl-3.5 transition-[max-width,opacity,transform,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                collapsed ? "max-w-0 translate-x-2 opacity-0 pl-0" : "max-w-[13rem] translate-x-0 opacity-100"
+              }`}
+            >
+              <div className="min-w-0 space-y-1">
+                <span className="block text-[19px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
+                  SmartMeeting
+                </span>
+                <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-[#007236]/80">
+                  Government of Sierra Leone
+                </span>
+              </div>
             </div>
           </div>
-          </div>
-
         </div>
       </div>
 
       <SidebarNavProvider hrefs={navHrefs}>
-        <nav className={`flex-1 space-y-6 overflow-y-auto py-5 ${collapsed ? "px-3" : "px-4"}`}>
+        <nav className={`flex-1 space-y-6 overflow-y-auto py-5 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? "px-3" : "px-4"}`}>
         <NavSection label="Main" collapsed={collapsed}>
           <NavLink href="/administrative" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" collapsed={collapsed} />
           <NavLink href="/administrative/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" collapsed={collapsed} />
@@ -129,13 +128,13 @@ export function Sidebar({
         </nav>
       </SidebarNavProvider>
 
-      <div className={`border-t border-sidebar-border bg-[#edf4fd] ${collapsed ? "p-3" : "p-4"}`}>
-        <div className={`rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 ${collapsed ? "flex flex-col items-center gap-3 px-2 py-3" : "flex items-center gap-3 px-3 py-3"}`}>
+      <div className={`border-t border-sidebar-border bg-[#edf4fd] transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? "p-3" : "p-4"}`}>
+        <div className={`rounded-2xl border border-border bg-card shadow-sm transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? "flex flex-col items-center gap-3 px-2 py-3" : "flex items-center gap-3 px-3 py-3"}`}>
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-white">
             {initial}
           </div>
           <div
-            className={`min-w-0 overflow-hidden transition-[max-width,opacity,transform,margin] duration-300 ease-out ${
+            className={`min-w-0 overflow-hidden transition-[max-width,opacity,transform,margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               collapsed ? "max-w-0 translate-x-2 opacity-0" : "max-w-[11rem] flex-1 translate-x-0 opacity-100"
             }`}
           >
@@ -165,7 +164,7 @@ function NavSection({ label, children, collapsed }: { label: string; children: R
   return (
     <div>
       <p
-        className={`overflow-hidden px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-[max-height,opacity,margin] duration-200 ${
+        className={`overflow-hidden px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-[max-height,opacity,margin] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           collapsed ? "mb-0 max-h-0 opacity-0" : "mb-1 max-h-6 opacity-100"
         }`}
       >
