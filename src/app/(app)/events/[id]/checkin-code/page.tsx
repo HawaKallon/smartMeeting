@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
-import { requireStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
+import { canManageExistingEvent } from "@/lib/eventAccess";
 import { getActiveToken } from "@/lib/checkin";
 import { RefreshOnExpiry } from "./RefreshOnExpiry";
 
@@ -13,10 +14,20 @@ export default async function CheckInCodePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireStaffRole();
+  const user = await requireUser();
 
-  const event = await prisma.event.findUnique({ where: { id } });
+  const event = await prisma.event.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
+    },
+  });
   if (!event) notFound();
+  if (!canManageExistingEvent(user, event)) notFound();
 
   const { token, expiresAt } = await getActiveToken(event.id);
 
