@@ -57,8 +57,8 @@ export default async function PublicCalendarDayPage({
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-[1.5rem] border border-border bg-card p-8 text-center shadow-sm">
-          <p className="text-muted-foreground">No events scheduled for this day</p>
+        <div className="rounded-[1.5rem] border border-[#d3deef] bg-[#fafdff] p-8 text-center shadow-[0_18px_40px_rgba(0,53,128,0.06)]">
+          <p className="text-slate-600">No events scheduled for this day</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -66,10 +66,10 @@ export default async function PublicCalendarDayPage({
             <Link
               key={event.id}
               href={`/public-calendar/event/${event.id}`}
-              className="block rounded-[1.5rem] border border-border bg-card p-5 shadow-sm transition-colors hover:bg-secondary/40"
+              className="block rounded-[1.5rem] border border-[#d3deef] bg-[#fafdff] p-5 shadow-[0_18px_40px_rgba(0,53,128,0.06)] transition-colors hover:bg-[#f2f7ff]"
             >
               <h3 className="text-lg font-semibold text-[#003580]">{event.title}</h3>
-              <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-600">
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
                   {event.startAt.toLocaleTimeString("default", {
@@ -100,7 +100,7 @@ export default async function PublicCalendarDayPage({
                 )}
               </div>
               {event.description && (
-                <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{event.description}</p>
+                <p className="mt-3 line-clamp-2 text-sm text-slate-600">{event.description}</p>
               )}
             </Link>
           ))}
