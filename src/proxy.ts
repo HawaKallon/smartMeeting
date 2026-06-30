@@ -19,13 +19,13 @@ const LEGACY_INTERNAL_PREFIXES = [
   "/calendar",
   "/events",
   "/help",
-  "/kanban",
   "/notifications",
   "/profile",
   "/reports",
   "/rooms",
   "/search",
   "/settings",
+  "/action-items",
 ];
 
 function matchesPrefix(pathname: string, prefix: string) {

@@ -104,7 +104,7 @@ export default async function Dashboard() {
           label="My Open Tasks"
           value={myItems}
           sub="action items pending"
-          href="/administrative/kanban"
+          href="/administrative/action-items"
           variant="green"
         />
         <StatCard
