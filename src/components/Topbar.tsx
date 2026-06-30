@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Building2, Menu } from "lucide-react";
-import { ROLE_LABELS } from "@/lib/roles";
 import type { MinistryRole, Notification } from "@/generated/prisma/client";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
@@ -58,16 +57,8 @@ export function Topbar({
 
         <Link
           href="/administrative/profile"
-          className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2 transition-colors hover:bg-muted"
+          className="flex items-center rounded-full border border-border bg-card p-1 transition-colors hover:bg-muted"
         >
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-medium leading-none text-foreground">
-              {user.name ?? user.email}
-            </p>
-            <p className="mt-0.5 text-xs leading-none text-muted-foreground">
-              {ROLE_LABELS[user.role]}
-            </p>
-          </div>
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
             {initial}
           </div>
