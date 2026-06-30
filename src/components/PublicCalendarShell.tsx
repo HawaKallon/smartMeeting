@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
-import { CoatOfArmsPlaceholder } from "./CoatOfArmsPlaceholder";
 import { SierraLeoneFlag } from "./SierraLeoneFlag";
 
 export function PublicCalendarShell({ children }: { children: React.ReactNode }) {
@@ -23,13 +22,10 @@ export function PublicCalendarShell({ children }: { children: React.ReactNode })
           </Link>
 
           <div className="flex items-center gap-3 rounded-full border border-[#d3deef] bg-[#edf4fd] px-3 py-2 shadow-sm">
-            <CoatOfArmsPlaceholder className="hidden h-14 w-28 rounded-2xl p-2 lg:flex" />
-            <div className="flex items-center gap-3">
-              <SierraLeoneFlag className="h-8 w-14" />
-              <span className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 sm:inline">
-                Sierra Leone
-              </span>
-            </div>
+            <SierraLeoneFlag className="h-8 w-14" />
+            <span className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 sm:inline">
+              Sierra Leone
+            </span>
           </div>
         </div>
       </header>
