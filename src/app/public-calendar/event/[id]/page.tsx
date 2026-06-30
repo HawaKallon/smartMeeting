@@ -25,7 +25,7 @@ export default async function PublicEventDetailPage({
     <div className="space-y-6">
       <BackButton href="/" label="Calendar" />
 
-      <div className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-card shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
+      <div className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-[#fafdff] shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         {event.bannerImage && (
           <div className="relative w-full h-64 sm:h-96">
             <Image
@@ -43,14 +43,14 @@ export default async function PublicEventDetailPage({
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Published public event</p>
               <h1 className="mt-2 text-3xl font-bold text-[#003580]">{event.title}</h1>
               {event.ministry && (
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-slate-600">
                   Organized by <span className="font-medium">{event.ministry.name}</span>
                 </p>
               )}
             </div>
 
             <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-slate-600">
                 <Clock className="h-4 w-4" />
                 <span>
                   {event.startAt.toLocaleDateString("default", {
@@ -78,7 +78,7 @@ export default async function PublicEventDetailPage({
               </div>
 
               {event.venueName && (
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 text-slate-600">
                   <MapPin className="h-4 w-4" />
                   <span>{event.venueName}</span>
                 </div>
@@ -92,14 +92,14 @@ export default async function PublicEventDetailPage({
             </div>
 
             {event.description && (
-              <div className="max-w-none rounded-[1.5rem] bg-secondary/55 p-5">
-                <p className="whitespace-pre-wrap text-foreground">{event.description}</p>
+              <div className="max-w-none rounded-[1.5rem] bg-[#edf4fd] p-5">
+                <p className="whitespace-pre-wrap text-slate-800">{event.description}</p>
               </div>
             )}
 
             {(event.contactEmail || event.contactPhone) && (
-              <div className="border-t border-border pt-6 mt-6">
-                <h2 className="font-semibold text-foreground mb-3">Contact</h2>
+              <div className="mt-6 border-t border-[#d3deef] pt-6">
+                <h2 className="mb-3 font-semibold text-slate-900">Contact</h2>
                 <div className="space-y-2">
                   {event.contactEmail && (
                     <a
