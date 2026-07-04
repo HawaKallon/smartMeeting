@@ -104,19 +104,30 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     }
   }
 
-  const attendance = await prisma.attendance.create({
-    data: {
-      eventId: event.id,
-      userId,
-      method: data.lat != null ? "GEO" : "QR",
-      lat: data.lat,
-      lng: data.lng,
-      gpsAccuracy: data.accuracy,
-      withinGeofence: within,
-      mockLocationFlag: data.mock ?? false,
-      ipAddress: ip,
-    },
-  });
+  let attendance;
+  try {
+    attendance = await prisma.attendance.create({
+      data: {
+        eventId: event.id,
+        userId,
+        method: data.lat != null ? "GEO" : "QR",
+        lat: data.lat,
+        lng: data.lng,
+        gpsAccuracy: data.accuracy,
+        withinGeofence: within,
+        mockLocationFlag: data.mock ?? false,
+        ipAddress: ip,
+      },
+    });
+  } catch (err) {
+    // Unique (eventId, userId): a concurrent check-in already inserted a row for
+    // this user. Treat the loser of the race as an already-checked-in success.
+    if ((err as { code?: string }).code === "P2002") {
+      const existing = await prisma.attendance.findFirst({ where: { eventId: event.id, userId } });
+      return { ok: true, already: true, withinGeofence: existing?.withinGeofence ?? null, eventTitle: event.title };
+    }
+    throw err;
+  }
 
   await audit({
     actorId: userId,
