@@ -121,7 +121,7 @@ export async function updateEvent(
       until,
     });
     if (slots.length === 0) return { error: "This repeat produces no dates — check the end condition." };
-    if (slots.length >= MAX_OCCURRENCES) {
+    if (slots.length > MAX_OCCURRENCES) {
       return { error: `Too many occurrences (max ${MAX_OCCURRENCES}). Use a nearer end date or fewer repeats.` };
     }
 
@@ -347,6 +347,15 @@ export async function deleteEvent(
     } as Prisma.EventWhereInput;
 
     const res = await prisma.event.deleteMany({ where });
+
+    // Clean up the parent series if this delete emptied it (Event.seriesId is
+    // SetNull on delete, so an emptied EventSeries would otherwise be orphaned).
+    if (event.seriesId) {
+      const remaining = await prisma.event.count({ where: { seriesId: event.seriesId } });
+      if (remaining === 0) {
+        await prisma.eventSeries.delete({ where: { id: event.seriesId } }).catch(() => {});
+      }
+    }
 
     await audit({
       actorId: user.id,
