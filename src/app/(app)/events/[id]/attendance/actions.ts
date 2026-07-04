@@ -127,6 +127,12 @@ export async function manualCheckIn(
 
     return { ok: true };
   } catch (err) {
+    // Unique (eventId, userId): a concurrent check-in beat us to it — that's a success,
+    // not a failure (only fires for logged-in users; external guests have userId NULL).
+    // The winning insert already revalidated the attendance pages.
+    if ((err as { code?: string }).code === "P2002") {
+      return { ok: true, already: true };
+    }
     console.error("Manual check-in failed:", err);
     return { error: "Failed to check in" };
   }
