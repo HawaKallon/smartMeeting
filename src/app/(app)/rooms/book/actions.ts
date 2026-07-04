@@ -1,9 +1,19 @@
 "use server";
 
+import { z } from "zod";
 import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
+
+const PurposeSchema = z.enum([
+  "MEETING",
+  "TRAINING",
+  "CONFERENCE",
+  "WORKSHOP",
+  "INTERVIEW",
+  "OTHER",
+]);
 
 export async function bookRoom(
   _: unknown,
@@ -15,13 +25,19 @@ export async function bookRoom(
     const date = formData.get("date") as string;
     const startTime = formData.get("startTime") as string;
     const endTime = formData.get("endTime") as string;
-    const purpose = formData.get("purpose") as string;
     const attendeeCount = parseInt(formData.get("attendeeCount") as string) || 0;
     const notes = formData.get("notes") as string;
 
-    if (!roomId || !date || !startTime || !endTime || !purpose) {
+    if (!roomId || !date || !startTime || !endTime) {
       return { error: "All required fields must be filled" };
     }
+
+    // Validate the purpose against the RoomBookingPurpose enum (no raw cast into the column).
+    const parsedPurpose = PurposeSchema.safeParse(formData.get("purpose"));
+    if (!parsedPurpose.success) {
+      return { error: "Choose a valid booking purpose." };
+    }
+    const purpose = parsedPurpose.data;
 
     // Verify room exists and belongs to the user's ministry
     const room = await prisma.room.findFirst({
@@ -75,7 +91,7 @@ export async function bookRoom(
         userId: user.id,
         startTime: startDateTime,
         endTime: endDateTime,
-        purpose: purpose as any,
+        purpose,
         attendeeCount,
         notes,
         status: "CONFIRMED",
