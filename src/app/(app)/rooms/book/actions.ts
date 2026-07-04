@@ -64,39 +64,51 @@ export async function bookRoom(
       return { error: "End time must be after start time" };
     }
 
-    // Check for conflicts
-    const conflicts = await prisma.roomBooking.findFirst({
-      where: {
-        roomId,
-        status: "CONFIRMED",
-        OR: [
-          {
-            // New booking starts before existing ends
-            startTime: { lt: endDateTime },
-            endTime: { gt: startDateTime },
-          },
-        ],
-      },
-    });
+    // Check overlap + create atomically. Under Serializable isolation, two
+    // concurrent bookings for the same room can't both pass the overlap check —
+    // Postgres aborts one with a write-conflict (P2034), which we surface as a
+    // friendly "already booked" instead of silently double-booking the room.
+    let booking;
+    try {
+      booking = await prisma.$transaction(
+        async (tx) => {
+          const conflict = await tx.roomBooking.findFirst({
+            where: {
+              roomId,
+              status: "CONFIRMED",
+              startTime: { lt: endDateTime },
+              endTime: { gt: startDateTime },
+            },
+            select: { id: true },
+          });
+          if (conflict) throw new Error("ROOM_CONFLICT");
 
-    if (conflicts) {
-      return { error: "Room is already booked for this time" };
+          return tx.roomBooking.create({
+            data: {
+              ministryId: user.ministryId!,
+              roomId,
+              userId: user.id,
+              startTime: startDateTime,
+              endTime: endDateTime,
+              purpose,
+              attendeeCount,
+              notes,
+              status: "CONFIRMED",
+            },
+          });
+        },
+        { isolationLevel: "Serializable" },
+      );
+    } catch (err) {
+      if (err instanceof Error && err.message === "ROOM_CONFLICT") {
+        return { error: "Room is already booked for this time" };
+      }
+      // Serialization failure — a concurrent booking won the race.
+      if ((err as { code?: string }).code === "P2034") {
+        return { error: "That time was just booked by someone else. Please pick another slot." };
+      }
+      throw err;
     }
-
-    // Create booking
-    const booking = await prisma.roomBooking.create({
-      data: {
-        ministryId: user.ministryId!,
-        roomId,
-        userId: user.id,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        purpose,
-        attendeeCount,
-        notes,
-        status: "CONFIRMED",
-      },
-    });
 
     // Audit log
     await audit({
