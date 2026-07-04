@@ -377,6 +377,7 @@ export async function selfRsvp(
     "DEPUTY_SECRETARY",
     "ADMIN_STAFF",
     "ADMIN",
+    "SUPER_ADMIN",
   );
 
   const parsed = SelfRsvpSchema.safeParse({
