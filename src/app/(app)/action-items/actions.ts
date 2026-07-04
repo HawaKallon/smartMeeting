@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/guard";
+import { isSuperAdmin } from "@/lib/roles";
 import { audit } from "@/lib/audit";
 
 const Schema = z.object({
@@ -14,7 +15,7 @@ const Schema = z.object({
 export async function changeItemStatus(formData: FormData): Promise<void> {
   const session = await assertRole(
     "MINISTER", "PERMANENT_SECRETARY", "DEPUTY_MINISTER",
-    "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN",
+    "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN", "SUPER_ADMIN",
   );
 
   const parsed = Schema.safeParse({
@@ -34,7 +35,7 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
   });
   if (!item) return;
 
-  const isStaff = session.role === "ADMIN_STAFF" || session.role === "ADMIN";
+  const isStaff = isSuperAdmin(session.role) || session.role === "ADMIN_STAFF" || session.role === "ADMIN";
   const isOwner = item.ownerId === session.id;
   if (!isStaff && !isOwner) return;
 
