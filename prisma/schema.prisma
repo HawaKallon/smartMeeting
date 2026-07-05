@@ -200,6 +200,7 @@ model Event {
   @@index([organizerId])
   @@index([seriesId])
   @@index([ministryId])
+  @@index([roomId])
 }
 
 // PRD §6 — a recurring meeting series. Each occurrence is a full Event row
@@ -258,6 +259,9 @@ model Attendance {
   ipAddress        String?
   createdAt        DateTime      @default(now())
 
+  // One attendance per logged-in user per event (PRD §6.6). userId is nullable and
+  // Postgres treats NULLs as distinct, so external guests keep their app-level dedupe.
+  @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
 }

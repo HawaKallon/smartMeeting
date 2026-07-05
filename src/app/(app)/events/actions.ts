@@ -83,8 +83,8 @@ export async function createEvent(
       return { error: "Room not found or you don't have access" };
     }
   }
-  const venueLat = data.venueLat ?? (room?.latitude || null);
-  const venueLng = data.venueLng ?? (room?.longitude || null);
+  const venueLat = data.venueLat ?? (room?.latitude ?? null);
+  const venueLng = data.venueLng ?? (room?.longitude ?? null);
 
   // Build the occurrence slots — one for a single event, many for a series.
   const recurring = data.recurrenceFreq !== "NONE";
@@ -106,7 +106,7 @@ export async function createEvent(
       until: data.recurrenceUntil,
     });
     if (slots.length === 0) return { error: "This repeat produces no dates — check the end condition." };
-    if (slots.length >= MAX_OCCURRENCES)
+    if (slots.length > MAX_OCCURRENCES)
       return { error: `Too many occurrences (max ${MAX_OCCURRENCES}). Use a nearer end date or fewer repeats.` };
   } else {
     slots = [{ startAt: data.startAt, endAt: data.endAt }];
