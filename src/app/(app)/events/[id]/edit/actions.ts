@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, ministryScope } from "@/lib/guard";
@@ -19,6 +20,23 @@ import type {
 
 type Scope = "THIS" | "FUTURE" | "ALL";
 
+// Validate the core event fields at the action boundary — mirrors the create path
+// (events/actions.ts EventSchema) so invalid enum strings or Invalid Dates can never be
+// cast straight into the DB columns. `description`/`roomId` keep their existing raw
+// handling below to preserve current clear-on-empty behavior.
+const UpdateEventSchema = z
+  .object({
+    title: z.string().min(2, "Title is required"),
+    type: z.enum(["MEETING", "CONFERENCE", "APPOINTMENT"]),
+    classification: z.enum(["PUBLIC", "RESTRICTED"]).default("PUBLIC"),
+    startAt: z.coerce.date(),
+    endAt: z.coerce.date(),
+  })
+  .refine((d) => d.endAt > d.startAt, {
+    message: "End time must be after start time",
+    path: ["endAt"],
+  });
+
 function fmt(d: Date) {
   return d.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 }
@@ -29,18 +47,24 @@ export async function updateEvent(
 ): Promise<{ ok?: boolean; error?: string }> {
   const user = await requireUser();
   const eventId = formData.get("eventId") as string;
-  const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const startAt = new Date(formData.get("startAt") as string);
-  const endAt = new Date(formData.get("endAt") as string);
   const roomId = (formData.get("roomId") as string) || null;
-  const type = formData.get("type") as string;
-  const classification = formData.get("classification") as string;
   const scope = ((formData.get("editScope") as string) || "THIS") as Scope;
   const editPattern = formData.get("editPattern") === "true";
 
-  if (!eventId || !title) return { error: "Event ID and title are required" };
-  if (endAt <= startAt) return { error: "End time must be after start time" };
+  if (!eventId) return { error: "Event ID is required" };
+
+  const parsed = UpdateEventSchema.safeParse({
+    title: formData.get("title"),
+    type: formData.get("type"),
+    classification: formData.get("classification") || "PUBLIC",
+    startAt: formData.get("startAt"),
+    endAt: formData.get("endAt"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { title, type, classification, startAt, endAt } = parsed.data;
 
   const anchor = await prisma.event.findFirst({
     where: {
@@ -97,7 +121,7 @@ export async function updateEvent(
       until,
     });
     if (slots.length === 0) return { error: "This repeat produces no dates — check the end condition." };
-    if (slots.length >= MAX_OCCURRENCES) {
+    if (slots.length > MAX_OCCURRENCES) {
       return { error: `Too many occurrences (max ${MAX_OCCURRENCES}). Use a nearer end date or fewer repeats.` };
     }
 
@@ -323,6 +347,15 @@ export async function deleteEvent(
     } as Prisma.EventWhereInput;
 
     const res = await prisma.event.deleteMany({ where });
+
+    // Clean up the parent series if this delete emptied it (Event.seriesId is
+    // SetNull on delete, so an emptied EventSeries would otherwise be orphaned).
+    if (event.seriesId) {
+      const remaining = await prisma.event.count({ where: { seriesId: event.seriesId } });
+      if (remaining === 0) {
+        await prisma.eventSeries.delete({ where: { id: event.seriesId } }).catch(() => {});
+      }
+    }
 
     await audit({
       actorId: user.id,

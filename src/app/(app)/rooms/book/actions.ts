@@ -1,9 +1,19 @@
 "use server";
 
+import { z } from "zod";
 import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
+
+const PurposeSchema = z.enum([
+  "MEETING",
+  "TRAINING",
+  "CONFERENCE",
+  "WORKSHOP",
+  "INTERVIEW",
+  "OTHER",
+]);
 
 export async function bookRoom(
   _: unknown,
@@ -15,13 +25,19 @@ export async function bookRoom(
     const date = formData.get("date") as string;
     const startTime = formData.get("startTime") as string;
     const endTime = formData.get("endTime") as string;
-    const purpose = formData.get("purpose") as string;
     const attendeeCount = parseInt(formData.get("attendeeCount") as string) || 0;
     const notes = formData.get("notes") as string;
 
-    if (!roomId || !date || !startTime || !endTime || !purpose) {
+    if (!roomId || !date || !startTime || !endTime) {
       return { error: "All required fields must be filled" };
     }
+
+    // Validate the purpose against the RoomBookingPurpose enum (no raw cast into the column).
+    const parsedPurpose = PurposeSchema.safeParse(formData.get("purpose"));
+    if (!parsedPurpose.success) {
+      return { error: "Choose a valid booking purpose." };
+    }
+    const purpose = parsedPurpose.data;
 
     // Verify room exists and belongs to the user's ministry
     const room = await prisma.room.findFirst({
@@ -48,39 +64,51 @@ export async function bookRoom(
       return { error: "End time must be after start time" };
     }
 
-    // Check for conflicts
-    const conflicts = await prisma.roomBooking.findFirst({
-      where: {
-        roomId,
-        status: "CONFIRMED",
-        OR: [
-          {
-            // New booking starts before existing ends
-            startTime: { lt: endDateTime },
-            endTime: { gt: startDateTime },
-          },
-        ],
-      },
-    });
+    // Check overlap + create atomically. Under Serializable isolation, two
+    // concurrent bookings for the same room can't both pass the overlap check —
+    // Postgres aborts one with a write-conflict (P2034), which we surface as a
+    // friendly "already booked" instead of silently double-booking the room.
+    let booking;
+    try {
+      booking = await prisma.$transaction(
+        async (tx) => {
+          const conflict = await tx.roomBooking.findFirst({
+            where: {
+              roomId,
+              status: "CONFIRMED",
+              startTime: { lt: endDateTime },
+              endTime: { gt: startDateTime },
+            },
+            select: { id: true },
+          });
+          if (conflict) throw new Error("ROOM_CONFLICT");
 
-    if (conflicts) {
-      return { error: "Room is already booked for this time" };
+          return tx.roomBooking.create({
+            data: {
+              ministryId: user.ministryId!,
+              roomId,
+              userId: user.id,
+              startTime: startDateTime,
+              endTime: endDateTime,
+              purpose,
+              attendeeCount,
+              notes,
+              status: "CONFIRMED",
+            },
+          });
+        },
+        { isolationLevel: "Serializable" },
+      );
+    } catch (err) {
+      if (err instanceof Error && err.message === "ROOM_CONFLICT") {
+        return { error: "Room is already booked for this time" };
+      }
+      // Serialization failure — a concurrent booking won the race.
+      if ((err as { code?: string }).code === "P2034") {
+        return { error: "That time was just booked by someone else. Please pick another slot." };
+      }
+      throw err;
     }
-
-    // Create booking
-    const booking = await prisma.roomBooking.create({
-      data: {
-        ministryId: user.ministryId!,
-        roomId,
-        userId: user.id,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        purpose: purpose as any,
-        attendeeCount,
-        notes,
-        status: "CONFIRMED",
-      },
-    });
 
     // Audit log
     await audit({
