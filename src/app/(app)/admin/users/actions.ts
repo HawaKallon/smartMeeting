@@ -154,7 +154,22 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
       return { error: "You can only delete users from your own ministry" };
     }
 
-    // Delete user (will cascade delete related records due to onDelete: Cascade)
+    // Event.organizer and EventSeries.organizer are required FKs (Postgres Restrict),
+    // so a user who organizes anything cannot be hard-deleted — the DB would reject it.
+    // Surface an actionable message instead of a swallowed FK error. (All other user
+    // relations are optional/SetNull or Cascade, so these two are the only blockers.)
+    const [organizedEvents, organizedSeries] = await Promise.all([
+      prisma.event.count({ where: { organizerId: userId } }),
+      prisma.eventSeries.count({ where: { organizerId: userId } }),
+    ]);
+    if (organizedEvents > 0 || organizedSeries > 0) {
+      return {
+        error: `This user organizes ${organizedEvents} event(s). Reassign them to a co-organizer, or deactivate the user instead of deleting.`,
+      };
+    }
+
+    // Deleting cascades/nulls the user's optional relations (attendances, action items,
+    // audit actor, notifications, bookings, sessions) per the schema's onDelete rules.
     await prisma.user.delete({
       where: { id: userId },
     });
@@ -172,6 +187,10 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
     revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
+    // Backstop: any remaining FK restriction (P2003) → point to deactivation.
+    if ((err as { code?: string }).code === "P2003") {
+      return { error: "This user has linked records and can't be deleted. Deactivate the user instead." };
+    }
     console.error("Failed to delete user:", err);
     return { error: "Failed to delete user" };
   }

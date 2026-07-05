@@ -57,17 +57,28 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     return { ok: false, error: "You are not on the invite list for this meeting." };
   }
 
-  // Geofence verdict (PRD §6.6) when both device + venue coords are present.
+  // Geofence verdict (PRD §6.6). When the event has venue coordinates configured
+  // (geofenced), on-site verification is MANDATORY — we must not trust the client to
+  // send coordinates. A crafted request that omits lat/lng, or reports a spoofed
+  // (mock) location, is rejected rather than silently recorded as a plain QR check-in.
+  const hasGeofence = event.venueLat != null && event.venueLng != null;
   let within: boolean | null = null;
-  if (
-    data.lat != null &&
-    data.lng != null &&
-    event.venueLat != null &&
-    event.venueLng != null
-  ) {
+  if (hasGeofence) {
+    if (data.lat == null || data.lng == null) {
+      return {
+        ok: false,
+        error: "Location is required to check in to this meeting. Enable GPS and try again.",
+      };
+    }
+    if (data.mock === true) {
+      return {
+        ok: false,
+        error: "Your location could not be trusted. Turn off mock locations and try again with GPS on.",
+      };
+    }
     within = withinGeofence(
       { lat: data.lat, lng: data.lng },
-      { lat: event.venueLat, lng: event.venueLng, radius: event.geofenceRadius },
+      { lat: event.venueLat!, lng: event.venueLng!, radius: event.geofenceRadius },
     );
     if (!within) {
       return {
@@ -93,19 +104,30 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     }
   }
 
-  const attendance = await prisma.attendance.create({
-    data: {
-      eventId: event.id,
-      userId,
-      method: data.lat != null ? "GEO" : "QR",
-      lat: data.lat,
-      lng: data.lng,
-      gpsAccuracy: data.accuracy,
-      withinGeofence: within,
-      mockLocationFlag: data.mock ?? false,
-      ipAddress: ip,
-    },
-  });
+  let attendance;
+  try {
+    attendance = await prisma.attendance.create({
+      data: {
+        eventId: event.id,
+        userId,
+        method: data.lat != null ? "GEO" : "QR",
+        lat: data.lat,
+        lng: data.lng,
+        gpsAccuracy: data.accuracy,
+        withinGeofence: within,
+        mockLocationFlag: data.mock ?? false,
+        ipAddress: ip,
+      },
+    });
+  } catch (err) {
+    // Unique (eventId, userId): a concurrent check-in already inserted a row for
+    // this user. Treat the loser of the race as an already-checked-in success.
+    if ((err as { code?: string }).code === "P2002") {
+      const existing = await prisma.attendance.findFirst({ where: { eventId: event.id, userId } });
+      return { ok: true, already: true, withinGeofence: existing?.withinGeofence ?? null, eventTitle: event.title };
+    }
+    throw err;
+  }
 
   await audit({
     actorId: userId,
