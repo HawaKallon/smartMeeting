@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
+import { getCategoryLabel } from "@/lib/public-event-categories";
 import { Clock, MapPin } from "lucide-react";
 
 function parseDate(d?: string): Date | null {
@@ -95,7 +96,7 @@ export default async function PublicCalendarDayPage({
                 )}
                 {event.category && (
                   <span className="inline-block rounded-full border border-[#c9d9f2] bg-[#edf3fd] px-3 py-1 text-xs font-medium text-[#003580]">
-                    {event.category}
+                    {getCategoryLabel(event.category)}
                   </span>
                 )}
               </div>
