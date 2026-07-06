@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Image from "next/image";
 import { useCallback, useState } from "react";
 import { createPublicEvent, updatePublicEvent, publishPublicEvent, unpublishPublicEvent, type ActionState } from "./actions";
+import { CATEGORY_LIST, CATEGORY_LABELS } from "@/lib/public-event-categories";
 import type { PublicEvent } from "@/generated/prisma/client";
 
 interface PublicEventFormProps {
@@ -77,14 +78,19 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
           <label htmlFor="category" className="block text-sm font-medium text-foreground mb-2">
             Category
           </label>
-          <input
-            type="text"
+          <select
             id="category"
             name="category"
             defaultValue={event?.category || ""}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
-            placeholder="e.g., Conference, Workshop, Announcement"
-          />
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
+          >
+            <option value="">— Select a category —</option>
+            {CATEGORY_LIST.map((cat) => (
+              <option key={cat} value={cat}>
+                {CATEGORY_LABELS[cat]}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Date/Time */}

@@ -6,13 +6,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { assertAdminRole, ministryScope, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
-import { savePublicImage } from "@/lib/public-uploads";
+import { savePublicImage } from "@/lib/cloudinary";
+import { PublicEventCategory } from "@/generated/prisma/enums";
 
 const PublicEventSchema = z
   .object({
     title: z.string().min(2, "Title is required"),
     description: z.string().optional(),
-    category: z.string().optional(),
+    category: z.nativeEnum(PublicEventCategory).optional(),
     startAt: z.coerce.date(),
     endAt: z.coerce.date(),
     venueName: z.string().optional(),
@@ -50,11 +51,17 @@ export async function createPublicEvent(
   }
   const data = parsed.data;
 
+  let eventId: string | undefined;
   try {
     let bannerImage: string | undefined;
     const bannerFile = formData.get("bannerImage") as File | null;
     if (bannerFile && bannerFile.size > 0) {
-      bannerImage = await savePublicImage(bannerFile);
+      try {
+        bannerImage = await savePublicImage(bannerFile);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to upload image";
+        return { error: message };
+      }
     }
 
     const event = await prisma.publicEvent.create({
@@ -75,6 +82,8 @@ export async function createPublicEvent(
       },
     });
 
+    eventId = event.id;
+
     await audit({
       actorId: user.id,
       action: "CREATE_PUBLIC_EVENT",
@@ -83,14 +92,14 @@ export async function createPublicEvent(
       ministryId: user.ministryId,
       metadata: { title: event.title },
     });
-
-    revalidatePath("/public-calendar");
-    revalidatePath("/administrative/admin/public-calendar");
-    redirect(`/administrative/admin/public-calendar/${event.id}/edit`);
   } catch (err) {
     console.error("Failed to create public event:", err);
     return { error: "Failed to create event" };
   }
+
+  revalidatePath("/public-calendar");
+  revalidatePath("/administrative/admin/public-calendar");
+  redirect(`/administrative/admin/public-calendar/${eventId}/edit`);
 }
 
 export async function updatePublicEvent(
@@ -278,12 +287,12 @@ export async function deletePublicEvent(eventId: string): Promise<ActionState> {
       ministryId: user.ministryId,
       metadata: { title: event.title },
     });
-
-    revalidatePath("/public-calendar");
-    revalidatePath("/administrative/admin/public-calendar");
-    redirect("/administrative/admin/public-calendar");
   } catch (err) {
     console.error("Failed to delete public event:", err);
     return { error: "Failed to delete event" };
   }
+
+  revalidatePath("/public-calendar");
+  revalidatePath("/administrative/admin/public-calendar");
+  redirect("/administrative/admin/public-calendar");
 }

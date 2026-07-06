@@ -12,7 +12,7 @@ import authConfig from "./auth.config";
 const { auth } = NextAuth(authConfig);
 
 const ADMIN_PREFIX = "/administrative";
-const PUBLIC_PREFIXES = ["/checkin", "/rsvp", "/api/auth", "/api/cron", "/public-calendar", "/public-uploads"];
+const PUBLIC_PREFIXES = ["/checkin", "/rsvp", "/api/auth", "/api/cron", "/public-calendar"];
 const LEGACY_INTERNAL_PREFIXES = [
   "/admin",
   "/attendance",
