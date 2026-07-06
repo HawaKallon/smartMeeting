@@ -83,6 +83,13 @@ export async function updateEvent(
       geofenceRadius: true,
       colorCategory: true,
       ministryId: true,
+      ministry: {
+        select: {
+          compoundLat: true,
+          compoundLng: true,
+          compoundGeofenceRadius: true,
+        },
+      },
     },
   });
   if (
@@ -125,13 +132,16 @@ export async function updateEvent(
       return { error: `Too many occurrences (max ${MAX_OCCURRENCES}). Use a nearer end date or fewer repeats.` };
     }
 
-    let room = null;
+    let room: { id: string } | null = null;
     if (roomId) {
       room = await prisma.room.findFirst({
         where: { id: roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
-        select: { latitude: true, longitude: true },
+        select: { id: true },
       });
+      if (!room) return { error: "Room not found or you don't have access" };
     }
+    const hasCompoundGeofence =
+      room && anchor.ministry.compoundLat != null && anchor.ministry.compoundLng != null;
 
     // Block on any room clash (siblings in this series don't count).
     for (const s of slots) {
@@ -173,9 +183,9 @@ export async function updateEvent(
       classification: classification as Classification,
       roomId,
       venueName: anchor.venueName,
-      venueLat: room?.latitude ?? anchor.venueLat,
-      venueLng: room?.longitude ?? anchor.venueLng,
-      geofenceRadius: anchor.geofenceRadius,
+      venueLat: hasCompoundGeofence ? anchor.ministry.compoundLat : null,
+      venueLng: hasCompoundGeofence ? anchor.ministry.compoundLng : null,
+      geofenceRadius: hasCompoundGeofence ? anchor.ministry.compoundGeofenceRadius : anchor.geofenceRadius,
       colorCategory: anchor.colorCategory,
       organizerId: anchor.organizerId,
       ministryId: anchor.ministryId,
@@ -238,13 +248,16 @@ export async function updateEvent(
     const preserveDates = scope !== "THIS";
     const durationMs = endAt.getTime() - startAt.getTime();
 
-    let room = null;
+    let room: { id: string } | null = null;
     if (roomId) {
       room = await prisma.room.findFirst({
         where: { id: roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
-        select: { latitude: true, longitude: true },
+        select: { id: true },
       });
+      if (!room) return { error: "Room not found or you don't have access" };
     }
+    const hasCompoundGeofence =
+      room && event.ministry.compoundLat != null && event.ministry.compoundLng != null;
 
     // Compute new times per target and block on any room clash.
     const updates: { id: string; startAt: Date; endAt: Date; reschedule: boolean }[] = [];
@@ -279,9 +292,9 @@ export async function updateEvent(
             roomId,
             startAt: u.startAt,
             endAt: u.endAt,
-            ...(room?.latitude != null && room?.longitude != null
-              ? { venueLat: room.latitude, venueLng: room.longitude }
-              : {}),
+            venueLat: hasCompoundGeofence ? event.ministry.compoundLat : null,
+            venueLng: hasCompoundGeofence ? event.ministry.compoundLng : null,
+            geofenceRadius: hasCompoundGeofence ? event.ministry.compoundGeofenceRadius : event.geofenceRadius,
             // Re-arm the 1h-before reminder for any rescheduled occurrence.
             ...(u.reschedule ? { reminderSentAt: null } : {}),
           },
