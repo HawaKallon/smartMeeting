@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
+import { getCategoryLabel } from "@/lib/public-event-categories";
 import { Clock, MapPin, Mail, Phone, ExternalLink } from "lucide-react";
 
 export default async function PublicEventDetailPage({
@@ -86,7 +87,7 @@ export default async function PublicEventDetailPage({
 
               {event.category && (
                 <span className="inline-flex items-center rounded-full border border-[#c9d9f2] bg-[#edf3fd] px-3 py-1 text-xs font-medium text-[#003580]">
-                  {event.category}
+                  {getCategoryLabel(event.category)}
                 </span>
               )}
             </div>

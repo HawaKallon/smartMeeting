@@ -3,6 +3,8 @@ import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PublicCalendarShell } from "@/components/PublicCalendarShell";
+import { getCategoryLabel } from "@/lib/public-event-categories";
+import type { PublicEventCategory } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = {
   title: "Public Events Calendar | Government of Sierra Leone",
@@ -10,12 +12,14 @@ export const metadata: Metadata = {
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const CATEGORY_COLORS: Record<string, string> = {
-  conference: "border-[#c9d9f2] bg-[#edf3fd] text-[#003580]",
-  meeting: "border-[#cfe5d7] bg-[#edf8f1] text-[#007236]",
-  announcement: "border-[#fde8a6] bg-[#fff7dd] text-[#9a6800]",
-  workshop: "border-[#c9d9f2] bg-[#eef4ff] text-[#003580]",
-  training: "border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]",
+const CATEGORY_COLORS: Record<PublicEventCategory, string> = {
+  CONFERENCE: "border-[#c9d9f2] bg-[#edf3fd] text-[#003580]",
+  MEETING: "border-[#cfe5d7] bg-[#edf8f1] text-[#007236]",
+  ANNOUNCEMENT: "border-[#fde8a6] bg-[#fff7dd] text-[#9a6800]",
+  WORKSHOP: "border-[#c9d9f2] bg-[#eef4ff] text-[#003580]",
+  TRAINING: "border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]",
+  PUBLIC_NOTICE: "border-[#fde8a6] bg-[#fff7dd] text-[#9a6800]",
+  OTHER: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
 function monthBounds(year: number, month: number) {
@@ -25,9 +29,9 @@ function monthBounds(year: number, month: number) {
   };
 }
 
-function categoryColor(category?: string | null) {
+function categoryColor(category?: PublicEventCategory | null) {
   if (!category) return "border-slate-200 bg-slate-50 text-slate-700";
-  return CATEGORY_COLORS[category.toLowerCase()] ?? "border-slate-200 bg-slate-50 text-slate-700";
+  return CATEGORY_COLORS[category] ?? CATEGORY_COLORS.OTHER;
 }
 
 export default async function PublicCalendarPage({
