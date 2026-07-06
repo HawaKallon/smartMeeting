@@ -13,15 +13,25 @@ const publicCalendarLabel = "block text-sm font-medium text-foreground mb-2";
 
 type Invite = { email: string; name: string };
 type Room = { id: string; name: string; location: string; capacity: number; ministryId: string };
-type Ministry = { id: string; name: string; code: string };
+type Ministry = {
+  id: string;
+  name: string;
+  code: string;
+  compoundLat: number | null;
+  compoundLng: number | null;
+  compoundGeofenceRadius: number;
+  compoundMaxGpsAccuracy: number;
+};
 
 export function EventForm({
   rooms,
   ministries,
+  isSuperAdmin = false,
   initialDate,
 }: {
   rooms: Room[];
   ministries?: Ministry[];
+  isSuperAdmin?: boolean;
   initialDate?: string;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
@@ -40,10 +50,17 @@ export function EventForm({
   // prefill at 09:00-10:00; the native inputs drive changes.
   const [startAt, setStartAt] = useState(initialDate ? `${initialDate}T09:00` : "");
   const [endAt, setEndAt] = useState(initialDate ? `${initialDate}T10:00` : "");
-  const isSuperAdminCreate = !!ministries?.length;
+  const ministryOptions = ministries ?? [];
+  const isSuperAdminCreate = isSuperAdmin;
   const availableRooms = isSuperAdminCreate
     ? rooms.filter((room) => room.ministryId === selectedMinistryId)
     : rooms;
+  const selectedMinistry = isSuperAdminCreate
+    ? ministryOptions.find((ministry) => ministry.id === selectedMinistryId)
+    : ministryOptions[0];
+  const selectedRoom = availableRooms.find((room) => room.id === selectedRoomId);
+  const selectedMinistryHasCompound =
+    selectedMinistry?.compoundLat != null && selectedMinistry?.compoundLng != null;
 
   function addInvite() {
     const email = inviteEmail.trim().toLowerCase();
@@ -117,7 +134,7 @@ export function EventForm({
             className={field}
           >
             <option value="">Select a ministry</option>
-            {ministries.map((ministry) => (
+            {ministryOptions.map((ministry) => (
               <option key={ministry.id} value={ministry.id}>
                 {ministry.name} ({ministry.code})
               </option>
@@ -203,6 +220,12 @@ export function EventForm({
           </select>
         </div>
       </div>
+
+      {selectedRoom && selectedMinistry && !selectedMinistryHasCompound && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {selectedMinistry.name} has no compound coordinates yet. This room-based meeting can be created, but QR check-in will not enforce on-site location until the ministry compound is configured.
+        </p>
+      )}
 
       {/* Room Schedule Preview */}
       {selectedRoomId && startAt && endAt && (
