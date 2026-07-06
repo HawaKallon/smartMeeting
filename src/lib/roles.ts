@@ -27,7 +27,7 @@ export const ROLE_LABELS: Record<MinistryRole, string> = {
  * Includes both Admin Staff (ministry ops) and Admin (tech team).
  */
 export function canManageEvents(role: MinistryRole | undefined): boolean {
-  return role === "ADMIN_STAFF" || role === "ADMIN";
+  return isSuperAdmin(role) || role === "ADMIN_STAFF" || role === "ADMIN";
 }
 
 /** Roles that can approve/route minutes (PRD §7 PS, DS). */

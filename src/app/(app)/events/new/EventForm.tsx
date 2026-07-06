@@ -1,19 +1,29 @@
 "use client";
 
-import { useActionState, useState, useRef, KeyboardEvent } from "react";
+import { useActionState, useState, KeyboardEvent } from "react";
 import { createEvent, type ActionState } from "../actions";
 import { RoomSchedulePreview } from "./RoomSchedulePreview";
-import { DateTimePicker } from "@/components/DateTimePicker";
 import { RecurrenceFields } from "@/components/RecurrenceFields";
 import { X } from "lucide-react";
 
 const field = "mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
+const publicCalendarField = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]";
 const label = "block text-sm font-medium text-foreground/80";
+const publicCalendarLabel = "block text-sm font-medium text-foreground mb-2";
 
 type Invite = { email: string; name: string };
-type Room = { id: string; name: string; location: string; capacity: number };
+type Room = { id: string; name: string; location: string; capacity: number; ministryId: string };
+type Ministry = { id: string; name: string; code: string };
 
-export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?: string }) {
+export function EventForm({
+  rooms,
+  ministries,
+  initialDate,
+}: {
+  rooms: Room[];
+  ministries?: Ministry[];
+  initialDate?: string;
+}) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     createEvent,
     undefined,
@@ -25,10 +35,15 @@ export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?:
   const [inviteError, setInviteError] = useState("");
 
   const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [selectedMinistryId, setSelectedMinistryId] = useState("");
   // Combined datetime strings (YYYY-MM-DDTHH:mm). Seed from a calendar-day
-  // prefill at 09:00–10:00; the DateTimePicker drives changes.
+  // prefill at 09:00-10:00; the native inputs drive changes.
   const [startAt, setStartAt] = useState(initialDate ? `${initialDate}T09:00` : "");
   const [endAt, setEndAt] = useState(initialDate ? `${initialDate}T10:00` : "");
+  const isSuperAdminCreate = !!ministries?.length;
+  const availableRooms = isSuperAdminCreate
+    ? rooms.filter((room) => room.ministryId === selectedMinistryId)
+    : rooms;
 
   function addInvite() {
     const email = inviteEmail.trim().toLowerCase();
@@ -71,6 +86,7 @@ export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?:
     <form action={formAction} className="space-y-5">
       {/* Pass invites as JSON */}
       <input type="hidden" name="invitees" value={JSON.stringify(invites)} />
+      {isSuperAdminCreate && <input type="hidden" name="ministryId" value={selectedMinistryId} />}
 
       {state?.error && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -87,6 +103,28 @@ export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?:
         <label className={label}>Description</label>
         <textarea name="description" rows={3} className={field} />
       </div>
+
+      {isSuperAdminCreate && (
+        <div>
+          <label className={label}>Ministry</label>
+          <select
+            value={selectedMinistryId}
+            onChange={(e) => {
+              setSelectedMinistryId(e.target.value);
+              setSelectedRoomId("");
+            }}
+            required
+            className={field}
+          >
+            <option value="">Select a ministry</option>
+            {ministries.map((ministry) => (
+              <option key={ministry.id} value={ministry.id}>
+                {ministry.name} ({ministry.code})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -108,12 +146,32 @@ export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?:
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={label}>Start</label>
-          <DateTimePicker name="startAt" value={startAt} onChange={setStartAt} required />
+          <label htmlFor="startAt" className={publicCalendarLabel}>
+            Start Date &amp; Time *
+          </label>
+          <input
+            type="datetime-local"
+            id="startAt"
+            name="startAt"
+            value={startAt}
+            onChange={(e) => setStartAt(e.target.value)}
+            required
+            className={publicCalendarField}
+          />
         </div>
         <div>
-          <label className={label}>End</label>
-          <DateTimePicker name="endAt" value={endAt} onChange={setEndAt} required />
+          <label htmlFor="endAt" className={publicCalendarLabel}>
+            End Date &amp; Time *
+          </label>
+          <input
+            type="datetime-local"
+            id="endAt"
+            name="endAt"
+            value={endAt}
+            onChange={(e) => setEndAt(e.target.value)}
+            required
+            className={publicCalendarField}
+          />
         </div>
       </div>
 
@@ -131,10 +189,13 @@ export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?:
             name="roomId"
             value={selectedRoomId}
             onChange={(e) => setSelectedRoomId(e.target.value)}
+            disabled={isSuperAdminCreate && !selectedMinistryId}
             className={field}
           >
-            <option value="">Select a room</option>
-            {rooms.map((room) => (
+            <option value="">
+              {isSuperAdminCreate && !selectedMinistryId ? "Select a ministry first" : "Select a room"}
+            </option>
+            {availableRooms.map((room) => (
               <option key={room.id} value={room.id}>
                 {room.name} ({room.capacity} people) - {room.location}
               </option>
@@ -149,7 +210,7 @@ export function EventForm({ rooms, initialDate }: { rooms: Room[]; initialDate?:
           roomId={selectedRoomId}
           startAt={startAt}
           endAt={endAt}
-          rooms={rooms}
+          rooms={availableRooms}
         />
       )}
 
