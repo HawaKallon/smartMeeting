@@ -27,12 +27,12 @@ export async function assertRole(...roles: MinistryRole[]) {
 
 /** Page guard: Admin Staff (ministry ops) or Admin (tech team). */
 export async function requireStaffRole() {
-  return requireRole("ADMIN_STAFF", "ADMIN");
+  return requireRole("ADMIN_STAFF", "ADMIN", "SUPER_ADMIN");
 }
 
 /** Action guard: Admin Staff (ministry ops) or Admin (tech team). */
 export async function assertStaffRole() {
-  return assertRole("ADMIN_STAFF", "ADMIN");
+  return assertRole("ADMIN_STAFF", "ADMIN", "SUPER_ADMIN");
 }
 
 /** Page guard: platform super-admin only. */

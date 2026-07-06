@@ -4,12 +4,13 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole, ministryScope } from "@/lib/guard";
+import { assertStaffRole } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
 import { sendInviteEmail } from "@/lib/email";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { generateOccurrences, describeRecurrence, MAX_OCCURRENCES } from "@/lib/recurrence";
+import { isSuperAdmin } from "@/lib/roles";
 import type { RecurrenceFrequency } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -27,6 +28,7 @@ const EventSchema = z
     colorCategory: z.enum(["RED", "AMBER", "GREEN"]).optional(),
     classification: z.enum(["PUBLIC", "RESTRICTED"]).default("PUBLIC"),
     roomId: z.string().optional(),
+    ministryId: z.string().optional(),
     // Recurrence (NONE = a single event, the default).
     recurrenceFreq: z.enum(["NONE", "DAILY", "WEEKLY", "WEEKDAYS", "MONTHLY"]).default("NONE"),
     recurrenceInterval: z.coerce.number().int().positive().max(52).default(1),
@@ -60,6 +62,7 @@ export async function createEvent(
     colorCategory: formData.get("colorCategory") || undefined,
     classification: formData.get("classification") || "PUBLIC",
     roomId: formData.get("roomId") || undefined,
+    ministryId: formData.get("ministryId") || undefined,
     recurrenceFreq: formData.get("recurrenceFreq") || "NONE",
     recurrenceInterval: formData.get("recurrenceInterval") || 1,
     recurrenceEndType: formData.get("recurrenceEndType") || undefined,
@@ -71,12 +74,23 @@ export async function createEvent(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const data = parsed.data;
+  const targetMinistryId = isSuperAdmin(user.role) ? data.ministryId : user.ministryId;
+  if (!targetMinistryId) {
+    return { error: "Choose a ministry for this event." };
+  }
+  if (isSuperAdmin(user.role)) {
+    const ministry = await prisma.ministry.findFirst({
+      where: { id: targetMinistryId, active: true },
+      select: { id: true },
+    });
+    if (!ministry) return { error: "Ministry not found or inactive." };
+  }
 
   // Fetch room coords once (copied onto each occurrence's geofence).
   let room = null;
   if (data.roomId) {
     room = await prisma.room.findFirst({
-      where: { id: data.roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
+      where: { id: data.roomId, ministryId: targetMinistryId } as Prisma.RoomWhereInput,
       select: { latitude: true, longitude: true },
     });
     if (!room) {
@@ -174,7 +188,7 @@ export async function createEvent(
     classification: data.classification,
     roomId: data.roomId || null,
     organizerId: user.id,
-    ministryId: user.ministryId!,
+    ministryId: targetMinistryId,
   };
 
   // Create the series record (if any), all occurrences, and per-occurrence
@@ -190,7 +204,7 @@ export async function createEvent(
           count: data.recurrenceCount ?? null,
           until: data.recurrenceUntil ?? null,
           organizerId: user.id,
-          ministryId: user.ministryId!,
+          ministryId: targetMinistryId,
         },
       });
       seriesId = series.id;
@@ -204,7 +218,7 @@ export async function createEvent(
     entityType: "Event",
     entityId: firstId,
     metadata: { title: data.title, occurrences: slots.length },
-    ministryId: user.ministryId,
+    ministryId: targetMinistryId,
   });
 
   // One invite email per invitee (not one per occurrence).
@@ -212,12 +226,12 @@ export async function createEvent(
     const [selectedRoom, ministry] = await Promise.all([
       data.roomId
         ? prisma.room.findFirst({
-            where: { id: data.roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
+            where: { id: data.roomId, ministryId: targetMinistryId } as Prisma.RoomWhereInput,
             select: { name: true },
           })
         : null,
       prisma.ministry.findUnique({
-        where: { id: user.ministryId! },
+        where: { id: targetMinistryId },
         select: { name: true },
       }),
     ]);
