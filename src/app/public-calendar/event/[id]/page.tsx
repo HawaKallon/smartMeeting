@@ -139,12 +139,6 @@ export default async function PublicEventDetailPage({
           </div>
         </div>
       </div>
-
-      <div className="text-center">
-        <Link href="/" className="text-sm font-semibold text-[#003580] hover:text-[#00265b]">
-          ← Back to calendar
-        </Link>
-      </div>
     </div>
   );
 }
