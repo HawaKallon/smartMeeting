@@ -86,19 +86,30 @@ export async function createEvent(
     if (!ministry) return { error: "Ministry not found or inactive." };
   }
 
-  // Fetch room coords once (copied onto each occurrence's geofence).
-  let room = null;
+  // Room-based events use the ministry compound geofence, not per-room GPS.
+  let room: { id: string } | null = null;
   if (data.roomId) {
     room = await prisma.room.findFirst({
       where: { id: data.roomId, ministryId: targetMinistryId } as Prisma.RoomWhereInput,
-      select: { latitude: true, longitude: true },
+      select: { id: true },
     });
     if (!room) {
       return { error: "Room not found or you don't have access" };
     }
   }
-  const venueLat = data.venueLat ?? (room?.latitude ?? null);
-  const venueLng = data.venueLng ?? (room?.longitude ?? null);
+  const ministryGeofence = room
+    ? await prisma.ministry.findUnique({
+        where: { id: targetMinistryId },
+        select: { compoundLat: true, compoundLng: true, compoundGeofenceRadius: true },
+      })
+    : null;
+  const hasCompoundGeofence =
+    ministryGeofence?.compoundLat != null && ministryGeofence?.compoundLng != null;
+  const venueLat = hasCompoundGeofence ? ministryGeofence.compoundLat : null;
+  const venueLng = hasCompoundGeofence ? ministryGeofence.compoundLng : null;
+  const geofenceRadius = hasCompoundGeofence
+    ? ministryGeofence.compoundGeofenceRadius
+    : data.geofenceRadius;
 
   // Build the occurrence slots — one for a single event, many for a series.
   const recurring = data.recurrenceFreq !== "NONE";
@@ -183,7 +194,7 @@ export async function createEvent(
     venueName: data.venueName,
     venueLat,
     venueLng,
-    geofenceRadius: data.geofenceRadius,
+    geofenceRadius,
     colorCategory: data.colorCategory,
     classification: data.classification,
     roomId: data.roomId || null,

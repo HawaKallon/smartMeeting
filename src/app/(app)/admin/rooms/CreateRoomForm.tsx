@@ -90,33 +90,6 @@ export function CreateRoomForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={label}>Latitude</label>
-          <input
-            type="number"
-            name="latitude"
-            step="any"
-            min="-90"
-            max="90"
-            className={field}
-            placeholder="e.g., -1.2345"
-          />
-        </div>
-        <div>
-          <label className={label}>Longitude</label>
-          <input
-            type="number"
-            name="longitude"
-            step="any"
-            min="-180"
-            max="180"
-            className={field}
-            placeholder="e.g., 36.7890"
-          />
-        </div>
-      </div>
-
       <button
         type="submit"
         disabled={isPending}
