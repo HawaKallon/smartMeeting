@@ -21,6 +21,10 @@ const MinistrySchema = z.object({
     .transform((d) => d.replace(/^@/, "")),
   adminName: z.string().min(2, "Admin name is required").max(100),
   adminEmail: z.string().email("A valid admin email is required").toLowerCase().trim(),
+  compoundLat: z.coerce.number().min(-90).max(90).optional(),
+  compoundLng: z.coerce.number().min(-180).max(180).optional(),
+  compoundGeofenceRadius: z.coerce.number().int().positive().max(10000).default(100),
+  compoundMaxGpsAccuracy: z.coerce.number().int().positive().max(1000).default(75),
 });
 
 export async function createMinistry(
@@ -40,13 +44,30 @@ export async function createMinistry(
       emailDomain: formData.get("emailDomain"),
       adminName: formData.get("adminName"),
       adminEmail: formData.get("adminEmail"),
+      compoundLat: formData.get("compoundLat") || undefined,
+      compoundLng: formData.get("compoundLng") || undefined,
+      compoundGeofenceRadius: formData.get("compoundGeofenceRadius") || 100,
+      compoundMaxGpsAccuracy: formData.get("compoundMaxGpsAccuracy") || 75,
     });
 
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
     }
 
-    const { name, code, emailDomain, adminName, adminEmail } = parsed.data;
+    const {
+      name,
+      code,
+      emailDomain,
+      adminName,
+      adminEmail,
+      compoundLat,
+      compoundLng,
+      compoundGeofenceRadius,
+      compoundMaxGpsAccuracy,
+    } = parsed.data;
+    if ((compoundLat == null) !== (compoundLng == null)) {
+      return { error: "Enter both compound latitude and longitude, or leave both blank" };
+    }
 
     // The domain must be a gov.sl (sub)domain so logins under it are valid.
     if (!isGovDomain(emailDomain)) {
@@ -74,7 +95,15 @@ export async function createMinistry(
 
     // Create ministry
     const ministry = await prisma.ministry.create({
-      data: { name, code, emailDomain },
+      data: {
+        name,
+        code,
+        emailDomain,
+        compoundLat: compoundLat ?? null,
+        compoundLng: compoundLng ?? null,
+        compoundGeofenceRadius,
+        compoundMaxGpsAccuracy,
+      },
     });
 
     await audit({
@@ -82,7 +111,7 @@ export async function createMinistry(
       action: "CREATE_MINISTRY",
       entityType: "Ministry",
       entityId: ministry.id,
-      metadata: { name, code, emailDomain },
+      metadata: { name, code, emailDomain, compoundLat, compoundLng, compoundGeofenceRadius, compoundMaxGpsAccuracy },
     });
 
     // Provision the ministry's first admin (ADMIN role, scoped to this ministry).
@@ -220,6 +249,10 @@ const UpdateMinistrySchema = z.object({
     .trim()
     .toLowerCase()
     .transform((d) => d.replace(/^@/, "")),
+  compoundLat: z.coerce.number().min(-90).max(90).optional(),
+  compoundLng: z.coerce.number().min(-180).max(180).optional(),
+  compoundGeofenceRadius: z.coerce.number().int().positive().max(10000).default(100),
+  compoundMaxGpsAccuracy: z.coerce.number().int().positive().max(1000).default(75),
 });
 
 export async function updateMinistry(
@@ -237,13 +270,20 @@ export async function updateMinistry(
     const parsed = UpdateMinistrySchema.safeParse({
       name: formData.get("name"),
       emailDomain: formData.get("emailDomain"),
+      compoundLat: formData.get("compoundLat") || undefined,
+      compoundLng: formData.get("compoundLng") || undefined,
+      compoundGeofenceRadius: formData.get("compoundGeofenceRadius") || 100,
+      compoundMaxGpsAccuracy: formData.get("compoundMaxGpsAccuracy") || 75,
     });
 
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
     }
 
-    const { name, emailDomain } = parsed.data;
+    const { name, emailDomain, compoundLat, compoundLng, compoundGeofenceRadius, compoundMaxGpsAccuracy } = parsed.data;
+    if ((compoundLat == null) !== (compoundLng == null)) {
+      return { error: "Enter both compound latitude and longitude, or leave both blank" };
+    }
 
     if (!isGovDomain(emailDomain)) {
       return { error: "Email domain must be a government domain ending in .gov.sl" };
@@ -259,7 +299,14 @@ export async function updateMinistry(
 
     await prisma.ministry.update({
       where: { id: ministryId },
-      data: { name, emailDomain },
+      data: {
+        name,
+        emailDomain,
+        compoundLat: compoundLat ?? null,
+        compoundLng: compoundLng ?? null,
+        compoundGeofenceRadius,
+        compoundMaxGpsAccuracy,
+      },
     });
 
     await audit({
@@ -267,7 +314,7 @@ export async function updateMinistry(
       action: "UPDATE_MINISTRY",
       entityType: "Ministry",
       entityId: ministryId,
-      metadata: { name, emailDomain },
+      metadata: { name, emailDomain, compoundLat, compoundLng, compoundGeofenceRadius, compoundMaxGpsAccuracy },
     });
 
     revalidatePath("/administrative/admin/ministries");
