@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Image from "next/image";
 import { useCallback, useState } from "react";
+import { Upload } from "lucide-react";
 import { createPublicEvent, updatePublicEvent, publishPublicEvent, unpublishPublicEvent, type ActionState } from "./actions";
 import { CATEGORY_LIST, CATEGORY_LABELS } from "@/lib/public-event-categories";
 import type { PublicEvent } from "@/generated/prisma/client";
@@ -154,9 +155,16 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             name="bannerImage"
             accept="image/png,image/jpeg,image/webp"
             onChange={handleImageChange}
-            className="w-full"
+            className="sr-only"
           />
-          <p className="mt-1 text-xs text-muted-foreground">
+          <label
+            htmlFor="bannerImage"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 cursor-pointer hover:bg-[#f0f5fc] transition-colors font-medium text-sm"
+          >
+            <Upload className="h-4 w-4" />
+            Choose Image
+          </label>
+          <p className="mt-2 text-xs text-muted-foreground">
             PNG, JPG, or WebP (max 5MB)
           </p>
         </div>
