@@ -84,6 +84,16 @@ enum PublicEventStatus {
   PUBLISHED
 }
 
+enum PublicEventCategory {
+  CONFERENCE
+  WORKSHOP
+  TRAINING
+  MEETING
+  ANNOUNCEMENT
+  PUBLIC_NOTICE
+  OTHER
+}
+
 enum ActionItemStatus {
   TODO
   IN_PROGRESS
@@ -474,11 +484,11 @@ model PublicEvent {
   id           String            @id @default(cuid())
   title        String
   description  String?
-  category     String? // free tag, e.g. "Conference", "Public Notice"
+  category     PublicEventCategory?
   startAt      DateTime
   endAt        DateTime
   venueName    String?
-  bannerImage  String? // "/public-uploads/<name>" path
+  bannerImage  String? // Cloudinary secure URL or legacy "/public-uploads/<name>" path
   externalUrl  String?
   contactEmail String?
   contactPhone String?
