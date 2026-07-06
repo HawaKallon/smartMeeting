@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/guard";
+import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canManageEvents, canViewMinistrySchedule } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
@@ -22,7 +22,7 @@ export default async function Dashboard() {
   const [upcoming, todayCount, myItems, pendingRsvps] = await Promise.all([
     prisma.event.findMany({
       where: canViewAll
-        ? { endAt: { gt: now } }
+        ? { endAt: { gt: now }, ...ministryScope(user) }
         : { endAt: { gt: now }, organizerId: user.id },
       orderBy: { startAt: "asc" },
       take: 10,
@@ -35,7 +35,7 @@ export default async function Dashboard() {
     }),
     prisma.event.count({
       where: canViewAll
-        ? { startAt: { gte: startOfDay, lt: tomorrow }, endAt: { gt: now } }
+        ? { startAt: { gte: startOfDay, lt: tomorrow }, endAt: { gt: now }, ...ministryScope(user) }
         : { startAt: { gte: startOfDay, lt: tomorrow }, endAt: { gt: now }, organizerId: user.id },
     }),
     prisma.actionItem.count({ where: { ownerId: user.id, status: { in: ["TODO", "IN_PROGRESS"] } } }),

@@ -31,7 +31,7 @@ export function Sidebar({
     "/administrative/notifications",
     ...(isStaff ? ["/administrative/events/new", "/administrative/events", "/administrative/attendance", "/administrative/reports"] : []),
     "/administrative/profile",
-    ...(isSuperAdminUser ? ["/administrative/admin", "/administrative/admin/ministries", "/administrative/admin/users", "/administrative/admin/rooms", "/administrative/admin/activity", "/administrative/reports"] : []),
+    ...(isSuperAdminUser ? ["/administrative/events/new", "/administrative/events", "/administrative/attendance", "/administrative/admin", "/administrative/admin/ministries", "/administrative/admin/users", "/administrative/admin/rooms", "/administrative/admin/activity", "/administrative/reports"] : []),
     ...(isAdmin ? ["/administrative/admin/public-calendar"] : []),
     ...(user.role === "ADMIN" ? ["/administrative/admin/users", "/administrative/admin/rooms", "/administrative/admin/activity"] : []),
     "/administrative/help",
