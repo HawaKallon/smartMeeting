@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
@@ -23,8 +22,8 @@ export default async function PublicEventDetailPage({
   }
 
   return (
-    <div className="space-y-6">
-      <BackButton href="/" label="Calendar" />
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <BackButton href="/" label="Back to Calendar" />
 
       <div className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-[#fafdff] shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         {event.bannerImage && (
@@ -139,12 +138,6 @@ export default async function PublicEventDetailPage({
             )}
           </div>
         </div>
-      </div>
-
-      <div className="text-center">
-        <Link href="/" className="text-sm font-semibold text-[#003580] hover:text-[#00265b]">
-          ← Back to calendar
-        </Link>
       </div>
     </div>
   );
