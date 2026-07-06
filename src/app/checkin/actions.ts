@@ -76,6 +76,13 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
         error: "Your location could not be trusted. Turn off mock locations and try again with GPS on.",
       };
     }
+    const maxGpsAccuracy = event.ministry.compoundMaxGpsAccuracy;
+    if (data.accuracy == null || data.accuracy > maxGpsAccuracy) {
+      return {
+        ok: false,
+        error: `Your GPS accuracy is too low for check-in. Move to an open area and try again (required: ${maxGpsAccuracy}m or better).`,
+      };
+    }
     within = withinGeofence(
       { lat: data.lat, lng: data.lng },
       { lat: event.venueLat!, lng: event.venueLng!, radius: event.geofenceRadius },

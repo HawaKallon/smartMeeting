@@ -107,7 +107,15 @@ export default async function AdminMinistriesPage() {
                   <td className="px-6 py-3">
                     <div className="space-y-2">
                       <ToggleMinistryButton ministryId={m.id} isActive={m.active} />
-                      <EditMinistryButton ministryId={m.id} name={m.name} emailDomain={m.emailDomain} />
+                      <EditMinistryButton
+                        ministryId={m.id}
+                        name={m.name}
+                        emailDomain={m.emailDomain}
+                        compoundLat={m.compoundLat}
+                        compoundLng={m.compoundLng}
+                        compoundGeofenceRadius={m.compoundGeofenceRadius}
+                        compoundMaxGpsAccuracy={m.compoundMaxGpsAccuracy}
+                      />
                       <AddAdminButton ministryId={m.id} emailDomain={m.emailDomain} />
                     </div>
                   </td>

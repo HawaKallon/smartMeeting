@@ -26,9 +26,28 @@ export default async function NewEventPage({
       ? prisma.ministry.findMany({
           where: { active: true },
           orderBy: { name: "asc" },
-          select: { id: true, name: true, code: true },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            compoundLat: true,
+            compoundLng: true,
+            compoundGeofenceRadius: true,
+            compoundMaxGpsAccuracy: true,
+          },
         })
-      : Promise.resolve([]),
+      : prisma.ministry.findMany({
+          where: { id: user.ministryId! },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            compoundLat: true,
+            compoundLng: true,
+            compoundGeofenceRadius: true,
+            compoundMaxGpsAccuracy: true,
+          },
+        }),
   ]);
 
   return (
@@ -39,7 +58,7 @@ export default async function NewEventPage({
       </div>
 
       <div className="rounded-lg border border-border bg-card p-6">
-        <EventForm rooms={rooms} ministries={ministries} initialDate={initialDate} />
+        <EventForm rooms={rooms} ministries={ministries} isSuperAdmin={superAdmin} initialDate={initialDate} />
       </div>
     </div>
   );

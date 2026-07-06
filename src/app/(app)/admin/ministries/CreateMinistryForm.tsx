@@ -71,6 +71,35 @@ export function CreateMinistryForm() {
       </div>
 
       <div className="space-y-4 rounded-[1.25rem] border border-border/70 bg-secondary/35 p-4">
+        <div>
+          <p className="text-sm font-semibold text-foreground/80">Compound geofence</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Used for room-based meeting check-in. Leave coordinates blank until the building location is confirmed.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={label}>Compound Latitude</label>
+            <input type="number" name="compoundLat" step="any" min="-90" max="90" className={field} placeholder="8.4840" />
+          </div>
+          <div>
+            <label className={label}>Compound Longitude</label>
+            <input type="number" name="compoundLng" step="any" min="-180" max="180" className={field} placeholder="-13.2299" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={label}>Radius (meters)</label>
+            <input type="number" name="compoundGeofenceRadius" min="1" max="10000" defaultValue="100" className={field} />
+          </div>
+          <div>
+            <label className={label}>Max GPS Accuracy (meters)</label>
+            <input type="number" name="compoundMaxGpsAccuracy" min="1" max="1000" defaultValue="75" className={field} />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-[1.25rem] border border-border/70 bg-secondary/35 p-4">
         <p className="text-sm font-semibold text-foreground/80">First Admin</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
