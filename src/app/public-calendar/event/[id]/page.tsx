@@ -23,7 +23,7 @@ export default async function PublicEventDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <BackButton href="/" label="Calendar" />
+      <BackButton href="/" label="Back to Calendar" />
 
       <div className="overflow-hidden rounded-[2rem] border border-[#d3deef] bg-[#fafdff] shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
         {event.bannerImage && (
