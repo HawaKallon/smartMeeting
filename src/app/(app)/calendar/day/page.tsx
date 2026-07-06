@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/guard";
+import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canViewMinistrySchedule, canManageEvents } from "@/lib/roles";
 import { COLOR_META } from "@/lib/colors";
@@ -28,6 +28,7 @@ export default async function CalendarDayPage({
   const events = await prisma.event.findMany({
     where: {
       startAt: { gte: startOfDay, lt: endOfDay },
+      ...ministryScope(user),
       ...(canViewMinistrySchedule(user.role) ? {} : { organizerId: user.id }),
     },
     orderBy: { startAt: "asc" },

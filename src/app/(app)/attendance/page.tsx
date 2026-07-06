@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { requireStaffRole } from "@/lib/guard";
+import { requireStaffRole, ministryScope } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { TrendingUp, Users, CheckCircle2, Activity } from "lucide-react";
 
 export default async function AttendanceReportsPage() {
-  await requireStaffRole();
+  const user = await requireStaffRole();
 
   const events = await prisma.event.findMany({
+    where: ministryScope(user),
     orderBy: { startAt: "desc" },
     take: 50,
     select: {
