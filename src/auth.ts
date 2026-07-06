@@ -44,7 +44,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // a legacy account record happens to exist.
         if (!isGovEmail(email)) return null;
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            ministryId: true,
+            passwordHash: true,
+            active: true,
+          },
+        });
         if (!user?.passwordHash) return null;
 
         // Deactivated accounts cannot log in (applies to all roles).
@@ -60,7 +71,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (user.role !== "SUPER_ADMIN") {
           const domain = emailDomainOf(email);
           const ministry = domain
-            ? await prisma.ministry.findUnique({ where: { emailDomain: domain } })
+            ? await prisma.ministry.findUnique({
+                where: { emailDomain: domain },
+                select: { id: true, active: true },
+              })
             : null;
           // No matching ministry (or it's deactivated) → deny access.
           if (!ministry || !ministry.active) return null;
