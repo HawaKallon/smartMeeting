@@ -9,7 +9,9 @@ type Item = {
   id: string;
   title: string;
   status: "TODO" | "IN_PROGRESS" | "DONE";
+  point: "ACTION_POINT" | "AGREED";
   dueDate: string | null;
+  ownerName: string | null;
   owner: { id: string; name: string | null; email: string } | null;
 };
 
@@ -43,6 +45,16 @@ const STATUS_BADGE: Record<Item["status"], string> = {
   TODO: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
   IN_PROGRESS: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
   DONE: "bg-green-500/10 text-green-400 border border-green-500/20",
+};
+
+const POINT_LABELS: Record<Item["point"], string> = {
+  ACTION_POINT: "Action Point",
+  AGREED: "Agreed",
+};
+
+const POINT_BADGE: Record<Item["point"], string> = {
+  ACTION_POINT: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+  AGREED: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
 };
 
 function userLabel(u: User) {
@@ -92,28 +104,30 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                   ) : null}
 
                   <div className="grid gap-3">
+                    <select name="point" defaultValue={item.point} className={field}>
+                      <option value="ACTION_POINT">Action Point</option>
+                      <option value="AGREED">Agreed</option>
+                    </select>
+                    <input
+                      list="ministry-people"
+                      name="ownerName"
+                      defaultValue={item.ownerName ?? item.owner?.name ?? ""}
+                      className={field}
+                      placeholder="Responsible party (type a name)"
+                    />
+                    <datalist id="ministry-people">
+                      {users.map((u) => (
+                        <option key={u.id} value={userLabel(u)} />
+                      ))}
+                    </datalist>
+                    <DatePicker name="dueDate" defaultValue={item.dueDate ?? ""} placeholder="Timeline" />
                     <input
                       name="title"
                       defaultValue={item.title}
                       required
                       className={field}
-                      placeholder="Action item title"
+                      placeholder="Action point"
                     />
-                    <div className="grid grid-cols-2 gap-3">
-                      <select
-                        name="ownerId"
-                        defaultValue={item.owner?.id ?? ""}
-                        className={field}
-                      >
-                        <option value="">No owner</option>
-                        {users.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {userLabel(u)}
-                          </option>
-                        ))}
-                      </select>
-                      <DatePicker name="dueDate" defaultValue={item.dueDate ?? ""} placeholder="Due date" />
-                    </div>
                     <select name="status" defaultValue={item.status} className={field}>
                       <option value="TODO">To Do</option>
                       <option value="IN_PROGRESS">In Progress</option>
@@ -152,14 +166,17 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{item.title}</p>
                       <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
-                        {item.owner && (
+                        <span className={`rounded-full px-2.5 py-1 font-medium ${POINT_BADGE[item.point]}`}>
+                          {POINT_LABELS[item.point]}
+                        </span>
+                        {(item.ownerName || item.owner) && (
                           <span className="rounded-full bg-sidebar-primary/10 px-2.5 py-1 text-sidebar-primary">
-                            {userLabel(item.owner)}
+                            {item.ownerName || userLabel(item.owner!)}
                           </span>
                         )}
                         {item.dueDate && (
                           <span className="rounded-full bg-muted/50 px-2.5 py-1 text-muted-foreground">
-                            Due: {new Date(item.dueDate + "T00:00:00").toLocaleDateString()}
+                            Timeline: {new Date(item.dueDate + "T00:00:00").toLocaleDateString()}
                           </span>
                         )}
                         <span className={`rounded-full px-2.5 py-1 font-medium ${STATUS_BADGE[item.status]}`}>
@@ -212,24 +229,31 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                 </div>
               ) : null}
 
+              <select name="point" defaultValue="ACTION_POINT" className={field}>
+                <option value="ACTION_POINT">Action Point</option>
+                <option value="AGREED">Agreed</option>
+              </select>
+
+              <input
+                list="ministry-people"
+                name="ownerName"
+                className={field}
+                placeholder="Responsible party (type a name)"
+              />
+              <datalist id="ministry-people">
+                {users.map((u) => (
+                  <option key={u.id} value={userLabel(u)} />
+                ))}
+              </datalist>
+
+              <DatePicker name="dueDate" placeholder="Timeline" />
+
               <input
                 name="title"
                 required
                 className={field}
-                placeholder="Action item title"
+                placeholder="Action point"
               />
-
-              <div className="grid grid-cols-2 gap-3">
-                <select name="ownerId" defaultValue="" className={field}>
-                  <option value="">No owner</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {userLabel(u)}
-                    </option>
-                  ))}
-                </select>
-                <DatePicker name="dueDate" placeholder="Due date" />
-              </div>
 
               <div className="flex gap-2">
                 <button
