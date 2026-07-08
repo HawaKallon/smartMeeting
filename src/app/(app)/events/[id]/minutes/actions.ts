@@ -259,12 +259,10 @@ export async function addActionItem(
   if (!minutes) return { error: "Minutes not found." };
   if (minutes.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
-  // Resolve the typed name to a real user if possible.
-  let ownerId: string | null = null;
-  if (ownerName) {
-    const resolved = await resolveOwner(event.ministryId, ownerName);
-    ownerId = resolved?.id ?? null;
-  }
+  const assignee = ownerName
+    ? await resolveActionItemAssignee(event.ministryId, eventId, ownerName)
+    : null;
+  const ownerId = assignee?.kind === "internal" ? assignee.userId : null;
 
   const item = await prisma.actionItem.create({
     data: {
@@ -286,9 +284,17 @@ export async function addActionItem(
     ministryId: event.ministryId,
   });
 
-  // Notify the owner if one was resolved to a real user.
-  if (ownerId) {
-    await notifyActionItemOwner({ ownerId, title, dueDate: item.dueDate, eventId, minutesId });
+  // Notify internal users in-app/email, and external guests by email only.
+  if (assignee?.kind === "internal") {
+    await notifyActionItemOwner({ ownerId: assignee.userId, title, dueDate: item.dueDate, eventId, minutesId });
+  } else if (assignee?.kind === "external") {
+    await notifyExternalActionItemOwner({
+      to: assignee.email,
+      toName: assignee.name,
+      title,
+      dueDate: item.dueDate,
+      eventId,
+    });
   }
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);
@@ -340,14 +346,11 @@ export async function updateActionItem(
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
   if (minutes?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
-  // Resolve the typed name to a real user if possible.
-  let ownerId: string | null = null;
-  if (ownerName) {
-    const resolved = await resolveOwner(event.ministryId, ownerName);
-    ownerId = resolved?.id ?? null;
-  }
-
-  const ownerChanged = ownerId && ownerId !== item.ownerId;
+  const assignee = ownerName
+    ? await resolveActionItemAssignee(event.ministryId, eventId, ownerName)
+    : null;
+  const ownerId = assignee?.kind === "internal" ? assignee.userId : null;
+  const ownerChanged = assignee ? assigneeChanged(item, assignee, ownerName ?? null) : false;
 
   await prisma.actionItem.update({
     where: { id: itemId },
@@ -371,13 +374,21 @@ export async function updateActionItem(
   });
 
   // Notify new owner if ownership changed.
-  if (ownerChanged) {
+  if (ownerChanged && assignee?.kind === "internal") {
     await notifyActionItemOwner({
-      ownerId: ownerId!,
+      ownerId: assignee.userId,
       title,
       dueDate: dueDate ? new Date(dueDate) : null,
       eventId,
       minutesId,
+    });
+  } else if (ownerChanged && assignee?.kind === "external") {
+    await notifyExternalActionItemOwner({
+      to: assignee.email,
+      toName: assignee.name,
+      title,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      eventId,
     });
   }
 
@@ -424,10 +435,23 @@ export async function deleteActionItem(formData: FormData): Promise<void> {
 
 // ── Internal helper ──────────────────────────────────────────────────────────
 
-async function resolveOwner(ministryId: string, name: string) {
-  if (!name || !name.trim()) return null;
-  const trimmed = name.trim();
-  return prisma.user.findFirst({
+type ResolvedActionItemAssignee =
+  | { kind: "internal"; userId: string }
+  | { kind: "external"; attendeeId: string; name: string; email: string };
+
+function normalizeAssignee(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+async function resolveActionItemAssignee(
+  ministryId: string,
+  eventId: string,
+  ownerName: string,
+): Promise<ResolvedActionItemAssignee | null> {
+  const trimmed = ownerName.trim();
+  if (!trimmed) return null;
+
+  const user = await prisma.user.findFirst({
     where: {
       ministryId,
       role: { not: "SUPER_ADMIN" },
@@ -437,6 +461,70 @@ async function resolveOwner(ministryId: string, name: string) {
       ],
     },
     select: { id: true },
+  });
+  if (user) return { kind: "internal", userId: user.id };
+
+  const externalByEmail = await prisma.eventAttendee.findFirst({
+    where: {
+      eventId,
+      externalEmail: { equals: trimmed, mode: "insensitive" },
+    },
+    select: { id: true, externalName: true, externalEmail: true },
+  });
+  if (externalByEmail?.externalEmail) {
+    return {
+      kind: "external",
+      attendeeId: externalByEmail.id,
+      name: externalByEmail.externalName ?? externalByEmail.externalEmail,
+      email: externalByEmail.externalEmail,
+    };
+  }
+
+  const externalByName = await prisma.eventAttendee.findMany({
+    where: {
+      eventId,
+      externalName: { equals: trimmed, mode: "insensitive" },
+    },
+    select: { id: true, externalName: true, externalEmail: true },
+    take: 2,
+  });
+  const external = externalByName[0];
+  if (externalByName.length === 1 && external?.externalEmail) {
+    return {
+      kind: "external",
+      attendeeId: external.id,
+      name: external.externalName ?? external.externalEmail,
+      email: external.externalEmail,
+    };
+  }
+
+  return null;
+}
+
+function assigneeChanged(
+  item: { ownerId: string | null; ownerName: string | null },
+  assignee: ResolvedActionItemAssignee,
+  ownerName: string | null,
+) {
+  if (assignee.kind === "internal") return assignee.userId !== item.ownerId;
+  return item.ownerId !== null || normalizeAssignee(item.ownerName) !== normalizeAssignee(ownerName);
+}
+
+async function notifyExternalActionItemOwner({
+  to, toName, title, dueDate, eventId,
+}: {
+  to: string; toName: string; title: string; dueDate: Date | null; eventId: string;
+}) {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { title: true } });
+  if (!event) return;
+
+  await sendActionItemEmail({
+    to,
+    toName,
+    title,
+    eventTitle: event.title,
+    dueDate,
+    minutesUrl: absoluteAppUrl(`/administrative/events/${eventId}/minutes`),
   });
 }
 
