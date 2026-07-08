@@ -33,27 +33,24 @@ interface Props {
   ownerFilter: string;
 }
 
-const COLUMNS: { id: Status; label: string; color: string }[] = [
-  { id: "TODO", label: "To Do", color: "bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)]" },
-  { id: "IN_PROGRESS", label: "In Progress", color: "bg-[linear-gradient(180deg,#fffdf8_0%,#fff4d6_100%)]" },
-  { id: "DONE", label: "Done", color: "bg-[linear-gradient(180deg,#f8fffb_0%,#edf8f1_100%)]" },
+const COLUMNS: { id: Status; label: string }[] = [
+  { id: "TODO", label: "To Do" },
+  { id: "IN_PROGRESS", label: "In Progress" },
+  { id: "DONE", label: "Done" },
 ];
 
-const COLUMN_STYLES: Record<Status, { border: string; badge: string; text: string }> = {
+const COLUMN_STYLES: Record<Status, { badge: string; text: string }> = {
   TODO: {
-    border: "border-[#cfe0f3]",
-    badge: "bg-[#e6effc] text-[#003580]",
-    text: "text-[#003580]",
+    badge: "bg-secondary text-muted-foreground",
+    text: "text-muted-foreground",
   },
   IN_PROGRESS: {
-    border: "border-[#f0dfaa]",
-    badge: "bg-[#fff0bf] text-[#946200]",
-    text: "text-[#946200]",
+    badge: "bg-secondary text-muted-foreground",
+    text: "text-muted-foreground",
   },
   DONE: {
-    border: "border-[#c7e2d0]",
-    badge: "bg-[#e0f2e7] text-[#007236]",
-    text: "text-[#007236]",
+    badge: "bg-secondary text-muted-foreground",
+    text: "text-muted-foreground",
   },
 };
 
@@ -98,11 +95,11 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="flex gap-5 overflow-x-auto pb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {COLUMNS.map((col) => {
           const colItems = visible.filter((i) => i.status === col.id);
           return (
-            <Column key={col.id} id={col.id} label={col.label} color={col.color} count={colItems.length}>
+            <Column key={col.id} id={col.id} label={col.label} count={colItems.length}>
               {colItems.map((item) => (
                 <Card key={item.id} item={item} draggable={canDrag(item)} isActive={item.id === activeId} />
               ))}
@@ -119,9 +116,9 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
 }
 
 function Column({
-  id, label, color, count, children,
+  id, label, count, children,
 }: {
-  id: Status; label: string; color: string; count: number; children: React.ReactNode;
+  id: Status; label: string; count: number; children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const styles = COLUMN_STYLES[id];
@@ -129,19 +126,19 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-80 flex-shrink-0 flex-col rounded-[1.75rem] border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)] transition-colors ${
-        isOver ? `${styles.border} ring-2 ring-primary/10` : styles.border
+      className={`flex flex-col rounded-xl border transition-colors ${
+        isOver ? "border-primary ring-2 ring-primary/10 bg-secondary/20" : "border-border bg-card"
       }`}
     >
-      <div className={`rounded-t-[1.75rem] px-4 py-4 ${color}`}>
+      <div className="border-b border-border bg-secondary/40 px-4 py-3 rounded-t-xl">
         <div className="flex items-center justify-between">
           <span className={`text-sm font-semibold ${styles.text}`}>{label}</span>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${styles.badge}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles.badge}`}>
             {count}
           </span>
         </div>
       </div>
-      <div className="flex min-h-[220px] flex-1 flex-col gap-3 p-4">
+      <div className="flex min-h-[200px] flex-1 flex-col gap-3 p-3">
         {children}
       </div>
     </div>
@@ -180,26 +177,26 @@ function CardView({
 
   return (
     <div
-      className={`rounded-[1.4rem] border border-border bg-card p-4 shadow-[0_12px_28px_rgba(15,35,63,0.08)] transition-shadow ${
-        isDragging ? "rotate-1 shadow-[0_18px_42px_rgba(15,35,63,0.16)]" : draggable ? "cursor-grab hover:shadow-[0_16px_36px_rgba(15,35,63,0.12)]" : "cursor-default"
+      className={`rounded-lg border border-border bg-card p-3 transition-all ${
+        isDragging ? "rotate-1 shadow-md" : draggable ? "cursor-grab hover:shadow-sm" : "cursor-default"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-semibold leading-snug text-foreground">{item.title}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium leading-snug text-foreground">{item.title}</p>
         {item.dueDate && (
-          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${isOverdue ? "bg-red-50 text-red-700" : "bg-secondary/60 text-primary"}`}>
+          <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold flex-shrink-0 ${isOverdue ? "bg-red-100 text-red-700" : "bg-secondary text-muted-foreground"}`}>
             {new Date(item.dueDate + "T00:00:00").toLocaleDateString("en-GB", {
               day: "numeric", month: "short",
             })}
           </span>
         )}
       </div>
-      <p className="mt-2 text-xs font-medium text-muted-foreground">{item.eventTitle}</p>
-      <div className="mt-2 flex items-center justify-between">
+      <p className="mt-1.5 text-xs text-muted-foreground">{item.eventTitle}</p>
+      <div className="mt-2 flex items-center justify-between gap-2">
         {item.ownerName && (
-          <span className="text-xs text-muted-foreground">{item.ownerName}</span>
+          <span className="text-xs text-muted-foreground truncate">{item.ownerName}</span>
         )}
-        {isOverdue && <span className="text-xs font-semibold text-red-600">Overdue</span>}
+        {isOverdue && <span className="text-xs font-semibold text-red-600 flex-shrink-0">Overdue</span>}
       </div>
     </div>
   );
