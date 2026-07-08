@@ -4,23 +4,14 @@ import { useState } from "react";
 import { Table2, LayoutGrid } from "lucide-react";
 import { KanbanBoard } from "./KanbanBoard";
 import { ActionItemsTable } from "./ActionItemsTable";
+import { ActionItemModal } from "./ActionItemModal";
 import { OwnerFilter } from "./OwnerFilter";
-
-type Status = "TODO" | "IN_PROGRESS" | "DONE";
-
-type Item = {
-  id: string;
-  title: string;
-  status: Status;
-  dueDate: string | null;
-  eventTitle: string;
-  ownerName: string | null;
-};
+import type { ActionItemListItem } from "./utils";
 
 type User = { id: string; name: string | null; email: string };
 
 interface Props {
-  items: Item[];
+  items: ActionItemListItem[];
   canMoveAny: boolean;
   currentUserId: string;
   ownerFilter: string;
@@ -29,6 +20,8 @@ interface Props {
 
 export function ActionItemsView({ items, canMoveAny, currentUserId, ownerFilter, users }: Props) {
   const [view, setView] = useState<"table" | "board">("table");
+  const [selectedItem, setSelectedItem] = useState<ActionItemListItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const toggleButtonClass =
     "px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5";
@@ -70,6 +63,10 @@ export function ActionItemsView({ items, canMoveAny, currentUserId, ownerFilter,
           canMoveAny={canMoveAny}
           currentUserId={currentUserId}
           ownerFilter={ownerFilter}
+          onItemClick={(item) => {
+            setSelectedItem(item);
+            setModalOpen(true);
+          }}
         />
       ) : (
         <KanbanBoard
@@ -77,8 +74,22 @@ export function ActionItemsView({ items, canMoveAny, currentUserId, ownerFilter,
           canMoveAny={canMoveAny}
           currentUserId={currentUserId}
           ownerFilter={ownerFilter}
+          onItemClick={(item) => {
+            setSelectedItem(item);
+            setModalOpen(true);
+          }}
         />
       )}
+
+      {/* Modal */}
+      <ActionItemModal
+        item={selectedItem}
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedItem(null);
+        }}
+      />
     </div>
   );
 }

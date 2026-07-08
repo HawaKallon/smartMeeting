@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -11,26 +11,26 @@ import {
   useDraggable,
   type DragStartEvent,
   type DragEndEvent,
+  type DragCancelEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { changeItemStatus } from "./actions";
-
-type Status = "TODO" | "IN_PROGRESS" | "DONE";
-
-type Item = {
-  id: string;
-  title: string;
-  status: Status;
-  dueDate: string | null;
-  eventTitle: string;
-  ownerName: string | null;
-};
+import {
+  POINT_COLORS,
+  POINT_LABELS,
+  STATUS_COLORS,
+  STATUS_ICON_COMPONENTS,
+  getOwnerInitials,
+  type ActionItemListItem,
+  type Status,
+} from "./utils";
 
 interface Props {
-  items: Item[];
+  items: ActionItemListItem[];
   canMoveAny: boolean;
   currentUserId: string;
   ownerFilter: string;
+  onItemClick: (item: ActionItemListItem) => void;
 }
 
 const COLUMNS: { id: Status; label: string }[] = [
@@ -54,9 +54,10 @@ const COLUMN_STYLES: Record<Status, { badge: string; text: string }> = {
   },
 };
 
-export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFilter }: Props) {
+export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFilter, onItemClick }: Props) {
   const [items, setItems] = useState(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const suppressClickRef = useRef<string | null>(null);
   const [, startTransition] = useTransition();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -67,16 +68,24 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
 
   const activeItem = activeId ? items.find((i) => i.id === activeId) ?? null : null;
 
-  function canDrag(item: Item) {
-    return canMoveAny || item.ownerName !== null;
+  function canDrag(item: ActionItemListItem) {
+    return canMoveAny || item.ownerId === currentUserId;
   }
 
   function onDragStart({ active }: DragStartEvent) {
     setActiveId(String(active.id));
   }
 
+  function suppressNextClick(itemId: string) {
+    suppressClickRef.current = itemId;
+    window.setTimeout(() => {
+      if (suppressClickRef.current === itemId) suppressClickRef.current = null;
+    }, 0);
+  }
+
   function onDragEnd({ active, over }: DragEndEvent) {
     setActiveId(null);
+    suppressNextClick(String(active.id));
     if (!over) return;
 
     const newStatus = String(over.id) as Status;
@@ -93,15 +102,31 @@ export function KanbanBoard({ items: initial, canMoveAny, currentUserId, ownerFi
     startTransition(() => { changeItemStatus(fd); });
   }
 
+  function onDragCancel({ active }: DragCancelEvent) {
+    setActiveId(null);
+    suppressNextClick(String(active.id));
+  }
+
+  function handleItemClick(item: ActionItemListItem) {
+    if (suppressClickRef.current === item.id) return;
+    onItemClick(item);
+  }
+
   return (
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {COLUMNS.map((col) => {
           const colItems = visible.filter((i) => i.status === col.id);
           return (
             <Column key={col.id} id={col.id} label={col.label} count={colItems.length}>
               {colItems.map((item) => (
-                <Card key={item.id} item={item} draggable={canDrag(item)} isActive={item.id === activeId} />
+                <Card
+                  key={item.id}
+                  item={item}
+                  draggable={canDrag(item)}
+                  isActive={item.id === activeId}
+                  onClick={() => handleItemClick(item)}
+                />
               ))}
             </Column>
           );
@@ -145,7 +170,17 @@ function Column({
   );
 }
 
-function Card({ item, draggable, isActive }: { item: Item; draggable: boolean; isActive: boolean }) {
+function Card({
+  item,
+  draggable,
+  isActive,
+  onClick,
+}: {
+  item: ActionItemListItem;
+  draggable: boolean;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: item.id,
     disabled: !draggable,
@@ -162,41 +197,62 @@ function Card({ item, draggable, isActive }: { item: Item; draggable: boolean; i
       {...(draggable ? { ...attributes, ...listeners } : {})}
       className={isActive ? "opacity-40" : ""}
     >
-      <CardView item={item} draggable={draggable} />
+      <CardView item={item} draggable={draggable} onClick={onClick} />
     </div>
   );
 }
 
 function CardView({
-  item, draggable = true, isDragging = false,
+  item, draggable = true, isDragging = false, onClick,
 }: {
-  item: Item; draggable?: boolean; isDragging?: boolean;
+  item: ActionItemListItem; draggable?: boolean; isDragging?: boolean; onClick?: () => void;
 }) {
   const isOverdue =
     item.dueDate && item.status !== "DONE" && new Date(item.dueDate) < new Date();
+  const colors = STATUS_COLORS[item.status];
+  const StatusIcon = STATUS_ICON_COMPONENTS[item.status];
 
   return (
     <div
-      className={`rounded-lg border border-border bg-card p-3 transition-all ${
-        isDragging ? "rotate-1 shadow-md" : draggable ? "cursor-grab hover:shadow-sm" : "cursor-default"
+      onClick={onClick}
+      className={`rounded-lg border border-l-4 bg-card p-3 transition-all ${colors.border} ${
+        isDragging ? "rotate-1 shadow-md" : draggable ? "cursor-grab hover:shadow-sm" : "cursor-pointer hover:shadow-sm"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium leading-snug text-foreground">{item.title}</p>
-        {item.dueDate && (
-          <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold flex-shrink-0 ${isOverdue ? "bg-red-100 text-red-700" : "bg-secondary text-muted-foreground"}`}>
+      {/* Top row: Icon + Title + Point Badge */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-start gap-2 flex-1">
+          <StatusIcon size={16} className={`mt-0.5 flex-shrink-0 ${colors.icon}`} />
+          <p className="text-sm font-medium leading-snug text-foreground">{item.title}</p>
+        </div>
+        <span className={`inline-block rounded px-2 py-1 text-[10px] font-semibold flex-shrink-0 ${POINT_COLORS[item.point]}`}>
+          {POINT_LABELS[item.point]}
+        </span>
+      </div>
+
+      {/* Event title */}
+      <p className="text-xs text-muted-foreground mb-2">{item.eventTitle}</p>
+
+      {/* Due date */}
+      {item.dueDate && (
+        <div className="mb-2">
+          <span className={`inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${isOverdue ? "bg-red-100 text-red-700" : "bg-secondary text-muted-foreground"}`}>
             {new Date(item.dueDate + "T00:00:00").toLocaleDateString("en-GB", {
               day: "numeric", month: "short",
             })}
           </span>
-        )}
-      </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">{item.eventTitle}</p>
-      <div className="mt-2 flex items-center justify-between gap-2">
+          {isOverdue && <span className="ml-1.5 text-[10px] font-semibold text-red-600">Overdue</span>}
+        </div>
+      )}
+
+      {/* Owner avatar + name */}
+      <div className="flex items-center gap-2 pt-1">
+        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary flex-shrink-0">
+          {getOwnerInitials(item.ownerName)}
+        </div>
         {item.ownerName && (
           <span className="text-xs text-muted-foreground truncate">{item.ownerName}</span>
         )}
-        {isOverdue && <span className="text-xs font-semibold text-red-600 flex-shrink-0">Overdue</span>}
       </div>
     </div>
   );
