@@ -79,6 +79,12 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
 
   return (
     <div className="space-y-4">
+      {/* Shared datalist for responsible party suggestions — placed once at root to avoid duplicate IDs */}
+      <datalist id="responsible-parties">
+        {users.map((u) => (
+          <option key={u.id} value={userLabel(u)} />
+        ))}
+      </datalist>
       {items.length === 0 && !showAdd ? (
         <div className="rounded-lg bg-secondary/30 p-6 text-center">
           <p className="text-sm text-muted-foreground">No action items yet.</p>
@@ -103,30 +109,23 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                     </div>
                   ) : null}
 
-                  <div className="grid gap-3">
+                  {/* Row 1: Point + Timeline */}
+                  <div className="grid grid-cols-2 gap-3">
                     <select name="point" defaultValue={item.point} className={field}>
                       <option value="ACTION_POINT">Action Point</option>
                       <option value="AGREED">Agreed</option>
                     </select>
+                    <DatePicker name="dueDate" defaultValue={item.dueDate ?? ""} placeholder="Timeline" className={field} />
+                  </div>
+
+                  {/* Row 2: Responsible party + Status */}
+                  <div className="grid grid-cols-2 gap-3">
                     <input
-                      list="ministry-people"
+                      list="responsible-parties"
                       name="ownerName"
                       defaultValue={item.ownerName ?? item.owner?.name ?? ""}
                       className={field}
-                      placeholder="Responsible party (type a name)"
-                    />
-                    <datalist id="ministry-people">
-                      {users.map((u) => (
-                        <option key={u.id} value={userLabel(u)} />
-                      ))}
-                    </datalist>
-                    <DatePicker name="dueDate" defaultValue={item.dueDate ?? ""} placeholder="Timeline" />
-                    <input
-                      name="title"
-                      defaultValue={item.title}
-                      required
-                      className={field}
-                      placeholder="Action point"
+                      placeholder="Responsible party"
                     />
                     <select name="status" defaultValue={item.status} className={field}>
                       <option value="TODO">To Do</option>
@@ -134,6 +133,16 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                       <option value="DONE">Done</option>
                     </select>
                   </div>
+
+                  {/* Row 3: Action point description (last) */}
+                  <textarea
+                    name="title"
+                    defaultValue={item.title}
+                    required
+                    rows={2}
+                    className={field}
+                    placeholder="Action point description"
+                  />
 
                   <div className="flex gap-2">
                     <button
@@ -229,30 +238,30 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                 </div>
               ) : null}
 
-              <select name="point" defaultValue="ACTION_POINT" className={field}>
-                <option value="ACTION_POINT">Action Point</option>
-                <option value="AGREED">Agreed</option>
-              </select>
+              {/* Row 1: Point + Timeline */}
+              <div className="grid grid-cols-2 gap-3">
+                <select name="point" defaultValue="ACTION_POINT" className={field}>
+                  <option value="ACTION_POINT">Action Point</option>
+                  <option value="AGREED">Agreed</option>
+                </select>
+                <DatePicker name="dueDate" placeholder="Timeline" className={field} />
+              </div>
 
+              {/* Row 2: Responsible party (full row for add form) */}
               <input
-                list="ministry-people"
+                list="responsible-parties"
                 name="ownerName"
                 className={field}
-                placeholder="Responsible party (type a name)"
+                placeholder="Responsible party"
               />
-              <datalist id="ministry-people">
-                {users.map((u) => (
-                  <option key={u.id} value={userLabel(u)} />
-                ))}
-              </datalist>
 
-              <DatePicker name="dueDate" placeholder="Timeline" />
-
-              <input
+              {/* Row 3: Action point description (last) */}
+              <textarea
                 name="title"
                 required
+                rows={2}
                 className={field}
-                placeholder="Action point"
+                placeholder="Action point description"
               />
 
               <div className="flex gap-2">
