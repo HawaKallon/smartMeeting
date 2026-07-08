@@ -30,11 +30,16 @@ export default async function ActionItemsPage({
       id: true,
       title: true,
       status: true,
+      point: true,
       dueDate: true,
+      ownerId: true,
       ownerName: true,
+      createdAt: true,
+      updatedAt: true,
       owner: { select: { id: true, name: true, email: true } },
       minutes: {
         select: {
+          eventId: true,
           event: { select: { title: true } },
         },
       },
@@ -45,9 +50,14 @@ export default async function ActionItemsPage({
     id: i.id,
     title: i.title,
     status: i.status as "TODO" | "IN_PROGRESS" | "DONE",
+    point: i.point as "ACTION_POINT" | "AGREED",
     dueDate: i.dueDate ? i.dueDate.toISOString().slice(0, 10) : null,
     eventTitle: i.minutes.event.title,
+    eventId: i.minutes.eventId,
+    ownerId: i.ownerId,
     ownerName: i.owner?.name ?? i.ownerName ?? i.owner?.email ?? null,
+    createdAt: i.createdAt.toISOString(),
+    updatedAt: i.updatedAt.toISOString(),
   }));
 
   const users = isStaff
