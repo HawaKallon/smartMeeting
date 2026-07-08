@@ -100,6 +100,11 @@ enum ActionItemStatus {
   DONE
 }
 
+enum ActionItemPoint {
+  ACTION_POINT
+  AGREED
+}
+
 enum RoomBookingPurpose {
   MEETING
   TRAINING
@@ -341,7 +346,9 @@ model ActionItem {
   title     String
   ownerId   String?
   owner     User?            @relation("ActionItemOwner", fields: [ownerId], references: [id])
+  ownerName String?
   dueDate   DateTime?
+  point     ActionItemPoint  @default(ACTION_POINT)
   status    ActionItemStatus @default(TODO)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt

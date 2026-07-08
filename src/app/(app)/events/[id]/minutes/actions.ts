@@ -7,13 +7,12 @@ import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
-import { sendMinutesSms, sendActionItemSms } from "@/lib/sms";
+import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
 import { canManageExistingEvent } from "@/lib/eventAccess";
+import { notify } from "@/lib/notify";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
-
-type Segment = { speaker: string; start: number; end: number; text: string };
 
 // ── Generate Minutes Summary (AI) ────────────────────────────────────────────
 
@@ -227,8 +226,9 @@ const AddItemSchema = z.object({
   minutesId: z.string().min(1),
   eventId: z.string().min(1),
   title: z.string().min(1, "Title is required"),
-  ownerId: z.string().optional(),
+  ownerName: z.string().optional(),
   dueDate: z.string().optional(),
+  point: z.enum(["ACTION_POINT", "AGREED"]),
 });
 
 export async function addActionItem(
@@ -241,12 +241,13 @@ export async function addActionItem(
     minutesId: formData.get("minutesId"),
     eventId: formData.get("eventId"),
     title: formData.get("title"),
-    ownerId: (formData.get("ownerId") as string) || undefined,
+    ownerName: (formData.get("ownerName") as string) || undefined,
     dueDate: (formData.get("dueDate") as string) || undefined,
+    point: formData.get("point") ?? "ACTION_POINT",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const { minutesId, eventId, title, ownerId, dueDate } = parsed.data;
+  const { minutesId, eventId, title, ownerName, dueDate, point } = parsed.data;
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -258,12 +259,21 @@ export async function addActionItem(
   if (!minutes) return { error: "Minutes not found." };
   if (minutes.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
+  // Resolve the typed name to a real user if possible.
+  let ownerId: string | null = null;
+  if (ownerName) {
+    const resolved = await resolveOwner(event.ministryId, ownerName);
+    ownerId = resolved?.id ?? null;
+  }
+
   const item = await prisma.actionItem.create({
     data: {
       minutesId,
       title,
-      ownerId: ownerId ?? null,
+      ownerId,
+      ownerName: ownerName ?? null,
       dueDate: dueDate ? new Date(dueDate) : null,
+      point,
     },
   });
 
@@ -276,7 +286,7 @@ export async function addActionItem(
     ministryId: event.ministryId,
   });
 
-  // Notify the owner if one was assigned.
+  // Notify the owner if one was resolved to a real user.
   if (ownerId) {
     await notifyActionItemOwner({ ownerId, title, dueDate: item.dueDate, eventId, minutesId });
   }
@@ -292,8 +302,9 @@ const UpdateItemSchema = z.object({
   minutesId: z.string().min(1),
   eventId: z.string().min(1),
   title: z.string().min(1, "Title is required"),
-  ownerId: z.string().optional(),
+  ownerName: z.string().optional(),
   dueDate: z.string().optional(),
+  point: z.enum(["ACTION_POINT", "AGREED"]),
   status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
 });
 
@@ -308,13 +319,14 @@ export async function updateActionItem(
     minutesId: formData.get("minutesId"),
     eventId: formData.get("eventId"),
     title: formData.get("title"),
-    ownerId: (formData.get("ownerId") as string) || undefined,
+    ownerName: (formData.get("ownerName") as string) || undefined,
     dueDate: (formData.get("dueDate") as string) || undefined,
+    point: formData.get("point") ?? "ACTION_POINT",
     status: formData.get("status") ?? "TODO",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const { itemId, minutesId, eventId, title, ownerId, dueDate, status } = parsed.data;
+  const { itemId, minutesId, eventId, title, ownerName, dueDate, point, status } = parsed.data;
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -328,14 +340,23 @@ export async function updateActionItem(
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
   if (minutes?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
+  // Resolve the typed name to a real user if possible.
+  let ownerId: string | null = null;
+  if (ownerName) {
+    const resolved = await resolveOwner(event.ministryId, ownerName);
+    ownerId = resolved?.id ?? null;
+  }
+
   const ownerChanged = ownerId && ownerId !== item.ownerId;
 
   await prisma.actionItem.update({
     where: { id: itemId },
     data: {
       title,
-      ownerId: ownerId ?? null,
+      ownerId,
+      ownerName: ownerName ?? null,
       dueDate: dueDate ? new Date(dueDate) : null,
+      point,
       status,
     },
   });
@@ -403,19 +424,37 @@ export async function deleteActionItem(formData: FormData): Promise<void> {
 
 // ── Internal helper ──────────────────────────────────────────────────────────
 
+async function resolveOwner(ministryId: string, name: string) {
+  if (!name || !name.trim()) return null;
+  const trimmed = name.trim();
+  return prisma.user.findFirst({
+    where: {
+      ministryId,
+      role: { not: "SUPER_ADMIN" },
+      OR: [
+        { name: { equals: trimmed, mode: "insensitive" } },
+        { email: { equals: trimmed, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true },
+  });
+}
+
 async function notifyActionItemOwner({
-  ownerId, title, dueDate, eventId, minutesId,
+  ownerId, title, dueDate, eventId,
 }: {
   ownerId: string; title: string; dueDate: Date | null;
-  eventId: string; minutesId: string;
+  eventId: string; minutesId?: string;
 }) {
   const [owner, event] = await Promise.all([
-    prisma.user.findUnique({ where: { id: ownerId }, select: { name: true, email: true } }),
+    prisma.user.findUnique({ where: { id: ownerId }, select: { id: true, name: true, email: true, ministryId: true } }),
     prisma.event.findUnique({ where: { id: eventId }, select: { title: true } }),
   ]);
   if (!owner || !event) return;
 
   const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
+  const dueDateStr = dueDate ? dueDate.toLocaleDateString() : "No deadline set";
+  const body = `Action item: ${title}\nTimeline: ${dueDateStr}`;
 
   await Promise.allSettled([
     sendActionItemEmail({
@@ -426,11 +465,13 @@ async function notifyActionItemOwner({
       dueDate,
       minutesUrl,
     }),
-    sendActionItemSms({
-      to: owner.email, // phone field would replace this in a full implementation
-      toName: owner.name ?? owner.email,
-      title,
-      dueDate,
+    notify({
+      userId: owner.id,
+      type: "ACTION_ITEM",
+      title: "New action item assigned",
+      body,
+      link: minutesUrl,
+      ministryId: owner.ministryId,
     }),
   ]);
 }
