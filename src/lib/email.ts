@@ -91,6 +91,14 @@ function emailShell({
 </html>`;
 }
 
+function emailDetailRow(label: string, value: string) {
+  return `
+    <tr>
+      <td style="padding:9px 16px 9px 0;color:#64748b;font-size:13px;font-weight:700;vertical-align:top;white-space:nowrap;">${label}</td>
+      <td style="padding:9px 0;color:#172033;font-size:14px;line-height:1.55;vertical-align:top;">${value}</td>
+    </tr>`;
+}
+
 // ── Welcome / New User Invitation ─────────────────────────────────────────────
 
 export async function sendWelcomeEmail({
@@ -330,7 +338,7 @@ export async function sendActionItemEmail({
   to, toName, title, eventTitle, dueDate, minutesUrl,
 }: {
   to: string; toName: string; title: string;
-  eventTitle: string; dueDate: Date | null; minutesUrl: string;
+  eventTitle: string; dueDate: Date | null; minutesUrl: string | null;
 }) {
   if (!resend) return skip(to, `RESEND_API_KEY not set`);
   if (!FROM || FROM === "noreply@resend.dev") {
@@ -353,12 +361,150 @@ export async function sendActionItemEmail({
         `  Task : ${title}`,
         `  Due  : ${due}`,
         ``,
-        `View details: ${minutesUrl}`,
+        minutesUrl
+          ? `View details: ${minutesUrl}`
+          : `Please contact the meeting organizer if you need the full meeting minutes.`,
       ].join("\n"),
     });
     console.log(`[email] sent action item to ${to}:`, result.data?.id);
   } catch (err) {
     logError(to, `Action Item Assigned: ${title}`, err);
+  }
+}
+
+// ── Action Item Created ───────────────────────────────────────────────────────
+
+export async function sendActionItemCreatedEmail({
+  to, toName, title, eventTitle, ownerName, dueDate, minutesUrl,
+}: {
+  to: string; toName: string; title: string;
+  eventTitle: string; ownerName: string | null; dueDate: Date | null; minutesUrl: string | null;
+}) {
+  if (!resend) return skip(to, `RESEND_API_KEY not set`);
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured in .env`);
+  }
+
+  const due = dueDate
+    ? dueDate.toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+    : "No deadline set";
+  const safe = {
+    toName: escapeHtml(toName),
+    title: escapeHtml(title),
+    eventTitle: escapeHtml(eventTitle),
+    ownerName: escapeHtml(ownerName || "Not assigned"),
+    due: escapeHtml(due),
+    minutesUrl: minutesUrl ? escapeHtml(minutesUrl) : null,
+  };
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM, to,
+      subject: `New Action Item: ${title}`,
+      text: [
+        `Dear ${toName},`,
+        ``,
+        `A new action item was created for "${eventTitle}":`,
+        ``,
+        `  Task        : ${title}`,
+        `  Responsible : ${ownerName || "Not assigned"}`,
+        `  Due         : ${due}`,
+        ``,
+        minutesUrl
+          ? `View details: ${minutesUrl}`
+          : `Please contact the meeting organizer if you need the full meeting minutes.`,
+      ].join("\n"),
+      html: emailShell({
+        eyebrow: "Action item notice",
+        title: "New Action Item Created",
+        ministryName: safe.eventTitle,
+        intro: `Dear ${safe.toName}, a new action item has been recorded from the meeting <strong>${safe.eventTitle}</strong>. This notice is shared with all meeting invitees for accountability and follow-up.`,
+        body: `
+          <div style="border:1px solid #d8e1ee;border-radius:14px;background:#f9fbfe;padding:16px 20px;margin-bottom:24px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+              ${emailDetailRow("Meeting", safe.eventTitle)}
+              ${emailDetailRow("Action item", safe.title)}
+              ${emailDetailRow("Responsible party", safe.ownerName)}
+              ${emailDetailRow("Timeline", safe.due)}
+            </table>
+          </div>
+          ${safe.minutesUrl
+            ? `<p style="margin:0 0 22px;font-size:14px;line-height:1.7;color:#334155;">Please review the meeting minutes for the full context and any related decisions.</p><p style="margin:0 0 22px;"><a href="${safe.minutesUrl}" style="display:inline-block;background:#003580;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 22px;border-radius:12px;">View Meeting Minutes</a></p>`
+            : `<p style="margin:0 0 22px;font-size:14px;line-height:1.7;color:#334155;">If you need the official meeting minutes, please contact the meeting organizer or responsible ministry representative.</p>`}
+          <p style="margin:0;font-size:12px;line-height:1.6;color:#64748b;">This notification was sent to all invitees for this meeting, including pending and declined invitees.</p>
+        `,
+        footer: `This is an official action item notification for ${safe.eventTitle}.`,
+      }),
+    });
+    console.log(`[email] sent action item created notice to ${to}:`, result.data?.id);
+  } catch (err) {
+    logError(to, `New Action Item: ${title}`, err);
+  }
+}
+
+// ── Action Item Status Changed ────────────────────────────────────────────────
+
+export async function sendActionItemStatusChangedEmail({
+  to, toName, title, eventTitle, oldStatus, newStatus, minutesUrl,
+}: {
+  to: string; toName: string; title: string;
+  eventTitle: string; oldStatus: string; newStatus: string; minutesUrl: string | null;
+}) {
+  if (!resend) return skip(to, `RESEND_API_KEY not set`);
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured in .env`);
+  }
+  const safe = {
+    toName: escapeHtml(toName),
+    title: escapeHtml(title),
+    eventTitle: escapeHtml(eventTitle),
+    oldStatus: escapeHtml(oldStatus),
+    newStatus: escapeHtml(newStatus),
+    minutesUrl: minutesUrl ? escapeHtml(minutesUrl) : null,
+  };
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM, to,
+      subject: `Action Item Status Updated: ${title}`,
+      text: [
+        `Dear ${toName},`,
+        ``,
+        `An action item status changed for "${eventTitle}":`,
+        ``,
+        `  Task        : ${title}`,
+        `  Previous    : ${oldStatus}`,
+        `  Current     : ${newStatus}`,
+        ``,
+        minutesUrl
+          ? `View details: ${minutesUrl}`
+          : `Please contact the meeting organizer if you need the full meeting minutes.`,
+      ].join("\n"),
+      html: emailShell({
+        eyebrow: "Action item update",
+        title: "Action Item Status Updated",
+        ministryName: safe.eventTitle,
+        intro: `Dear ${safe.toName}, the status of an action item from <strong>${safe.eventTitle}</strong> has been updated. This notice is shared with all meeting invitees so everyone has the latest task position.`,
+        body: `
+          <div style="border:1px solid #d8e1ee;border-radius:14px;background:#f9fbfe;padding:16px 20px;margin-bottom:24px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+              ${emailDetailRow("Meeting", safe.eventTitle)}
+              ${emailDetailRow("Action item", safe.title)}
+              ${emailDetailRow("Previous status", safe.oldStatus)}
+              ${emailDetailRow("Current status", `<span style="display:inline-block;background:#e8f4ed;color:#007236;border:1px solid #b9dec9;border-radius:999px;padding:4px 10px;font-weight:700;">${safe.newStatus}</span>`)}
+            </table>
+          </div>
+          ${safe.minutesUrl
+            ? `<p style="margin:0 0 22px;font-size:14px;line-height:1.7;color:#334155;">Please refer to the meeting minutes for the full action log and supporting context.</p><p style="margin:0 0 22px;"><a href="${safe.minutesUrl}" style="display:inline-block;background:#003580;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 22px;border-radius:12px;">View Meeting Minutes</a></p>`
+            : `<p style="margin:0 0 22px;font-size:14px;line-height:1.7;color:#334155;">If you need the official meeting minutes, please contact the meeting organizer or responsible ministry representative.</p>`}
+          <p style="margin:0;font-size:12px;line-height:1.6;color:#64748b;">This notification was sent to all invitees for this meeting, including pending and declined invitees.</p>
+        `,
+        footer: `This is an official action item update for ${safe.eventTitle}.`,
+      }),
+    });
+    console.log(`[email] sent action item status notice to ${to}:`, result.data?.id);
+  } catch (err) {
+    logError(to, `Action Item Status Updated: ${title}`, err);
   }
 }
 
