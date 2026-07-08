@@ -348,6 +348,7 @@ model ActionItem {
   owner     User?            @relation("ActionItemOwner", fields: [ownerId], references: [id])
   ownerName String?
   dueDate   DateTime?
+  reminderSentAt DateTime?
   point     ActionItemPoint  @default(ACTION_POINT)
   status    ActionItemStatus @default(TODO)
   createdAt DateTime         @default(now())
@@ -355,6 +356,7 @@ model ActionItem {
 
   @@index([minutesId])
   @@index([ownerId])
+  @@index([reminderSentAt])
 }
 
 /// Append-only audit trail (PRD §7).

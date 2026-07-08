@@ -518,8 +518,9 @@ export async function sendReminderEmail({
 }) {
   if (!resend) return skip(to);
 
-  const due = dueDate.toLocaleDateString("en-GB", {
+  const due = dueDate.toLocaleString("en-GB", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
   });
 
   try {

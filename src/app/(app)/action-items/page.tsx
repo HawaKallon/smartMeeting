@@ -51,7 +51,7 @@ export default async function ActionItemsPage({
     title: i.title,
     status: i.status as "TODO" | "IN_PROGRESS" | "DONE",
     point: i.point as "ACTION_POINT" | "AGREED",
-    dueDate: i.dueDate ? i.dueDate.toISOString().slice(0, 10) : null,
+    dueDate: i.dueDate ? i.dueDate.toISOString() : null,
     eventTitle: i.minutes.event.title,
     eventId: i.minutes.eventId,
     ownerId: i.ownerId,
