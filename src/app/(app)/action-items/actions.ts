@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { audit } from "@/lib/audit";
+import { notifyMeetingInviteesActionItemStatusChanged } from "@/lib/actionItemNotifications";
 
 const Schema = z.object({
   itemId: z.string().min(1),
@@ -31,13 +32,20 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
       id: itemId,
       minutes: { event: { ministryId: session.ministryId || undefined } },
     },
-    select: { id: true, ownerId: true, minutes: { select: { event: { select: { ministryId: true } } } } },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      ownerId: true,
+      minutes: { select: { eventId: true, event: { select: { ministryId: true } } } },
+    },
   });
   if (!item) return;
 
   const isStaff = isSuperAdmin(session.role) || session.role === "ADMIN_STAFF" || session.role === "ADMIN";
   const isOwner = item.ownerId === session.id;
   if (!isStaff && !isOwner) return;
+  if (item.status === status) return;
 
   await prisma.actionItem.update({ where: { id: itemId }, data: { status } });
 
@@ -48,6 +56,13 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
     entityId: itemId,
     metadata: { status },
     ministryId: session.ministryId,
+  });
+
+  await notifyMeetingInviteesActionItemStatusChanged({
+    eventId: item.minutes.eventId,
+    title: item.title,
+    oldStatus: item.status,
+    newStatus: status,
   });
 
   revalidatePath("/administrative/action-items");

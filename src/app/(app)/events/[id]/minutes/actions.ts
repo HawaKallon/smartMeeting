@@ -11,6 +11,10 @@ import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
 import { canManageExistingEvent } from "@/lib/eventAccess";
 import { notify } from "@/lib/notify";
+import {
+  notifyMeetingInviteesActionItemCreated,
+  notifyMeetingInviteesActionItemStatusChanged,
+} from "@/lib/actionItemNotifications";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
 
@@ -297,6 +301,17 @@ export async function addActionItem(
     });
   }
 
+  await notifyMeetingInviteesActionItemCreated({
+    eventId,
+    title,
+    ownerName: ownerName ?? null,
+    dueDate: item.dueDate,
+    exclusions: {
+      userIds: assignee?.kind === "internal" ? [assignee.userId] : [],
+      emails: assignee ? [assignee.email] : [],
+    },
+  });
+
   revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
 }
@@ -346,6 +361,7 @@ export async function updateActionItem(
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
   if (minutes?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
+  const oldStatus = item.status as "TODO" | "IN_PROGRESS" | "DONE";
   const assignee = ownerName
     ? await resolveActionItemAssignee(event.ministryId, eventId, ownerName)
     : null;
@@ -392,6 +408,13 @@ export async function updateActionItem(
     });
   }
 
+  await notifyMeetingInviteesActionItemStatusChanged({
+    eventId,
+    title,
+    oldStatus,
+    newStatus: status,
+  });
+
   revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
 }
@@ -436,7 +459,7 @@ export async function deleteActionItem(formData: FormData): Promise<void> {
 // ── Internal helper ──────────────────────────────────────────────────────────
 
 type ResolvedActionItemAssignee =
-  | { kind: "internal"; userId: string }
+  | { kind: "internal"; userId: string; email: string }
   | { kind: "external"; attendeeId: string; name: string; email: string };
 
 function normalizeAssignee(value: string | null | undefined) {
@@ -460,9 +483,9 @@ async function resolveActionItemAssignee(
         { email: { equals: trimmed, mode: "insensitive" } },
       ],
     },
-    select: { id: true },
+    select: { id: true, email: true },
   });
-  if (user) return { kind: "internal", userId: user.id };
+  if (user) return { kind: "internal", userId: user.id, email: user.email };
 
   const externalByEmail = await prisma.eventAttendee.findFirst({
     where: {
@@ -524,7 +547,7 @@ async function notifyExternalActionItemOwner({
     title,
     eventTitle: event.title,
     dueDate,
-    minutesUrl: absoluteAppUrl(`/administrative/events/${eventId}/minutes`),
+    minutesUrl: null,
   });
 }
 
