@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function ActionItemsView({ items, canMoveAny, currentUserId, ownerFilter, users }: Props) {
-  const [view, setView] = useState<"table" | "board">("table");
+  const [view, setView] = useState<"table" | "board">("board");
   const [selectedItem, setSelectedItem] = useState<ActionItemListItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
