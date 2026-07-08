@@ -20,7 +20,9 @@ import {
   POINT_LABELS,
   STATUS_COLORS,
   STATUS_ICON_COMPONENTS,
+  formatTimeline,
   getOwnerInitials,
+  isActionItemOverdue,
   type ActionItemListItem,
   type Status,
 } from "./utils";
@@ -207,8 +209,7 @@ function CardView({
 }: {
   item: ActionItemListItem; draggable?: boolean; isDragging?: boolean; onClick?: () => void;
 }) {
-  const isOverdue =
-    item.dueDate && item.status !== "DONE" && new Date(item.dueDate) < new Date();
+  const isOverdue = isActionItemOverdue(item.dueDate, item.status);
   const colors = STATUS_COLORS[item.status];
   const StatusIcon = STATUS_ICON_COMPONENTS[item.status];
 
@@ -237,9 +238,7 @@ function CardView({
       {item.dueDate && (
         <div className="mb-2">
           <span className={`inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${isOverdue ? "bg-red-100 text-red-700" : "bg-secondary text-muted-foreground"}`}>
-            {new Date(item.dueDate + "T00:00:00").toLocaleDateString("en-GB", {
-              day: "numeric", month: "short",
-            })}
+            {formatTimeline(item.dueDate)}
           </span>
           {isOverdue && <span className="ml-1.5 text-[10px] font-semibold text-red-600">Overdue</span>}
         </div>

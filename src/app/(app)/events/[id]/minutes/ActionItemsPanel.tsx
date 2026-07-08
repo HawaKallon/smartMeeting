@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Plus, Edit2, Trash2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { addActionItem, updateActionItem, deleteActionItem, type ActionState } from "./actions";
-import { DatePicker } from "@/components/DatePicker";
+import { DateTimePicker } from "@/components/DateTimePicker";
 
 type Item = {
   id: string;
@@ -61,9 +61,38 @@ function userLabel(u: User) {
   return u.name ?? u.email;
 }
 
+function toDateTimeLocalValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function currentLocalMinute() {
+  return toDateTimeLocalValue(new Date().toISOString());
+}
+
+function currentTimezoneOffset() {
+  return String(new Date().getTimezoneOffset());
+}
+
+function formatTimeline(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function ActionItemsPanel({ minutesId, eventId, items, users, published, canEdit }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const timelineMin = currentLocalMinute();
+  const timezoneOffset = currentTimezoneOffset();
 
   const [addState, addAction, addPending] = useActionState<ActionState, FormData>(
     addActionItem,
@@ -98,6 +127,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                   <input type="hidden" name="itemId" value={item.id} />
                   <input type="hidden" name="minutesId" value={minutesId} />
                   <input type="hidden" name="eventId" value={eventId} />
+                  <input type="hidden" name="timezoneOffset" value={timezoneOffset} />
 
                   {editState?.error ? (
                     <div className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
@@ -115,7 +145,13 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                       <option value="ACTION_POINT">Action Point</option>
                       <option value="AGREED">Agreed</option>
                     </select>
-                    <DatePicker name="dueDate" defaultValue={item.dueDate ?? ""} placeholder="Timeline" className={field} />
+                    <DateTimePicker
+                      name="dueDate"
+                      defaultValue={toDateTimeLocalValue(item.dueDate)}
+                      placeholder="Timeline"
+                      className={field}
+                      min={timelineMin}
+                    />
                   </div>
 
                   {/* Row 2: Responsible party + Status */}
@@ -185,7 +221,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                         )}
                         {item.dueDate && (
                           <span className="rounded-full bg-muted/50 px-2.5 py-1 text-muted-foreground">
-                            Timeline: {new Date(item.dueDate + "T00:00:00").toLocaleDateString()}
+                            Timeline: {formatTimeline(item.dueDate)}
                           </span>
                         )}
                         <span className={`rounded-full px-2.5 py-1 font-medium ${STATUS_BADGE[item.status]}`}>
@@ -231,6 +267,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
             <form action={addAction} className="space-y-3 rounded-lg border border-border bg-secondary/50 p-4">
               <input type="hidden" name="minutesId" value={minutesId} />
               <input type="hidden" name="eventId" value={eventId} />
+              <input type="hidden" name="timezoneOffset" value={timezoneOffset} />
 
               {addState?.error ? (
                 <div className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
@@ -244,7 +281,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                   <option value="ACTION_POINT">Action Point</option>
                   <option value="AGREED">Agreed</option>
                 </select>
-                <DatePicker name="dueDate" placeholder="Timeline" className={field} />
+                <DateTimePicker name="dueDate" placeholder="Timeline" className={field} min={timelineMin} />
               </div>
 
               {/* Row 2: Responsible party (full row for add form) */}

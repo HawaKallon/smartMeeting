@@ -69,3 +69,19 @@ export function getOwnerInitials(name: string | null): string {
     .toUpperCase()
     .slice(0, 2);
 }
+
+export function isActionItemOverdue(dueDate: string | null, status: Status): boolean {
+  return !!(dueDate && status !== "DONE" && new Date(dueDate) < new Date());
+}
+
+export function formatTimeline(dueDate: string | null, options?: { year?: boolean }): string {
+  if (!dueDate) return "—";
+
+  return new Date(dueDate).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    ...(options?.year ? { year: "numeric" as const } : {}),
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

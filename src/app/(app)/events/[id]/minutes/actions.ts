@@ -18,6 +18,33 @@ import {
 
 export type ActionState = { error?: string; ok?: true } | undefined;
 
+function parseFutureTimeline(
+  value: string | undefined,
+  timezoneOffset: string | undefined,
+): { date: Date | null } | { error: string } {
+  if (!value) return { date: null };
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  const offset = Number(timezoneOffset);
+  const date = match && Number.isFinite(offset)
+    ? new Date(
+        Date.UTC(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+          Number(match[4]),
+          Number(match[5]),
+        ) + offset * 60_000,
+      )
+    : new Date(value);
+
+  if (Number.isNaN(date.getTime()) || date <= new Date()) {
+    return { error: "Timeline must be in the future." };
+  }
+
+  return { date };
+}
+
 // ── Generate Minutes Summary (AI) ────────────────────────────────────────────
 
 const GenerateSummarySchema = z.object({
@@ -232,6 +259,7 @@ const AddItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   ownerName: z.string().optional(),
   dueDate: z.string().optional(),
+  timezoneOffset: z.string().optional(),
   point: z.enum(["ACTION_POINT", "AGREED"]),
 });
 
@@ -247,11 +275,14 @@ export async function addActionItem(
     title: formData.get("title"),
     ownerName: (formData.get("ownerName") as string) || undefined,
     dueDate: (formData.get("dueDate") as string) || undefined,
+    timezoneOffset: (formData.get("timezoneOffset") as string) || undefined,
     point: formData.get("point") ?? "ACTION_POINT",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const { minutesId, eventId, title, ownerName, dueDate, point } = parsed.data;
+  const { minutesId, eventId, title, ownerName, dueDate, timezoneOffset, point } = parsed.data;
+  const timeline = parseFutureTimeline(dueDate, timezoneOffset);
+  if ("error" in timeline) return { error: timeline.error };
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -274,7 +305,7 @@ export async function addActionItem(
       title,
       ownerId,
       ownerName: ownerName ?? null,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      dueDate: timeline.date,
       point,
     },
   });
@@ -325,6 +356,7 @@ const UpdateItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   ownerName: z.string().optional(),
   dueDate: z.string().optional(),
+  timezoneOffset: z.string().optional(),
   point: z.enum(["ACTION_POINT", "AGREED"]),
   status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
 });
@@ -342,12 +374,15 @@ export async function updateActionItem(
     title: formData.get("title"),
     ownerName: (formData.get("ownerName") as string) || undefined,
     dueDate: (formData.get("dueDate") as string) || undefined,
+    timezoneOffset: (formData.get("timezoneOffset") as string) || undefined,
     point: formData.get("point") ?? "ACTION_POINT",
     status: formData.get("status") ?? "TODO",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const { itemId, minutesId, eventId, title, ownerName, dueDate, point, status } = parsed.data;
+  const { itemId, minutesId, eventId, title, ownerName, dueDate, timezoneOffset, point, status } = parsed.data;
+  const timeline = parseFutureTimeline(dueDate, timezoneOffset);
+  if ("error" in timeline) return { error: timeline.error };
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -367,6 +402,9 @@ export async function updateActionItem(
     : null;
   const ownerId = assignee?.kind === "internal" ? assignee.userId : null;
   const ownerChanged = assignee ? assigneeChanged(item, assignee, ownerName ?? null) : false;
+  const ownerNameChanged = normalizeAssignee(item.ownerName) !== normalizeAssignee(ownerName);
+  const dueDateChanged = (item.dueDate?.getTime() ?? null) !== (timeline.date?.getTime() ?? null);
+  const resetReminder = ownerChanged || ownerNameChanged || dueDateChanged;
 
   await prisma.actionItem.update({
     where: { id: itemId },
@@ -374,7 +412,8 @@ export async function updateActionItem(
       title,
       ownerId,
       ownerName: ownerName ?? null,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      dueDate: timeline.date,
+      ...(resetReminder ? { reminderSentAt: null } : {}),
       point,
       status,
     },
@@ -394,7 +433,7 @@ export async function updateActionItem(
     await notifyActionItemOwner({
       ownerId: assignee.userId,
       title,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      dueDate: timeline.date,
       eventId,
       minutesId,
     });
@@ -403,7 +442,7 @@ export async function updateActionItem(
       to: assignee.email,
       toName: assignee.name,
       title,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      dueDate: timeline.date,
       eventId,
     });
   }
