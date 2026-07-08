@@ -8,7 +8,9 @@ import {
   STATUS_COLORS,
   STATUS_ICON_COMPONENTS,
   STATUS_LABELS,
+  formatTimeline,
   getOwnerInitials,
+  isActionItemOverdue,
   type ActionItemListItem,
   type Status,
 } from "./utils";
@@ -50,20 +52,8 @@ export function ActionItemsTable({
     });
   }
 
-  function isOverdue(dueDate: string | null, status: Status): boolean {
-    return !!(dueDate && status !== "DONE" && new Date(dueDate + "T00:00:00") < new Date());
-  }
-
   function canChangeStatus(item: ActionItemListItem) {
     return canMoveAny || item.ownerId === currentUserId;
-  }
-
-  function formatDate(dateStr: string | null): string {
-    if (!dateStr) return "—";
-    return new Date(dateStr + "T00:00:00").toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-    });
   }
 
   return (
@@ -90,7 +80,7 @@ export function ActionItemsTable({
         </thead>
         <tbody className="divide-y divide-border/60">
           {visible.map((item, idx) => {
-            const overdue = isOverdue(item.dueDate, item.status);
+            const overdue = isActionItemOverdue(item.dueDate, item.status);
             const StatusIcon = STATUS_ICON_COMPONENTS[item.status];
             return (
               <tr
@@ -126,7 +116,7 @@ export function ActionItemsTable({
                         overdue ? "font-semibold text-red-600" : "text-muted-foreground"
                       }`}
                     >
-                      {formatDate(item.dueDate)}
+                      {formatTimeline(item.dueDate)}
                     </span>
                     {overdue && (
                       <span className="text-xs font-semibold text-red-600">Overdue</span>

@@ -3,7 +3,7 @@
 import { X, ListTodo, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
-import { POINT_COLORS, POINT_LABELS, STATUS_LABELS, type ActionItemListItem } from "./utils";
+import { POINT_COLORS, POINT_LABELS, STATUS_LABELS, formatTimeline, type ActionItemListItem } from "./utils";
 
 interface Props {
   item: ActionItemListItem | null;
@@ -94,13 +94,7 @@ export function ActionItemModal({ item, open, onClose }: Props) {
                 Timeline
               </p>
               <p className="text-sm text-foreground">
-                {item.dueDate
-                  ? new Date(item.dueDate + "T00:00:00").toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })
-                  : "—"}
+                {formatTimeline(item.dueDate, { year: true })}
               </p>
             </div>
             <div>

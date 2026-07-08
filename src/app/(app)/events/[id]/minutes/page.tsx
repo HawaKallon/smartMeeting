@@ -89,7 +89,7 @@ export default async function MinutesPage({
     title: item.title,
     status: item.status as "TODO" | "IN_PROGRESS" | "DONE",
     point: item.point as "ACTION_POINT" | "AGREED",
-    dueDate: item.dueDate ? item.dueDate.toISOString().slice(0, 10) : null,
+    dueDate: item.dueDate ? item.dueDate.toISOString() : null,
     ownerName: item.ownerName,
     owner: item.owner,
   }));
