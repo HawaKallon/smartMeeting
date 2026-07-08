@@ -77,14 +77,16 @@ export default async function MinutesPage({
   const isPublished = minutes.status === "PUBLISHED";
 
   // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
-  const segments: any[] = [];
+  const segments: Segment[] = [];
 
   // Serialize dates for client components.
   const itemsForClient = minutes.actionItems.map((item) => ({
     id: item.id,
     title: item.title,
     status: item.status as "TODO" | "IN_PROGRESS" | "DONE",
+    point: item.point as "ACTION_POINT" | "AGREED",
     dueDate: item.dueDate ? item.dueDate.toISOString().slice(0, 10) : null,
+    ownerName: item.ownerName,
     owner: item.owner,
   }));
 
