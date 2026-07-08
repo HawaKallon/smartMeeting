@@ -63,14 +63,18 @@ export default async function MinutesPage({
     });
   }
 
-  const users = await prisma.user.findMany({
-    where: {
-      ministryId: event.ministryId,
-      role: { not: "SUPER_ADMIN" },
-    },
-    select: { id: true, name: true, email: true },
-    orderBy: [{ name: "asc" }, { email: "asc" }],
+  const attendees = await prisma.eventAttendee.findMany({
+    where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
   });
+  const users = attendees
+    .map((a) => ({
+      id: a.user?.id ?? a.id,
+      name: a.user?.name ?? a.externalName ?? null,
+      email: a.user?.email ?? a.externalEmail ?? "",
+    }))
+    .filter((p) => p.name || p.email);
 
   const isAdmin = canManageExistingEvent(user, event);
   const isApprover = canViewMinutesForEvent(user, event) && !isAdmin;
