@@ -218,33 +218,27 @@ export function PublicEventForm({ event, isNew, ministries = [], userMinistryId 
 
         {/* Invite Ministries */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-3">
+          <label htmlFor="invitedMinistryIds" className="block text-sm font-medium text-foreground mb-2">
             Invite Ministries
           </label>
-          <div className="space-y-2">
+          <select
+            id="invitedMinistryIds"
+            name="invitedMinistryIds"
+            multiple
+            defaultValue={event?.invitedMinistries?.map(m => m.id) ?? []}
+            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
+          >
             {ministries.map((ministry) => {
-              const invitedIds = event?.invitedMinistries?.map(m => m.id) ?? [];
-              const isChecked = invitedIds.includes(ministry.id);
               const isOrganizerMinistry = ministry.id === userMinistryId;
               return (
-                <label key={ministry.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="invitedMinistryIds"
-                    value={ministry.id}
-                    defaultChecked={isChecked}
-                    disabled={isOrganizerMinistry}
-                    className="rounded border-border"
-                  />
-                  <span className="text-sm text-foreground">
-                    {ministry.name} {isOrganizerMinistry ? "(Your ministry — organizer)" : ""}
-                  </span>
-                </label>
+                <option key={ministry.id} value={ministry.id} disabled={isOrganizerMinistry}>
+                  {ministry.name} {isOrganizerMinistry ? "(Your ministry — organizer)" : ""}
+                </option>
               );
             })}
-          </div>
+          </select>
           <p className="mt-2 text-xs text-muted-foreground">
-            Selected ministries will be notified when this event is published.
+            Hold Ctrl/Cmd to select multiple. Selected ministries will be notified when this event is published.
           </p>
         </div>
 
