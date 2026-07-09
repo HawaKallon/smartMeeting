@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X } from "lucide-react";
 
 interface Ministry {
   id: string;
@@ -140,7 +140,7 @@ export function MinistryMultiSelect({
               </ul>
             ) : searchTerm && availableMinistries.length > 0 ? (
               <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                No ministries match "{searchTerm}"
+                No ministries match &quot;{searchTerm}&quot;
               </div>
             ) : availableMinistries.length === 0 ? (
               <div className="px-4 py-3 text-sm text-muted-foreground text-center">

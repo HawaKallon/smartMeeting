@@ -13,31 +13,23 @@ type SidebarStateContextValue = {
 const SidebarStateContext = createContext<SidebarStateContextValue | null>(null);
 
 export function SidebarStateProvider({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
 
-  useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved === "true") {
-        setCollapsed(true);
-      }
+      return window.localStorage.getItem(STORAGE_KEY) === "true";
     } catch {
-      // Ignore storage access issues and fall back to the default expanded state.
-    } finally {
-      setHydrated(true);
+      return false;
     }
-  }, []);
+  });
 
   useEffect(() => {
-    if (!hydrated) return;
-
     try {
       window.localStorage.setItem(STORAGE_KEY, String(collapsed));
     } catch {
       // Ignore storage write issues.
     }
-  }, [collapsed, hydrated]);
+  }, [collapsed]);
 
   const value = useMemo(
     () => ({

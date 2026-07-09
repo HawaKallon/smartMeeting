@@ -10,12 +10,10 @@ interface IdleLogoutProps {
 export function IdleLogout({ timeoutMinutes }: IdleLogoutProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // -1 means never timeout
-  if (timeoutMinutes === -1) {
-    return null;
-  }
-
   useEffect(() => {
+    // -1 means never timeout
+    if (timeoutMinutes === -1) return;
+
     const timeoutMs = timeoutMinutes * 60 * 1000;
 
     const resetTimeout = () => {
