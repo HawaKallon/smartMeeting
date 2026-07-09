@@ -10,7 +10,7 @@ interface NotificationBellProps {
 
 export function NotificationBell({ initialNotifications }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications] = useState(initialNotifications);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
