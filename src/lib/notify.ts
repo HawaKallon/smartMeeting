@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma/client";
 
 // In-app notifications helper. Mirrors the error-swallowing pattern of audit.ts
 // so a failed notification never breaks the primary action.

@@ -18,16 +18,16 @@
 
 export async function sendInviteSms(_args: {
   to: string; toName: string; eventTitle: string; startAt: Date;
-}) { /* SMS disabled — email only for now */ }
+}) { void _args; /* SMS disabled — email only for now */ }
 
 export async function sendActionItemSms(_args: {
   to: string; toName: string; title: string; dueDate: Date | null;
-}) { /* SMS disabled — email only for now */ }
+}) { void _args; /* SMS disabled — email only for now */ }
 
 export async function sendReminderSms(_args: {
   to: string; toName: string; title: string; dueDate: Date;
-}) { /* SMS disabled — email only for now */ }
+}) { void _args; /* SMS disabled — email only for now */ }
 
 export async function sendMinutesSms(_args: {
   to: string; toName: string; eventTitle: string;
-}) { /* SMS disabled — email only for now */ }
+}) { void _args; /* SMS disabled — email only for now */ }
