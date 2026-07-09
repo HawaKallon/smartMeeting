@@ -123,7 +123,7 @@ export default async function PublicEventDetailPage({
               </div>
             )}
 
-            {event.externalUrl && (
+            {/* {event.externalUrl && (
               <div className="pt-6">
                 <a
                   href={event.externalUrl}
@@ -135,7 +135,7 @@ export default async function PublicEventDetailPage({
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
