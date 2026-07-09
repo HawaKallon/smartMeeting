@@ -3,7 +3,6 @@ import Link from "next/link";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PublicCalendarShell } from "@/components/PublicCalendarShell";
-import { getCategoryLabel } from "@/lib/public-event-categories";
 import type { PublicEventCategory } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = {
