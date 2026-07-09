@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-const FLAG_SRC = "/sl_flag.png";
+const FLAG_SRC = "/sl-flag.png";
 
 export function SierraLeoneFlag({
   className = "",
