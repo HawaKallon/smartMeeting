@@ -58,6 +58,18 @@ export function isSuperAdmin(role: MinistryRole | undefined): boolean {
   return role === "SUPER_ADMIN";
 }
 
+/** Leadership roles: MINISTER, PERMANENT_SECRETARY, DEPUTY_MINISTER, DEPUTY_SECRETARY. */
+export const LEADERSHIP_ROLES: MinistryRole[] = [
+  "MINISTER",
+  "PERMANENT_SECRETARY",
+  "DEPUTY_MINISTER",
+  "DEPUTY_SECRETARY",
+];
+
+export function isLeadership(role: MinistryRole | undefined): boolean {
+  return role !== undefined && (LEADERSHIP_ROLES as string[]).includes(role);
+}
+
 // Per-event permissions: the organizer, their co-organizers, and ministry ADMINs
 // may manage a given event; only the organizer or a ministry ADMIN may reassign it.
 
