@@ -11,7 +11,7 @@ export function SierraLeoneFlag({
 }) {
   return (
     <span
-      className={`relative inline-flex overflow-hidden rounded-md border border-[#d8e1ee] bg-white shadow-sm ${className}`}
+      className={`relative inline-flex overflow-hidden ${className}`}
     >
       <Image
         src={FLAG_SRC}
