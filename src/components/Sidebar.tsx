@@ -93,7 +93,7 @@ export function Sidebar({
 
         {isStaff && (
           <NavSection label="Management" collapsed={collapsed}>
-            <NavLink href="/administrative/events/new" icon={<PlusCircle className="h-4 w-4" />} label="New Event" collapsed={collapsed} />
+            <NavLink href="/administrative/events/new" icon={<PlusCircle className="h-4 w-4" />} label="Schedule Activity" collapsed={collapsed} />
             <NavLink href="/administrative/events" icon={<CalendarDays className="h-4 w-4" />} label="All Events" collapsed={collapsed} />
             <NavLink href="/administrative/attendance" icon={<ClipboardList className="h-4 w-4" />} label="Attendance" collapsed={collapsed} />
             <NavLink href="/administrative/reports" icon={<BarChart3 className="h-4 w-4" />} label="Reports" collapsed={collapsed} />
