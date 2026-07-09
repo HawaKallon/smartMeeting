@@ -59,7 +59,7 @@ export default async function LoginPage({
                     className="h-13 w-13 object-contain"
                   />
                 </div>
-                <SierraLeoneFlag className="h-8 w-14 border-white/20" />
+                <SierraLeoneFlag className="h-12 w-20 border-white/20" />
               </div>
               <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
                 Government of Sierra Leone
