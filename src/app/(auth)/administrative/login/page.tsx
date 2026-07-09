@@ -50,9 +50,9 @@ export default async function LoginPage({
 
             <div className="relative">
               <div className="flex items-start justify-between gap-6">
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white">
+                <div className="flex h-14 w-14 items-center justify-center">
                   <Image
-                    src="/44-00-152_sierra_leone-png.png"
+                    src="/coat_of_arms.jpeg"
                     alt="Sierra Leone coat of arms"
                     width={52}
                     height={52}
@@ -82,9 +82,9 @@ export default async function LoginPage({
           <div className="flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-16">
             <div className="mb-9 md:hidden">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-[#d3deef] bg-white">
+                <div className="flex h-12 w-12 items-center justify-center">
                   <Image
-                    src="/44-00-152_sierra_leone-png.png"
+                    src="/coat_of_arms.jpeg"
                     alt="Sierra Leone coat of arms"
                     width={44}
                     height={44}
