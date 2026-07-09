@@ -3,6 +3,7 @@ import { Building2, Menu } from "lucide-react";
 import type { MinistryRole, Notification } from "@/generated/prisma/client";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
+import { SierraLeoneFlag } from "./SierraLeoneFlag";
 
 export function Topbar({
   user,
@@ -46,14 +47,7 @@ export function Topbar({
       <div className="flex items-center gap-3">
         <NotificationBell initialNotifications={notifications} />
 
-        <div
-          className="hidden items-center gap-0 overflow-hidden rounded-md border border-border shadow-sm sm:flex"
-          aria-label="Sierra Leone flag"
-        >
-          <span className="h-7 w-8 bg-[#007236]" />
-          <span className="h-7 w-8 bg-white" />
-          <span className="h-7 w-8 bg-[#003580]" />
-        </div>
+        <SierraLeoneFlag className="hidden h-8 w-14 sm:inline-flex" />
 
         <Link
           href="/administrative/profile"
