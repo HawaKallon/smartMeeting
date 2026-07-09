@@ -4,9 +4,12 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { assertAdminRole, ministryScope, assertSameMinistry } from "@/lib/guard";
+import { assertAdminRole, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { savePublicImage } from "@/lib/cloudinary";
+import { sendPublicEventInviteEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
+import { LEADERSHIP_ROLES } from "@/lib/roles";
 import { PublicEventCategory } from "@/generated/prisma/enums";
 
 const PublicEventSchema = z
@@ -25,6 +28,11 @@ const PublicEventSchema = z
     message: "End time must be after start time",
     path: ["endAt"],
   });
+
+// Extract invited ministry IDs from FormData (array field)
+function getInvitedMinistryIds(formData: FormData): string[] {
+  return formData.getAll("invitedMinistryIds").map(String).filter(Boolean);
+}
 
 export type ActionState = { error?: string } | undefined;
 
@@ -50,6 +58,7 @@ export async function createPublicEvent(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const data = parsed.data;
+  const invitedMinistryIds = getInvitedMinistryIds(formData);
 
   let eventId: string | undefined;
   try {
@@ -79,6 +88,9 @@ export async function createPublicEvent(
         ministryId: user.ministryId,
         createdById: user.id,
         status: "DRAFT",
+        invitedMinistries: {
+          connect: invitedMinistryIds.map((id) => ({ id })),
+        },
       },
     });
 
@@ -90,7 +102,7 @@ export async function createPublicEvent(
       entityType: "PublicEvent",
       entityId: event.id,
       ministryId: user.ministryId,
-      metadata: { title: event.title },
+      metadata: { title: event.title, invitedMinistryCount: invitedMinistryIds.length },
     });
   } catch (err) {
     console.error("Failed to create public event:", err);
@@ -136,6 +148,7 @@ export async function updatePublicEvent(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const data = parsed.data;
+  const invitedMinistryIds = getInvitedMinistryIds(formData);
 
   try {
     let bannerImage: string | undefined;
@@ -157,6 +170,9 @@ export async function updatePublicEvent(
         contactEmail: data.contactEmail || null,
         contactPhone: data.contactPhone || null,
         ...(bannerImage && { bannerImage }),
+        invitedMinistries: {
+          set: invitedMinistryIds.map((id) => ({ id })),
+        },
       },
     });
 
@@ -166,7 +182,7 @@ export async function updatePublicEvent(
       entityType: "PublicEvent",
       entityId: eventId,
       ministryId: user.ministryId,
-      metadata: { title: updated.title },
+      metadata: { title: updated.title, invitedMinistryCount: invitedMinistryIds.length },
     });
 
     revalidatePath("/public-calendar");
@@ -183,7 +199,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
 
   const event = await prisma.publicEvent.findUnique({
     where: { id: eventId },
-    select: { ministryId: true, status: true },
+    select: { ministryId: true, status: true, title: true, description: true, startAt: true, endAt: true, venueName: true },
   });
 
   if (!event) {
@@ -199,6 +215,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
         status: "PUBLISHED",
         publishedAt: new Date(),
       },
+      include: { invitedMinistries: { select: { id: true, name: true } }, ministry: { select: { name: true } } },
     });
 
     await audit({
@@ -209,6 +226,79 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
       ministryId: user.ministryId,
       metadata: { title: updated.title },
     });
+
+    // Notify leadership at invited ministries (async, don't block on errors)
+    (async () => {
+      try {
+        if (updated.invitedMinistries.length === 0) return;
+
+        const invitedMinistryIds = updated.invitedMinistries.map((m) => m.id);
+        const organizerMinistryName = updated.ministry?.name || "Government of Sierra Leone";
+
+        // Find leadership recipients at invited ministries
+        const recipients = await prisma.user.findMany({
+          where: {
+            ministryId: { in: invitedMinistryIds },
+            active: true,
+            role: { in: LEADERSHIP_ROLES },
+          },
+          select: { id: true, email: true, name: true, ministryId: true, emailNotifications: true },
+        });
+
+        if (recipients.length === 0) return;
+
+        // Build absolute URL to event detail page
+        const baseUrl = process.env.NEXTAUTH_URL || "https://smartmeeting.gov.sl";
+        const eventUrl = `${baseUrl}/public-calendar/event/${eventId}`;
+
+        // Fan out notifications (never break publish on email/notify failures)
+        for (const recipient of recipients) {
+          try {
+            // In-app notification (always)
+            await notify({
+              userId: recipient.id,
+              type: "PUBLIC_EVENT_INVITE",
+              title: `Invitation: ${updated.title}`,
+              body: `Your ministry has been invited to attend ${updated.title}.`,
+              link: `/public-calendar/event/${eventId}`,
+              ministryId: recipient.ministryId,
+            });
+
+            // Email (if enabled)
+            if (recipient.emailNotifications) {
+              try {
+                await sendPublicEventInviteEmail({
+                  to: recipient.email,
+                  toName: recipient.name || "User",
+                  eventTitle: updated.title,
+                  eventDescription: updated.description,
+                  startAt: updated.startAt,
+                  endAt: updated.endAt,
+                  venueName: updated.venueName,
+                  organizerMinistryName,
+                  eventUrl,
+                });
+              } catch (emailErr) {
+                console.error(
+                  `[publishPublicEvent] failed to send email to ${recipient.email} for event ${eventId}:`,
+                  emailErr,
+                );
+                // Swallow error — in-app notification already sent
+              }
+            }
+          } catch (notifyErr) {
+            console.error(
+              `[publishPublicEvent] failed to notify user ${recipient.id} for event ${eventId}:`,
+              notifyErr,
+            );
+            // Continue to next recipient
+          }
+        }
+      } catch (notificationErr) {
+        console.error(`[publishPublicEvent] notification fan-out failed for event ${eventId}:`, notificationErr);
+        // Don't rethrow — publish succeeded; notifications are fire-and-forget
+      }
+    })();
 
     revalidatePath("/public-calendar");
     revalidatePath("/administrative/admin/public-calendar");
