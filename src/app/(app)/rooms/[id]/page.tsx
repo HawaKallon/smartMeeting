@@ -5,7 +5,7 @@ import { Calendar, MapPin, Users, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 export default async function RoomDetailPage({ params }: { params: { id: string } }) {
-  const user = await requireUser();
+  await requireUser();
 
   const room = await prisma.room.findUnique({
     where: { id: params.id },
@@ -145,7 +145,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
                     </div>
                   )}
                   {booking.notes && (
-                    <p className="mt-2 text-xs text-muted-foreground italic">"{booking.notes}"</p>
+                    <p className="mt-2 text-xs text-muted-foreground italic">&quot;{booking.notes}&quot;</p>
                   )}
                 </div>
               ))
@@ -212,7 +212,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
           <div>
             <p className="text-sm font-medium text-amber-400">Booking & Event Overlap</p>
             <p className="text-xs text-amber-400/80 mt-1">
-              This room has both bookings and scheduled events. Make sure times don't conflict.
+              This room has both bookings and scheduled events. Make sure times don&apos;t conflict.
             </p>
           </div>
         </div>
