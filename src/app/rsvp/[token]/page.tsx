@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { CalendarDays, Clock3, MapPin, ShieldCheck, UserRound } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { hashRsvpToken, validRsvpToken } from "@/lib/rsvp";
 import { RsvpResponseForm } from "./RsvpResponseForm";
-import { CoatOfArmsPlaceholder } from "@/components/CoatOfArmsPlaceholder";
 import { SierraLeoneFlag } from "@/components/SierraLeoneFlag";
 
 export const metadata: Metadata = {
@@ -86,7 +86,13 @@ export default async function RsvpPage({
               <h1 className="mt-2 text-xl font-bold leading-snug">{event.ministry.name}</h1>
             </div>
             <div className="flex items-center gap-3">
-              <CoatOfArmsPlaceholder className="h-20 w-28 border-white/20 bg-white/10 text-white" />
+              <Image
+                src="/coat_of_arms.jpeg"
+                alt="Sierra Leone coat of arms"
+                width={80}
+                height={80}
+                className="h-20 w-20 object-contain"
+              />
               <SierraLeoneFlag className="h-8 w-14 border-white/20" />
             </div>
           </div>
