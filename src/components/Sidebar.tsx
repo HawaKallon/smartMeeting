@@ -55,9 +55,9 @@ export function Sidebar({
       <div className={`border-b border-sidebar-border py-5 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsed ? "px-4" : "px-5"}`}>
         <div className="flex items-start justify-between gap-3 overflow-hidden">
           <div className="flex min-w-0 flex-1 items-center overflow-hidden">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-[#d3deef] bg-white shadow-[0_10px_24px_rgba(0,53,128,0.12)]">
+            <div className="flex h-12 w-12 items-center justify-center">
               <Image
-                src="/44-00-152_sierra_leone-png.png"
+                src="/coat_of_arms.jpeg"
                 alt="Sierra Leone coat of arms"
                 width={44}
                 height={44}
