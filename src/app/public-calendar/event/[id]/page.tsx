@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
 import { getCategoryLabel } from "@/lib/public-event-categories";
-import { Clock, MapPin, Mail, Phone, ExternalLink } from "lucide-react";
+import { Clock, MapPin, Mail, Phone } from "lucide-react";
 
 export default async function PublicEventDetailPage({
   params,

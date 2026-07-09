@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
-import { Bell, Lock, Palette, Database } from "lucide-react";
 import { SettingsClient } from "./SettingsClient";
 
 export default async function SettingsPage() {
