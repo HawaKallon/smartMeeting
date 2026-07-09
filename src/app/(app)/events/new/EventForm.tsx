@@ -145,7 +145,7 @@ export function EventForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={label}>Type</label>
+          <label className={label}>Activity Type</label>
           <select name="type" defaultValue="MEETING" className={field}>
             <option value="MEETING">Meeting</option>
             <option value="CONFERENCE">Conference</option>
@@ -323,7 +323,7 @@ export function EventForm({
         disabled={pending}
         className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
       >
-        {pending ? "Creating…" : "Create event"}
+        {pending ? "Scheduling…" : "Schedule activity"}
       </button>
     </form>
   );
