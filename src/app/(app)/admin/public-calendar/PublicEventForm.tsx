@@ -9,11 +9,13 @@ import { CATEGORY_LIST, CATEGORY_LABELS } from "@/lib/public-event-categories";
 import type { PublicEvent } from "@/generated/prisma/client";
 
 interface PublicEventFormProps {
-  event?: PublicEvent;
+  event?: PublicEvent & { invitedMinistries?: { id: string }[] };
   isNew?: boolean;
+  ministries?: { id: string; name: string; code: string }[];
+  userMinistryId?: string | null;
 }
 
-export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
+export function PublicEventForm({ event, isNew, ministries = [], userMinistryId }: PublicEventFormProps) {
   const saveAction = event ? updatePublicEvent.bind(null, event.id) : createPublicEvent;
   const [state, action, isPending] = useActionState<ActionState, FormData>(
     saveAction,
@@ -212,6 +214,38 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]"
             placeholder="https://example.com/register"
           />
+        </div>
+
+        {/* Invite Ministries */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-3">
+            Invite Ministries
+          </label>
+          <div className="space-y-2">
+            {ministries.map((ministry) => {
+              const invitedIds = event?.invitedMinistries?.map(m => m.id) ?? [];
+              const isChecked = invitedIds.includes(ministry.id);
+              const isOrganizerMinistry = ministry.id === userMinistryId;
+              return (
+                <label key={ministry.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="invitedMinistryIds"
+                    value={ministry.id}
+                    defaultChecked={isChecked}
+                    disabled={isOrganizerMinistry}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm text-foreground">
+                    {ministry.name} {isOrganizerMinistry ? "(Your ministry — organizer)" : ""}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Selected ministries will be notified when this event is published.
+          </p>
         </div>
 
         {state?.error && (

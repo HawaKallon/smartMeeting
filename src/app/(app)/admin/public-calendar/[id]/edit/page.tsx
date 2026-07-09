@@ -14,6 +14,7 @@ export default async function EditPublicEventPage({
 
   const event = await prisma.publicEvent.findUnique({
     where: { id: p.id },
+    include: { invitedMinistries: { select: { id: true } } },
   });
 
   if (!event) {
@@ -21,6 +22,12 @@ export default async function EditPublicEventPage({
   }
 
   assertSameMinistry(user, event.ministryId);
+
+  const ministries = await prisma.ministry.findMany({
+    where: { active: true },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="space-y-6">
@@ -34,7 +41,7 @@ export default async function EditPublicEventPage({
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
-        <PublicEventForm event={event} />
+        <PublicEventForm event={event} ministries={ministries} userMinistryId={user.ministryId} />
       </div>
     </div>
   );
