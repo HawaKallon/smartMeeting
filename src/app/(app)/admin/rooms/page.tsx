@@ -3,10 +3,10 @@ import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { Plus, Users, MapPin } from "lucide-react";
-import Link from "next/link";
 import { CreateRoomForm } from "./CreateRoomForm";
 import { RoomFilters } from "./RoomFilters";
 import { RoomRowActions } from "./RoomRowActions";
+import type { Prisma } from "@/generated/prisma/client";
 
 export default async function AdminRoomsPage({
   searchParams,
@@ -20,7 +20,7 @@ export default async function AdminRoomsPage({
       <div className="space-y-6">
         <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-          <p className="text-red-400">You don't have permission to access this page</p>
+          <p className="text-red-400">You don&apos;t have permission to access this page</p>
         </div>
       </div>
     );
@@ -38,10 +38,10 @@ export default async function AdminRoomsPage({
     : [];
 
   // Build where clause: scope by ministry + apply optional filter
-  let where: any = { ...ministryScope(user) };
-  if (superAdmin && ministryId) {
-    where.ministryId = ministryId;
-  }
+  const where: Prisma.RoomWhereInput = {
+    ...ministryScope(user),
+    ...(superAdmin && ministryId ? { ministryId } : {}),
+  };
 
   const rooms = await prisma.room.findMany({
     where,

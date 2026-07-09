@@ -119,7 +119,7 @@ export async function updateRoom(
     const latitude = formData.get("latitude") as string;
     const longitude = formData.get("longitude") as string;
 
-    const updated = await prisma.room.update({
+    await prisma.room.update({
       where: { id: roomId },
       data: {
         name,
