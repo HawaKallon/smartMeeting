@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackButton } from "@/components/BackButton";
 import { requireUser } from "@/lib/guard";
@@ -7,7 +6,7 @@ import { canManageExistingEvent, canViewMinutesForEvent } from "@/lib/eventAcces
 import { MinutesEditor } from "./MinutesEditor";
 import { ActionItemsPanel } from "./ActionItemsPanel";
 import { PublishButton } from "./PublishButton";
-import { FileText, CheckCircle, Clock, Mic } from "lucide-react";
+import { FileText, CheckCircle, Clock } from "lucide-react";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
 
