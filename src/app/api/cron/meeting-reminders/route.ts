@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { sendMeetingReminderEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
 
-// Meeting reminders — emailed to invitees who CONFIRMED their attendance,
-// roughly 1 hour before the meeting starts.
+// Activity reminders — emailed to invitees who have not declined,
+// roughly 1 hour before the activity starts.
 //
 // Schedule this endpoint to run frequently (every 10–15 minutes) from any cron
 // service (Vercel Cron, cron-job.org, …) so the 1-hour window is caught near
@@ -15,7 +15,7 @@ import { absoluteAppUrl } from "@/lib/appUrl";
 
 const LEAD_MS = 60 * 60 * 1000; // send within the hour before start
 
-export async function POST(req: NextRequest) {
+async function handleReminderCron(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
     const auth = req.headers.get("authorization") ?? "";
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       venueName: true,
       room: { select: { name: true } },
       attendees: {
-        where: { status: "CONFIRMED" },
+        where: { status: { in: ["INVITED", "CONFIRMED"] } },
         select: {
           externalName: true,
           externalEmail: true,
@@ -58,9 +58,11 @@ export async function POST(req: NextRequest) {
   });
 
   let emailsSent = 0;
+  let emailsFailed = 0;
+  let eventsNotified = 0;
 
   for (const event of events) {
-    // Build the recipient list from confirmed invitees with an email address.
+    // Build the recipient list from invitees who have not declined.
     // Registered users can have notifications turned off; external guests
     // (no account) always get the reminder and no in-app link.
     const recipients: { to: string; toName: string; joinUrl?: string }[] = [];
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await Promise.allSettled(
+    const results = await Promise.all(
       recipients.map((r) =>
         sendMeetingReminderEmail({
           to: r.to,
@@ -94,18 +96,32 @@ export async function POST(req: NextRequest) {
         }),
       ),
     );
-    emailsSent += recipients.length;
+    const sentForEvent = results.filter(Boolean).length;
+    const failedForEvent = results.length - sentForEvent;
+    emailsSent += sentForEvent;
+    emailsFailed += failedForEvent;
 
-    // Mark sent so later runs in the same window don't re-notify.
-    await prisma.event.update({
-      where: { id: event.id },
-      data: { reminderSentAt: now },
-    });
+    // Only finalize successful batches. A provider/configuration failure leaves
+    // the event eligible for the next cron run instead of silently losing it.
+    if (failedForEvent === 0) {
+      await prisma.event.update({
+        where: { id: event.id },
+        data: { reminderSentAt: now },
+      });
+      eventsNotified++;
+    }
   }
 
   return NextResponse.json({
     ok: true,
-    eventsNotified: events.length,
+    eventsChecked: events.length,
+    eventsNotified,
     emailsSent,
+    emailsFailed,
   });
 }
+
+// Vercel Cron invokes configured paths with GET. POST remains available for
+// existing external cron services and manual authenticated invocations.
+export const GET = handleReminderCron;
+export const POST = handleReminderCron;
