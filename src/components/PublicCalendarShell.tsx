@@ -8,9 +8,9 @@ export function PublicCalendarShell({ children }: { children: React.ReactNode })
       <header className="border-b border-[#d3deef] bg-[#f8fbff]/95 shadow-[0_8px_30px_rgba(0,53,128,0.07)] backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-4">
-            <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-[#d3deef] bg-white shadow-[0_14px_30px_rgba(0,53,128,0.12)]">
+            <span className="flex h-12 w-12 items-center justify-center">
               <Image
-                src="/44-00-152_sierra_leone-png.png"
+                src="/coat_of_arms.jpeg"
                 alt="Sierra Leone coat of arms"
                 width={44}
                 height={44}
