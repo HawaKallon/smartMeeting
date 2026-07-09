@@ -47,7 +47,7 @@ function resolveExternalAssignee(
   return null;
 }
 
-export async function POST(req: NextRequest) {
+async function handleReminderCron(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
     const auth = req.headers.get("authorization") ?? "";
@@ -164,3 +164,8 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, itemsChecked: items.length, remindersSent: sent });
 }
+
+// Vercel Cron invokes configured paths with GET. POST remains available for
+// manual authenticated invocations and external cron services.
+export const GET = handleReminderCron;
+export const POST = handleReminderCron;
