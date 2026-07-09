@@ -2,7 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { SierraLeoneFlag } from "./SierraLeoneFlag";
 
-export function PublicCalendarShell({ children }: { children: React.ReactNode }) {
+export function PublicCalendarShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex min-h-screen flex-col bg-transparent text-slate-900">
       <header className="border-b border-[#d3deef] bg-[#f8fbff]/95 shadow-[0_8px_30px_rgba(0,53,128,0.07)] backdrop-blur">
@@ -36,13 +40,19 @@ export function PublicCalendarShell({ children }: { children: React.ReactNode })
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">{children}</main>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        {children}
+      </main>
 
       <footer className="mt-auto border-t border-[#d3deef] bg-[#f7fbff]">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
-            <p className="font-semibold text-[#003580]">&copy; {new Date().getFullYear()} Government of Sierra Leone</p>
-            <p className="text-xs text-slate-500">Official public events and announcements</p>
+            <p className="font-semibold text-[#003580]">
+              &copy; {new Date().getFullYear()} Government of Sierra Leone
+            </p>
+            <p className="text-xs text-slate-500">
+              Official public events and announcements
+            </p>
           </div>
           <SierraLeoneFlag className="h-7 w-12 self-start sm:self-auto" />
         </div>
