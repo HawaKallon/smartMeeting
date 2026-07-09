@@ -91,7 +91,7 @@ export default async function LoginPage({
                     className="h-11 w-11 object-contain"
                   />
                 </div>
-                <SierraLeoneFlag className="h-8 w-14" />
+                <SierraLeoneFlag className="h-12 w-20" />
               </div>
               <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#007236]">Government of Sierra Leone</p>
             </div>
