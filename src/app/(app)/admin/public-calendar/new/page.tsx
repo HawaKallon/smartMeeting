@@ -1,9 +1,16 @@
 import { requireAdminRole } from "@/lib/guard";
+import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
 import { PublicEventForm } from "../PublicEventForm";
 
 export default async function NewPublicEventPage() {
-  await requireAdminRole();
+  const user = await requireAdminRole();
+
+  const ministries = await prisma.ministry.findMany({
+    where: { active: true },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="space-y-6">
@@ -17,7 +24,7 @@ export default async function NewPublicEventPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
-        <PublicEventForm isNew={true} />
+        <PublicEventForm isNew={true} ministries={ministries} userMinistryId={user.ministryId} />
       </div>
     </div>
   );
