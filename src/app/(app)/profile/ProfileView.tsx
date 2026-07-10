@@ -135,7 +135,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <input
                   type="checkbox"
                   name="emailNotifications"
-                  defaultChecked={true}
+                  defaultChecked={user.emailNotifications}
                   className="h-4 w-4 rounded border-border bg-muted accent-foreground"
                 />
                 <span className="text-sm text-foreground">Receive email notifications for invitations</span>
@@ -147,7 +147,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <input
                   type="checkbox"
                   name="minutesNotifications"
-                  defaultChecked={true}
+                  defaultChecked={user.minutesNotifications}
                   className="h-4 w-4 rounded border-border bg-muted accent-foreground"
                 />
                 <span className="text-sm text-foreground">Receive email when minutes are published</span>
@@ -159,7 +159,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <input
                   type="checkbox"
                   name="actionItemNotifications"
-                  defaultChecked={true}
+                  defaultChecked={user.actionItemNotifications}
                   className="h-4 w-4 rounded border-border bg-muted accent-foreground"
                 />
                 <span className="text-sm text-foreground">Receive notifications for assigned action items</span>
