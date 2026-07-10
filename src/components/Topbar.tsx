@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { SystemRole } from "@/generated/prisma/enums";
 import { Building2, Menu } from "lucide-react";
-import type { MinistryRole, Notification } from "@/generated/prisma/client";
+import type { Notification } from "@/generated/prisma/client";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 import { SierraLeoneFlag } from "./SierraLeoneFlag";

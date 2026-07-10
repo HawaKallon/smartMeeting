@@ -16,7 +16,6 @@ import type {
   Classification,
   RecurrenceFrequency,
   RecurrenceEndType,
-  MinistryRole,
 } from "@/generated/prisma/enums";
 
 type Scope = "THIS" | "FUTURE" | "ALL";
