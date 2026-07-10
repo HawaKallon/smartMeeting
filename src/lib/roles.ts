@@ -10,6 +10,7 @@ export const MINISTRY_ROLES = [
   "ADMIN_STAFF",
   "ADMIN",
   "SUPER_ADMIN",
+  "STAFF_MEMBER",
 ] as const;
 
 export const ROLE_LABELS: Record<MinistryRole, string> = {
@@ -20,6 +21,7 @@ export const ROLE_LABELS: Record<MinistryRole, string> = {
   ADMIN_STAFF: "Admin Staff",
   ADMIN: "Admin",
   SUPER_ADMIN: "Super Admin",
+  STAFF_MEMBER: "Staff",
 };
 
 /**
