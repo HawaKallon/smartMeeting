@@ -24,6 +24,17 @@ enum MinistryRole {
   STAFF_MEMBER // regular staff member (safe default, no special permissions)
 }
 
+/// System role: what a user can do (access level), independent of job title.
+enum SystemRole {
+  SUPER_ADMIN // platform-wide admin
+  MINISTRY_ADMIN // ministry admin (same as old ADMIN role)
+  EVENT_MANAGER // create/manage events, attendance, letters (same as old ADMIN_STAFF role)
+  EXECUTIVE_ASSISTANT // PA/secretary role: event/attendee/letters management but no user/room/minutes-publish access
+  APPROVER // approve and publish minutes (former PERMANENT_SECRETARY/DEPUTY_SECRETARY)
+  EXECUTIVE_VIEWER // read-only access to ministry-wide schedule and published minutes (former senior leadership)
+  STAFF // regular staff with no special capabilities (former STAFF_MEMBER)
+}
+
 enum EventType {
   MEETING
   CONFERENCE
@@ -151,7 +162,9 @@ model User {
   email         String       @unique
   name          String?
   passwordHash  String? // for credential/OTP fallback
-  role          MinistryRole @default(STAFF_MEMBER)
+  role          MinistryRole @default(STAFF_MEMBER) // deprecated: use systemRole instead (P2.4 will drop this column)
+  systemRole    SystemRole? // P2: what the user can do (access level)
+  jobTitle      String? // P2: who the user is (org title, e.g. "Minister", "Director")
   ministryId    String? // null for SUPER_ADMIN users
   ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   active        Boolean      @default(true) // deactivated users cannot log in
