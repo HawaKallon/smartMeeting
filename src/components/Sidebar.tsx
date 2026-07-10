@@ -29,7 +29,7 @@ import {
 export function Sidebar({
   user,
 }: {
-  user: { name?: string | null; email: string; role: SystemRole };
+  user: { name?: string | null; email: string; systemRole: SystemRole };
 }) {
   const isStaff = canManageEvents(user.systemRole);
   const isSuperAdminUser = isSuperAdmin(user.systemRole);

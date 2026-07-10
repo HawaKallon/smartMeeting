@@ -1,5 +1,6 @@
 import { renderToBuffer, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { ROLE_LABELS } from "@/lib/roles";
+import { ROLE_LABELS, SYSTEM_ROLE_LABELS } from "@/lib/roles";
+import type { SystemRole } from "@/generated/prisma/enums";
 import type { ReportAnalytics } from "@/lib/analytics";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -72,7 +73,7 @@ function ReportDoc({ a, scopeLabel, generatedDate }: { a: ReportAnalytics; scope
         </View>
 
         <Text style={s.sectionTitle}>Users by role</Text>
-        <Table rows={a.users.byRole.map((r) => ({ label: ROLE_LABELS[r.systemRole], value: r.count }))} />
+        <Table rows={a.users.byRole.map((r) => ({ label: SYSTEM_ROLE_LABELS[r.role as SystemRole] || ROLE_LABELS[r.role] || "Unknown", value: r.count }))} />
 
         <Text style={s.sectionTitle}>Events</Text>
         <Table
