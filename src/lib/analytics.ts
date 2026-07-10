@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { isSuperAdmin } from "@/lib/roles";
 import type { Prisma } from "@/generated/prisma/client";
-import type { SystemRole,  MinistryRole, EventType, CheckInMethod } from "@/generated/prisma/enums";
+import type { SystemRole, EventType, CheckInMethod } from "@/generated/prisma/enums";
 
 // A user with just the fields needed to scope analytics queries.
 export type ScopedUser = { systemRole: SystemRole; ministryId: string | null };
@@ -21,7 +21,7 @@ function roomScope(user: ScopedUser): Prisma.RoomWhereInput {
 }
 
 function userScope(user: ScopedUser): Prisma.UserWhereInput {
-  const base: Prisma.UserWhereInput = { role: { not: "SUPER_ADMIN" } };
+  const base: Prisma.UserWhereInput = { systemRole: { not: "SUPER_ADMIN" } };
   if (isSuperAdmin(user.systemRole)) return base;
   return { ...base, ministryId: user.ministryId ?? NO_MINISTRY };
 }
