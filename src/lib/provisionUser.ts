@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
-import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 import type { User } from "@/generated/prisma/client";
 
 // Generates a readable temporary password for first-time login (PRD §6.1).
@@ -23,29 +23,19 @@ export async function provisionUser({
   email,
   systemRole,
   ministryId,
+  jobTitle,
 }: {
   name: string;
   email: string;
   systemRole: SystemRole;
   ministryId: string | null;
+  jobTitle?: string | null;
 }): Promise<{ user: User; emailSent: boolean }> {
   const tempPassword = generateTempPassword();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-  // Map systemRole back to legacy role field for backward compat
-  const legacyRoleMap: Record<SystemRole, MinistryRole> = {
-    "SUPER_ADMIN": "SUPER_ADMIN",
-    "MINISTRY_ADMIN": "ADMIN",
-    "EVENT_MANAGER": "ADMIN_STAFF",
-    "EXECUTIVE_ASSISTANT": "ADMIN_STAFF",
-    "APPROVER": "PERMANENT_SECRETARY",
-    "EXECUTIVE_VIEWER": "DEPUTY_MINISTER",
-    "STAFF": "STAFF_MEMBER",
-  };
-  const role = legacyRoleMap[systemRole] || "STAFF_MEMBER";
-
   const user = await prisma.user.create({
-    data: { name, email, role, systemRole, ministryId, passwordHash },
+    data: { name, email, systemRole, ministryId, jobTitle: jobTitle ?? null, passwordHash },
   });
 
   // Send welcome email (with temp password) via the shared, verified-domain sender.
