@@ -29,10 +29,10 @@ import {
 export function Sidebar({
   user,
 }: {
-  user: { name?: string | null; email: string; role: MinistryRole };
+  user: { name?: string | null; email: string; role: SystemRole };
 }) {
-  const isStaff = canManageEvents(user.role);
-  const isSuperAdminUser = isSuperAdmin(user.role);
+  const isStaff = canManageEvents(user.systemRole);
+  const isSuperAdminUser = isSuperAdmin(user.systemRole);
   const isAdmin = canManageUsers(user) || isSuperAdminUser;
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
   const { collapsed, toggleCollapsed } = useSidebarState();
@@ -305,7 +305,7 @@ export function Sidebar({
                 {user.name ?? user.email}
               </p>
               <p className="text-xs text-sidebar-foreground/55">
-                {ROLE_LABELS[user.role]}
+                {ROLE_LABELS[user.systemRole]}
               </p>
             </div>
           </div>

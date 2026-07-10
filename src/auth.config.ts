@@ -13,7 +13,7 @@ const authConfig: NextAuthConfig = {
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as unknown as { role: MinistryRole }).role;
+        token.systemRole = (user as unknown as { role: SystemRole }).role;
         token.systemRole = (user as unknown as { systemRole: SystemRole }).systemRole;
         token.jobTitle = (user as unknown as { jobTitle: string | null }).jobTitle;
         token.ministryId = (user as unknown as { ministryId: string | null }).ministryId;
@@ -23,7 +23,7 @@ const authConfig: NextAuthConfig = {
     session({ session, token }) {
       if (session.user) {
         (session.user as { id: string }).id = token.id as string;
-        (session.user as { role: MinistryRole }).role = token.role as MinistryRole;
+        (session.user as { role: SystemRole }).role = token.systemRole as MinistryRole;
         (session.user as { systemRole: SystemRole }).systemRole = token.systemRole as SystemRole;
         (session.user as { jobTitle: string | null }).jobTitle = token.jobTitle as string | null;
         (session.user as { ministryId: string | null }).ministryId = token.ministryId as string | null;

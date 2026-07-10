@@ -10,7 +10,7 @@ export default async function NewEventPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const user = await requireStaffRole();
-  const superAdmin = isSuperAdmin(user.role);
+  const superAdmin = isSuperAdmin(user.systemRole);
 
   const { date } = await searchParams;
   // Only accept a well-formed YYYY-MM-DD prefill (e.g. from the calendar).

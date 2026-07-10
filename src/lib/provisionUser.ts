@@ -26,7 +26,7 @@ export async function provisionUser({
 }: {
   name: string;
   email: string;
-  role: MinistryRole;
+  role: SystemRole;
   ministryId: string | null;
 }): Promise<{ user: User; emailSent: boolean }> {
   const tempPassword = generateTempPassword();

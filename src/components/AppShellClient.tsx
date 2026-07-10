@@ -6,7 +6,7 @@ import { Topbar } from "./Topbar";
 import { SidebarStateProvider, useSidebarState } from "./SidebarState";
 
 type AppShellClientProps = {
-  user: { id: string; name?: string | null; email: string; role: MinistryRole };
+  user: { id: string; name?: string | null; email: string; role: SystemRole };
   ministryName?: string | null;
   notifications?: Notification[];
   compactMode?: boolean;

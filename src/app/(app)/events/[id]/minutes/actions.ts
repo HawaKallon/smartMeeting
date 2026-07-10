@@ -182,7 +182,7 @@ export async function publishMinutes(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const approver = await assertRole("PERMANENT_SECRETARY", "DEPUTY_SECRETARY");
+  const approver = await assertRole("APPROVER", "APPROVER");
 
   const parsed = PublishSchema.safeParse({
     eventId: formData.get("eventId"),

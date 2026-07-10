@@ -14,7 +14,7 @@ export default async function ActionItemsPage({
   const user = await requireUser();
   const { owner: ownerFilter } = await searchParams;
 
-  const isStaff = canManageEvents(user.role);
+  const isStaff = canManageEvents(user.systemRole);
 
   const where: Prisma.ActionItemWhereInput = isStaff
     ? {
