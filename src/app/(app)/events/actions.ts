@@ -74,11 +74,11 @@ export async function createEvent(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const data = parsed.data;
-  const targetMinistryId = isSuperAdmin(user.role) ? data.ministryId : user.ministryId;
+  const targetMinistryId = isSuperAdmin(user.systemRole) ? data.ministryId : user.ministryId;
   if (!targetMinistryId) {
     return { error: "Choose a ministry for this event." };
   }
-  if (isSuperAdmin(user.role)) {
+  if (isSuperAdmin(user.systemRole)) {
     const ministry = await prisma.ministry.findFirst({
       where: { id: targetMinistryId, active: true },
       select: { id: true },
