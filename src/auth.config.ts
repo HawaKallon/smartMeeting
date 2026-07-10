@@ -23,7 +23,7 @@ const authConfig: NextAuthConfig = {
     session({ session, token }) {
       if (session.user) {
         (session.user as { id: string }).id = token.id as string;
-        (session.user as { role: SystemRole }).role = token.systemRole as MinistryRole;
+        (session.user as { role: MinistryRole }).role = (token.role as MinistryRole) || "STAFF_MEMBER";
         (session.user as { systemRole: SystemRole }).systemRole = token.systemRole as SystemRole;
         (session.user as { jobTitle: string | null }).jobTitle = token.jobTitle as string | null;
         (session.user as { ministryId: string | null }).ministryId = token.ministryId as string | null;

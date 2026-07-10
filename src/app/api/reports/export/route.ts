@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isSuperAdmin, ROLE_LABELS } from "@/lib/roles";
 import { toCsv, type CsvColumn } from "@/lib/csv";
+import type { SystemRole } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
 

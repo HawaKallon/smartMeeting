@@ -393,7 +393,7 @@ export async function deleteEvent(
 
 /** Load an event (ministry-scoped) with the fields needed for reassign checks. */
 async function loadEventForReassign(
-  user: { role: SystemRole; ministryId: string | null },
+  user: { systemRole: SystemRole; ministryId: string | null },
   eventId: string,
 ) {
   return prisma.event.findFirst({

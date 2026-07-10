@@ -6,7 +6,7 @@ import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
 export function AppNav({
   user,
 }: {
-  user: { name?: string | null; email: string; role: SystemRole };
+  user: { name?: string | null; email: string; systemRole: SystemRole };
 }) {
   const isAdmin = canManageEvents(user.systemRole);
 
