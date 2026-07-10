@@ -13,16 +13,6 @@ datasource db {
 // ── Enums ───────────────────────────────────────────────────────────────────
 
 /// Ministry role hierarchy (PRD §7 RBAC).
-enum MinistryRole {
-  MINISTER
-  PERMANENT_SECRETARY
-  DEPUTY_MINISTER
-  DEPUTY_SECRETARY
-  ADMIN_STAFF
-  ADMIN
-  SUPER_ADMIN // platform super-admin, across all ministries
-  STAFF_MEMBER // regular staff member (safe default, no special permissions)
-}
 
 /// System role: what a user can do (access level), independent of job title.
 enum SystemRole {
@@ -162,8 +152,7 @@ model User {
   email         String       @unique
   name          String?
   passwordHash  String? // for credential/OTP fallback
-  role          MinistryRole @default(STAFF_MEMBER) // deprecated: use systemRole instead (P2.4 will drop this column)
-  systemRole    SystemRole? // P2: what the user can do (access level)
+  systemRole    SystemRole @default(STAFF) // what the user can do (access level)
   jobTitle      String? // P2: who the user is (org title, e.g. "Minister", "Director")
   ministryId    String? // null for SUPER_ADMIN users
   ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
