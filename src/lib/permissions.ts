@@ -1,0 +1,190 @@
+import type { User, Event, Minutes, ActionItem } from "@/generated/prisma/client";
+import { isSuperAdmin, canManageEvents, canApproveMinutes } from "./roles";
+import {
+  canAccessMinistryEvent,
+  canManageExistingEvent,
+  canReassignExistingEvent,
+  canViewMinutesForEvent,
+} from "./eventAccess";
+
+// ────────────────────────────────────────────────────────────────────────────
+// User-level capabilities
+// ────────────────────────────────────────────────────────────────────────────
+
+export function canCreateEvent(user: User | null): boolean {
+  if (!user) return false;
+  return canManageEvents(user.role);
+}
+
+export function canManageUsers(user: User | null, targetMinistryId?: string): boolean {
+  if (!user) return false;
+  if (isSuperAdmin(user.role)) return true;
+  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") return false;
+  if (targetMinistryId && user.ministryId !== targetMinistryId) return false;
+  return true;
+}
+
+export function canManageRooms(user: User | null, targetMinistryId?: string): boolean {
+  if (!user) return false;
+  if (isSuperAdmin(user.role)) return true;
+  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") return false;
+  if (targetMinistryId && user.ministryId !== targetMinistryId) return false;
+  return true;
+}
+
+export function canManageMinistry(user: User | null, ministryId: string): boolean {
+  if (!user) return false;
+  if (isSuperAdmin(user.role)) return true;
+  return user.role === "ADMIN" && user.ministryId === ministryId;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Event-level permissions
+// ────────────────────────────────────────────────────────────────────────────
+
+// Helper to convert Event to EventAccessRecord
+function eventToAccessRecord(event: Event & { coOrganizers?: Array<{ id: string }> }) {
+  return {
+    ministryId: event.ministryId,
+    organizerId: event.organizerId,
+    coOrganizers: event.coOrganizers || [],
+  };
+}
+
+export function canManageEvent(
+  user: User,
+  event: Event & { coOrganizers?: Array<{ id: string }> },
+): boolean {
+  return canManageExistingEvent(user, eventToAccessRecord(event));
+}
+
+export function canViewEvent(user: User, event: Event): boolean {
+  return canAccessMinistryEvent(user, event.ministryId);
+}
+
+export function canEditEvent(
+  user: User,
+  event: Event & { coOrganizers?: Array<{ id: string }> },
+): boolean {
+  return canManageExistingEvent(user, eventToAccessRecord(event));
+}
+
+export function canCancelEvent(
+  user: User,
+  event: Event & { coOrganizers?: Array<{ id: string }> },
+): boolean {
+  return canManageExistingEvent(user, eventToAccessRecord(event));
+}
+
+export function canManageEventAttendees(
+  user: User,
+  event: Event & { coOrganizers?: Array<{ id: string }> },
+): boolean {
+  return canManageExistingEvent(user, eventToAccessRecord(event));
+}
+
+export function canReassignEvent(
+  user: User,
+  event: Event & { coOrganizers?: Array<{ id: string }> },
+): boolean {
+  return canReassignExistingEvent(user, eventToAccessRecord(event));
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Minutes permissions
+// ────────────────────────────────────────────────────────────────────────────
+
+export function canDraftMinutes(
+  user: User,
+  event: Event & { coOrganizers?: Array<{ id: string }> },
+): boolean {
+  // Organizer, co-org, ADMIN_STAFF, ADMIN, SUPER_ADMIN can draft
+  return canManageExistingEvent(user, eventToAccessRecord(event));
+}
+
+export function canSubmitMinutes(
+  user: User,
+  minutes: Minutes & { event: Event & { coOrganizers?: Array<{ id: string }> } },
+): boolean {
+  // Only the drafter or someone with edit access can submit
+  // (In P3, we'll track who drafted and enforce stricter rules)
+  return canDraftMinutes(user, minutes.event);
+}
+
+export function canPublishMinutes(user: User, event: Event): boolean {
+  // PERMANENT_SECRETARY or DEPUTY_SECRETARY in same ministry
+  return canApproveMinutes(user.role) && user.ministryId === event.ministryId;
+}
+
+export function canViewMinutes(
+  user: User,
+  minutes: Minutes & { event: Event & { coOrganizers?: Array<{ id: string }> } },
+): boolean {
+  return canViewMinutesForEvent(user, eventToAccessRecord(minutes.event));
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Action item permissions
+// ────────────────────────────────────────────────────────────────────────────
+
+export function canViewActionItem(
+  user: User,
+  actionItem: ActionItem & { event: Event & { coOrganizers?: Array<{ id: string }> } },
+): boolean {
+  // Can view if:
+  // 1. Owner (assigned to you)
+  // 2. You manage the event it's for
+  // 3. You're ADMIN or SUPER_ADMIN in the ministry
+
+  if (actionItem.ownerId === user.id) return true;
+  if (isSuperAdmin(user.role)) return true;
+
+  const event = actionItem.event;
+  if (user.role === "ADMIN" && user.ministryId === event.ministryId) return true;
+  if (canManageExistingEvent(user, eventToAccessRecord(event))) return true;
+
+  return false;
+}
+
+export function canUpdateActionItem(
+  user: User,
+  actionItem: ActionItem & { event: Event & { coOrganizers?: Array<{ id: string }> } },
+): boolean {
+  // Can update if owner (assigned to you), or if you manage the event
+  if (actionItem.ownerId === user.id) return true;
+  return canManageExistingEvent(user, eventToAccessRecord(actionItem.event));
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Guard helpers (fold from guard.ts)
+// ────────────────────────────────────────────────────────────────────────────
+
+export function requireStaffRole(user: User | null): void {
+  if (!user || !["ADMIN_STAFF", "ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+    throw new Error("FORBIDDEN");
+  }
+}
+
+export function assertStaffRole(user: User | null): void {
+  requireStaffRole(user);
+}
+
+export function requireAdminRole(user: User | null): void {
+  if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+    throw new Error("FORBIDDEN");
+  }
+}
+
+export function assertAdminRole(user: User | null): void {
+  requireAdminRole(user);
+}
+
+export function requireSuperAdmin(user: User | null): void {
+  if (!user || !isSuperAdmin(user.role)) {
+    throw new Error("FORBIDDEN");
+  }
+}
+
+export function assertSuperAdmin(user: User | null): void {
+  requireSuperAdmin(user);
+}
