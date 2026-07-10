@@ -8,6 +8,7 @@ import { describeRecurrence } from "@/lib/recurrence";
 import type {
   Classification,
   EventType,
+  EventScope,
   RecurrenceEndType,
   RecurrenceFrequency,
 } from "@/generated/prisma/enums";
@@ -24,6 +25,7 @@ type EditableEvent = {
   endAt: Date;
   roomId: string | null;
   type: EventType;
+  scope: EventScope;
   classification: Classification;
   seriesId: string | null;
   series: {
@@ -181,11 +183,27 @@ export function EditEventForm({ event, rooms }: { event: EditableEvent; rooms: R
           </select>
         </div>
         <div>
+          <label className={label}>Event Scope</label>
+          <select name="eventScope" defaultValue={event.scope} className={field}>
+            <option value="TEAM">Team / Informal</option>
+            <option value="OFFICIAL">Official / Formal</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <label className={label}>Classification</label>
           <select name="classification" defaultValue={event.classification} className={field}>
             <option value="PUBLIC">Public</option>
             <option value="RESTRICTED">Restricted</option>
           </select>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground mt-6">
+            <strong>Team:</strong> Minutes don't require formal approval. Organizer publishes directly.<br />
+            <strong>Official:</strong> Minutes require an approver's sign-off before publishing.
+          </p>
         </div>
       </div>
 

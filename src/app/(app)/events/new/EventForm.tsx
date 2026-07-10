@@ -153,11 +153,27 @@ export function EventForm({
           </select>
         </div>
         <div>
+          <label className={label}>Event Scope</label>
+          <select name="scope" defaultValue="TEAM" className={field}>
+            <option value="TEAM">Team / Informal</option>
+            <option value="OFFICIAL">Official / Formal</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <label className={label}>Classification</label>
           <select name="classification" defaultValue="PUBLIC" className={field}>
             <option value="PUBLIC">Public / Internal</option>
             <option value="RESTRICTED">Restricted / Secret</option>
           </select>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground mt-6">
+            <strong>Team:</strong> Minutes don't require formal approval. Organizer publishes directly.<br />
+            <strong>Official:</strong> Minutes require an approver's sign-off before publishing.
+          </p>
         </div>
       </div>
 
