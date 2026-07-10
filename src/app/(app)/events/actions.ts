@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
 import { sendInviteEmail } from "@/lib/email";

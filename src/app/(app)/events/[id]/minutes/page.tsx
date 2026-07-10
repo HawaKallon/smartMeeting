@@ -24,6 +24,7 @@ export default async function MinutesPage({
     select: {
       id: true,
       title: true,
+      scope: true,
       ministryId: true,
       organizerId: true,
       coOrganizers: { select: { id: true } },
@@ -108,7 +109,7 @@ export default async function MinutesPage({
           <BackButton href={`/administrative/events/${id}`} label={event.title} />
           <h1 className="mt-4 text-3xl font-bold text-foreground flex items-center gap-3">
             <FileText className="h-8 w-8 text-sidebar-primary" />
-            Meeting Minutes
+            {event.scope === "TEAM" ? "Meeting Notes" : "Official Minutes"}
           </h1>
         </div>
         <span
@@ -183,7 +184,11 @@ export default async function MinutesPage({
               />
               {minutes.status === "DRAFT" && (
                 <div className="mt-4">
-                  <SubmitButton minutesId={minutes.id} eventId={id} />
+                  {event.scope === "TEAM" ? (
+                    <PublishButton minutesId={minutes.id} eventId={id} />
+                  ) : (
+                    <SubmitButton minutesId={minutes.id} eventId={id} />
+                  )}
                 </div>
               )}
               {minutes.status === "SUBMITTED" && (
@@ -276,6 +281,21 @@ export default async function MinutesPage({
               </p>
             </div>
           )}
+        </div>
+      ) : isAdmin && event.scope === "TEAM" && minutes.status === "PUBLISHED" ? (
+        <div className="rounded-lg border border-border bg-card p-6">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Publication Status
+          </h2>
+          <div className="space-y-3 rounded-lg bg-green-500/10 p-4">
+            <p className="flex items-center gap-2 text-sm text-green-400">
+              <CheckCircle className="h-4 w-4" />
+              Published on {minutes.publishedAt?.toLocaleString() ?? "—"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              These meeting notes are published and locked for editing.
+            </p>
+          </div>
         </div>
       ) : null}
     </div>
