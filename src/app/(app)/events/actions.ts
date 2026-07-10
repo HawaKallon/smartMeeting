@@ -165,6 +165,7 @@ export async function createEvent(
     userId: string | null;
     token: string;
     rsvpTokenHash: string;
+    emailNotifications?: boolean;
   };
   let resolved: Resolved[] = [];
   const inviteesRaw = formData.get("invitees");
@@ -175,7 +176,7 @@ export async function createEvent(
       invites.map(async (inv) => {
         const u = await prisma.user.findUnique({
           where: { email: inv.email.toLowerCase() },
-          select: { id: true, name: true },
+          select: { id: true, name: true, emailNotifications: true },
         });
         const { token, tokenHash } = createRsvpToken();
         return {
@@ -184,6 +185,7 @@ export async function createEvent(
           userId: u?.id ?? null,
           token,
           rsvpTokenHash: tokenHash,
+          emailNotifications: u?.emailNotifications,
         };
       }),
     );
@@ -262,7 +264,7 @@ export async function createEvent(
       : null;
     await Promise.allSettled(
       resolved.map((r) =>
-        sendInviteEmail({
+        r.emailNotifications !== false ? sendInviteEmail({
           to: r.email,
           toName: r.name,
           eventTitle: data.title,
@@ -279,7 +281,7 @@ export async function createEvent(
           recurrenceText,
           acceptUrl: rsvpUrl(r.token, "CONFIRMED"),
           declineUrl: rsvpUrl(r.token, "DECLINED"),
-        }),
+        }) : Promise.resolve(),
       ),
     );
   }

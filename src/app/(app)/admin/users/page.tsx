@@ -89,6 +89,7 @@ export default async function AdminUsersPage({
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ministry</th>
                 )}
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Title</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Actions</th>
               </tr>
@@ -116,6 +117,7 @@ export default async function AdminUsersPage({
                       {SYSTEM_ROLE_LABELS[u.systemRole as SystemRole] || "Unknown"}
                     </span>
                   </td>
+                  <td className="px-6 py-3 text-muted-foreground">{u.jobTitle || "—"}</td>
                   <td className="px-6 py-3">
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
