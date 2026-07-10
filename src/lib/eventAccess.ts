@@ -3,7 +3,7 @@ import type { SystemRole } from "@/generated/prisma/enums";
 
 type EventAccessUser = {
   id: string;
-  role: SystemRole;
+  systemRole: SystemRole;
   ministryId: string | null;
 };
 

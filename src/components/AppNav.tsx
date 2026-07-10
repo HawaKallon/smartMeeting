@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { signOut } from "@/auth";
 import { ROLE_LABELS, canManageEvents } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
 
 export function AppNav({
   user,

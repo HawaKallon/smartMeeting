@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { isSuperAdmin } from "@/lib/roles";
 import type { Prisma } from "@/generated/prisma/client";
-import type { MinistryRole, EventType, CheckInMethod } from "@/generated/prisma/enums";
+import type { SystemRole,  MinistryRole, EventType, CheckInMethod } from "@/generated/prisma/enums";
 
 // A user with just the fields needed to scope analytics queries.
-export type ScopedUser = { role: SystemRole; ministryId: string | null };
+export type ScopedUser = { systemRole: SystemRole; ministryId: string | null };
 
 // A sentinel ministry id that matches no real row (cuids never equal this) — used
 // when a non-super-admin somehow has no ministry, so they simply see nothing.
