@@ -22,7 +22,7 @@ interface Props {
   eventId: string;
   items: Item[];
   users: User[];
-  published: boolean;
+  status: "DRAFT" | "SUBMITTED" | "PUBLISHED";
   canEdit: boolean;
 }
 
@@ -88,7 +88,7 @@ function formatTimeline(value: string) {
   });
 }
 
-export function ActionItemsPanel({ minutesId, eventId, items, users, published, canEdit }: Props) {
+export function ActionItemsPanel({ minutesId, eventId, items, users, status, canEdit }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const timelineMin = currentLocalMinute();
@@ -104,7 +104,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
     undefined,
   );
 
-  const showActions = canEdit && !published;
+  const showActions = canEdit && status === "DRAFT";
 
   return (
     <div className="space-y-4">
