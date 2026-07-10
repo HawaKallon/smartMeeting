@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { SystemRole } from "@/generated/prisma/enums";
 import { useActionState } from "react";
 import { Check, X, CalendarRange, ClipboardList, ShieldCheck, BellRing } from "lucide-react";
 import { updateProfile } from "./actions";

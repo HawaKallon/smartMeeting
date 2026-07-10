@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
 import type { User } from "@/generated/prisma/client";
 
 // Generates a readable temporary password for first-time login (PRD §6.1).

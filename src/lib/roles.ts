@@ -66,7 +66,7 @@ export function isSuperAdmin(role: SystemRole | undefined): boolean {
 // may manage a given event; only the organizer or a ministry ADMIN may reassign it.
 
 export type EventPerm = { ministryId: string; organizerId: string; coOrganizerIds: string[] };
-export type ActorPerm = { id: string; role: SystemRole; ministryId: string | null };
+export type ActorPerm = { id: string; systemRole: SystemRole; ministryId: string | null };
 
 /** Can this actor edit/cancel/manage the given event? */
 export function canManageEvent(actor: ActorPerm, e: EventPerm): boolean {

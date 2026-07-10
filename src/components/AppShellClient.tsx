@@ -1,6 +1,7 @@
 "use client";
 
 import type { MinistryRole, Notification } from "@/generated/prisma/client";
+import type { SystemRole } from "@/generated/prisma/enums";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { SidebarStateProvider, useSidebarState } from "./SidebarState";
