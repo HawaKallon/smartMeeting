@@ -142,6 +142,7 @@ model Ministry {
   auditLogs     AuditLog[]
   notifications Notification[]
   publicEvents  PublicEvent[]
+  invitedPublicEvents PublicEvent[] @relation("PublicEventInvites")
 }
 
 model User {
@@ -512,6 +513,7 @@ model PublicEvent {
   createdById  String?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+  invitedMinistries Ministry[]   @relation("PublicEventInvites")
 
   @@index([status, startAt])
   @@index([ministryId])
