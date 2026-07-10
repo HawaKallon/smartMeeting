@@ -21,19 +21,31 @@ export function generateTempPassword(): string {
 export async function provisionUser({
   name,
   email,
-  role,
+  systemRole,
   ministryId,
 }: {
   name: string;
   email: string;
-  role: SystemRole;
+  systemRole: SystemRole;
   ministryId: string | null;
 }): Promise<{ user: User; emailSent: boolean }> {
   const tempPassword = generateTempPassword();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
+  // Map systemRole back to legacy role field for backward compat
+  const legacyRoleMap: Record<SystemRole, MinistryRole> = {
+    "SUPER_ADMIN": "SUPER_ADMIN",
+    "MINISTRY_ADMIN": "ADMIN",
+    "EVENT_MANAGER": "ADMIN_STAFF",
+    "EXECUTIVE_ASSISTANT": "ADMIN_STAFF",
+    "APPROVER": "PERMANENT_SECRETARY",
+    "EXECUTIVE_VIEWER": "DEPUTY_MINISTER",
+    "STAFF": "STAFF_MEMBER",
+  };
+  const role = legacyRoleMap[systemRole] || "STAFF_MEMBER";
+
   const user = await prisma.user.create({
-    data: { name, email, role, ministryId, passwordHash },
+    data: { name, email, role, systemRole, ministryId, passwordHash },
   });
 
   // Send welcome email (with temp password) via the shared, verified-domain sender.

@@ -92,7 +92,7 @@ export function canReassignEvent(actor: ActorPerm, e: EventPerm): boolean {
 
 // MinistryRole type is a union of the mapped SystemRole values.
 // Keyed by the old enum keys for reference only.
-export const ROLE_LABELS: Partial<Record<MinistryRole, string>> = {
+export const ROLE_LABELS: Record<string, string> = {
   "MINISTRY_ADMIN": "Ministry Admin / Admin",
   "APPROVER": "Approver (PS/DS)",
   "EXECUTIVE_VIEWER": "Executive Viewer (Deputy Minister)",

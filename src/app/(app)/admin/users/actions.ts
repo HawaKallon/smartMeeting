@@ -98,7 +98,7 @@ export async function createUser(
     const { user: newUser, emailSent } = await provisionUser({
       name,
       email,
-      role: role as MinistryRole,
+      systemRole: role as SystemRole,
       ministryId: targetMinistryId,
     });
 

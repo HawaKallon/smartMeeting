@@ -11,7 +11,7 @@ export function Topbar({
   ministryName,
   notifications = [],
 }: {
-  user: { id: string; name?: string | null; email: string; role: SystemRole };
+  user: { id: string; name?: string | null; email: string; systemRole: SystemRole };
   ministryName?: string | null;
   notifications?: Notification[];
 }) {

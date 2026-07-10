@@ -118,7 +118,7 @@ export async function createMinistry(
     const { user: admin, emailSent } = await provisionUser({
       name: adminName,
       email: adminEmail,
-      role: "MINISTRY_ADMIN",
+      systemRole: "MINISTRY_ADMIN",
       ministryId: ministry.id,
     });
 
@@ -186,7 +186,7 @@ export async function addMinistryAdmin(
     const { user: admin, emailSent } = await provisionUser({
       name: adminName,
       email: adminEmail,
-      role: "MINISTRY_ADMIN",
+      systemRole: "MINISTRY_ADMIN",
       ministryId: ministry.id,
     });
 
