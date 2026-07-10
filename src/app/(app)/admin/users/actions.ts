@@ -1,14 +1,13 @@
 "use server";
 
 import { requireUser, assertAdminRole } from "@/lib/guard";
-import { isSuperAdmin } from "@/lib/roles";
+import { isSuperAdmin, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { provisionUser, regenerateTempPassword } from "@/lib/provisionUser";
 import { isGovEmail, emailDomainOf, GOV_EMAIL_ERROR } from "@/lib/govEmail";
-import { MINISTRY_ROLES, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
-import type { MinistryRole, SystemRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 /**
  * Authorize the current user to manage `userId`, returning both records.
@@ -46,6 +45,7 @@ export async function createUser(
     const email = (formData.get("email") as string)?.toLowerCase().trim();
     const role = formData.get("role") as string;
     const ministryIdParam = formData.get("ministryId") as string;
+    const jobTitle = (formData.get("jobTitle") as string)?.trim() || null;
 
     if (!name || !email || !role) {
       return { error: "All fields are required" };
@@ -100,6 +100,7 @@ export async function createUser(
       email,
       systemRole: role as SystemRole,
       ministryId: targetMinistryId,
+      jobTitle,
     });
 
     // Audit log
@@ -196,24 +197,12 @@ export async function updateUserRole(
     const { user, target } = auth;
 
     // Only assignable system roles — never grant SUPER_ADMIN here.
-    if (!ASSIGNABLE_SYSTEM_ROLES.includes(role as any) || role === "SUPER_ADMIN") {
+    if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as any)) {
       return { error: "Invalid role" };
     }
     if (role === target.systemRole) return { ok: true };
 
-    // Derive legacy role for backward compat
-    const legacyRoleMap: Record<string, string> = {
-      "SUPER_ADMIN": "SUPER_ADMIN",
-      "MINISTRY_ADMIN": "ADMIN",
-      "EVENT_MANAGER": "ADMIN_STAFF",
-      "EXECUTIVE_ASSISTANT": "ADMIN_STAFF",
-      "APPROVER": "PERMANENT_SECRETARY",
-      "EXECUTIVE_VIEWER": "DEPUTY_MINISTER",
-      "STAFF": "STAFF_MEMBER",
-    };
-    const legacyRole = (legacyRoleMap[role] || "STAFF_MEMBER") as MinistryRole;
-
-    await prisma.user.update({ where: { id: userId }, data: { role: legacyRole, systemRole: role as any } });
+    await prisma.user.update({ where: { id: userId }, data: { systemRole: role as any as SystemRole } });
 
     await audit({
       actorId: user.id,
