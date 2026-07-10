@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isSuperAdmin, ROLE_LABELS } from "@/lib/roles";
 import { toCsv, type CsvColumn } from "@/lib/csv";
 import type { Prisma } from "@/generated/prisma/client";
+import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
 
 const NO_MINISTRY = "__none__";
 
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
 
   if (dataset === "users") {
     const where: Prisma.UserWhereInput = {
-      role: { not: "SUPER_ADMIN" },
+      systemRole: { not: "SUPER_ADMIN" },
       ...(scopeId ? { ministryId: scopeId } : {}),
     };
     const rows = await prisma.user.findMany({
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
     const cols: CsvColumn<(typeof rows)[number]>[] = [
       { header: "Name", value: (r) => r.name },
       { header: "Email", value: (r) => r.email },
-      { header: "Role", value: (r) => ROLE_LABELS[r.systemRole] },
+      { header: "Role", value: (r) => SYSTEM_ROLE_LABELS[r.systemRole as SystemRole] || "Unknown" },
       { header: "Ministry", value: (r) => r.ministry?.name },
       { header: "Active", value: (r) => r.active },
       { header: "Created", value: (r) => r.createdAt },
