@@ -2,10 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
-import { ROLE_LABELS, MINISTRY_ROLES } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import { SYSTEM_ROLE_LABELS, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
+import type { SystemRole } from "@/generated/prisma/enums";
 
-const ASSIGNABLE_ROLES = ["MINISTER", "PERMANENT_SECRETARY", "DEPUTY_MINISTER", "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN", "STAFF_MEMBER"] as const;
+
 
 const control =
   "rounded-xl border border-border bg-secondary/55 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
@@ -46,9 +46,9 @@ export function UserFilters({
         className={control}
       >
         <option value="">All roles</option>
-        {ASSIGNABLE_ROLES.map((r) => (
+        {ASSIGNABLE_SYSTEM_ROLES.map((r) => (
           <option key={r} value={r}>
-            {ROLE_LABELS[r]}
+            {SYSTEM_ROLE_LABELS[r as SystemRole]}
           </option>
         ))}
       </select>

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Trash2, Power } from "lucide-react";
-import { ROLE_LABELS, MINISTRY_ROLES } from "@/lib/roles";
-import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
+import { SYSTEM_ROLE_LABELS, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
+import type { SystemRole } from "@/generated/prisma/enums";
 import {
   updateUserRole,
   setUserActive,
@@ -14,7 +14,7 @@ import {
 } from "./actions";
 
 // Roles a super-admin / admin may assign — never SUPER_ADMIN.
-const ASSIGNABLE_ROLES = ["MINISTER", "PERMANENT_SECRETARY", "DEPUTY_MINISTER", "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN", "STAFF_MEMBER"] as const;
+
 
 const iconBtn =
   "rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50";
@@ -54,9 +54,9 @@ export function UserRowActions({
         className="rounded-lg border border-border bg-muted/50 px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none disabled:opacity-50"
         title="Change role"
       >
-        {ASSIGNABLE_ROLES.map((r) => (
+        {ASSIGNABLE_SYSTEM_ROLES.map((r) => (
           <option key={r} value={r}>
-            {ROLE_LABELS[r]}
+            {SYSTEM_ROLE_LABELS[r as SystemRole]}
           </option>
         ))}
       </select>
