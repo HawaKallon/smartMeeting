@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { isGovEmail, emailDomainOf } from "@/lib/govEmail";
-import type { MinistryRole, SystemRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 import authConfig from "./auth.config";
 
 // PRD §6.1 / §7 — authentication + role-aware session.
@@ -18,14 +18,12 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
-      role: SystemRole; // deprecated, kept for backwards compat during P2.4 cutover
       systemRole: SystemRole;
       jobTitle: string | null;
       ministryId: string | null;
     };
   }
   interface User {
-    role: SystemRole; // deprecated
     systemRole: SystemRole;
     jobTitle: string | null;
     ministryId: string | null;
@@ -58,7 +56,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: true,
             email: true,
             name: true,
-            role: true,
             systemRole: true,
             jobTitle: true,
             ministryId: true,
@@ -114,8 +111,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.systemRole,
-          systemRole: user.systemRole || "STAFF", // fallback for backfilled users
+          systemRole: user.systemRole,
           jobTitle: user.jobTitle,
           ministryId,
         };
