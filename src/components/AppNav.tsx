@@ -26,7 +26,7 @@ export function AppNav({
                 href="/administrative/events/new"
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
-                New Event
+                Schedule Activity
               </Link>
               <Link
                 href="/administrative/attendance"

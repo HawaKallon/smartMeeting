@@ -69,7 +69,7 @@ export default async function Dashboard() {
               className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#002a68]"
             >
               <PlusCircle className="h-4 w-4" />
-              New Event
+              Schedule Activity
             </Link>
             <Link
               href="/administrative/attendance"
@@ -137,7 +137,7 @@ export default async function Dashboard() {
                 href="/administrative/events/new"
                 className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-[#002a68]"
               >
-                <PlusCircle className="h-4 w-4" /> Create first event
+                <PlusCircle className="h-4 w-4" /> Schedule first activity
               </Link>
             )}
           </div>
