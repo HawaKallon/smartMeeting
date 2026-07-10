@@ -18,7 +18,7 @@ export default async function PlatformOverviewPage() {
   ] = await Promise.all([
     prisma.ministry.count(),
     prisma.ministry.count({ where: { active: true } }),
-    prisma.user.count({ where: { role: { not: "SUPER_ADMIN" } } }),
+    prisma.user.count({ where: { systemRole: { not: "SUPER_ADMIN" } } }),
     prisma.event.count(),
     prisma.event.count({ where: { endAt: { gt: now } } }),
     prisma.attendance.count(),
