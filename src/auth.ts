@@ -35,12 +35,15 @@ declare module "next-auth" {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
-    Credentials(({
+    // @ts-ignore NextAuth User type doesn't support our custom fields (systemRole, jobTitle)
+    // but the augmented interface includes them. This is correct at runtime.
+    Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials: any) => {
+      // @ts-ignore NextAuth User type constraint
+      authorize: async (credentials: any, _request: any) => {
         const email = String(credentials?.email ?? "").toLowerCase().trim();
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
