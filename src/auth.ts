@@ -18,14 +18,14 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
-      role: MinistryRole; // deprecated, kept for backwards compat during P2.4 cutover
+      role: SystemRole; // deprecated, kept for backwards compat during P2.4 cutover
       systemRole: SystemRole;
       jobTitle: string | null;
       ministryId: string | null;
     };
   }
   interface User {
-    role: MinistryRole; // deprecated
+    role: SystemRole; // deprecated
     systemRole: SystemRole;
     jobTitle: string | null;
     ministryId: string | null;
@@ -103,7 +103,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ministryId,
           metadata: {
             email: user.email,
-            role: user.role,
+            role: user.systemRole,
           },
         });
 
@@ -111,7 +111,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role: user.systemRole,
           systemRole: user.systemRole || "STAFF", // fallback for backfilled users
           jobTitle: user.jobTitle,
           ministryId,

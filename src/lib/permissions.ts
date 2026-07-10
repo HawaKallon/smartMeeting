@@ -1,5 +1,5 @@
 import type { Event, Minutes, ActionItem } from "@/generated/prisma/client";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 import type { ActorPerm } from "./roles";
 import { isSuperAdmin, canManageEvents, canApproveMinutes } from "./roles";
 import {
@@ -13,33 +13,33 @@ import {
 // User-level capabilities
 // ────────────────────────────────────────────────────────────────────────────
 
-type MinimalUser = { role: MinistryRole; ministryId?: string | null };
+type MinimalUser = { role: SystemRole; ministryId?: string | null };
 
 export function canCreateEvent(user: MinimalUser | null): boolean {
   if (!user) return false;
-  return canManageEvents(user.role);
+  return canManageEvents(user.systemRole);
 }
 
 export function canManageUsers(user: MinimalUser | null, targetMinistryId?: string): boolean {
   if (!user) return false;
-  if (isSuperAdmin(user.role)) return true;
-  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") return false;
+  if (isSuperAdmin(user.systemRole)) return true;
+  if (user.systemRole !== "MINISTRY_ADMIN") return false;
   if (targetMinistryId && user.ministryId !== targetMinistryId) return false;
   return true;
 }
 
 export function canManageRooms(user: MinimalUser | null, targetMinistryId?: string): boolean {
   if (!user) return false;
-  if (isSuperAdmin(user.role)) return true;
-  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") return false;
+  if (isSuperAdmin(user.systemRole)) return true;
+  if (user.systemRole !== "MINISTRY_ADMIN") return false;
   if (targetMinistryId && user.ministryId !== targetMinistryId) return false;
   return true;
 }
 
 export function canManageMinistry(user: MinimalUser | null, ministryId: string): boolean {
   if (!user) return false;
-  if (isSuperAdmin(user.role)) return true;
-  return user.role === "ADMIN" && user.ministryId === ministryId;
+  if (isSuperAdmin(user.systemRole)) return true;
+  return user.systemRole === "MINISTRY_ADMIN" && user.ministryId === ministryId;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export function canDraftMinutes(
   user: ActorPerm,
   event: Event & { coOrganizers?: Array<{ id: string }> },
 ): boolean {
-  // Organizer, co-org, ADMIN_STAFF, ADMIN, SUPER_ADMIN can draft
+  // Organizer, co-org, operational staff can draft
   return canManageExistingEvent(user, eventToAccessRecord(event));
 }
 
@@ -116,8 +116,8 @@ export function canSubmitMinutes(
 }
 
 export function canPublishMinutes(user: ActorPerm, event: Event): boolean {
-  // PERMANENT_SECRETARY or DEPUTY_SECRETARY in same ministry
-  return canApproveMinutes(user.role) && user.ministryId === event.ministryId;
+  // APPROVER role in same ministry
+  return canApproveMinutes(user.systemRole) && user.ministryId === event.ministryId;
 }
 
 export function canViewMinutes(
@@ -138,13 +138,13 @@ export function canViewActionItem(
   // Can view if:
   // 1. Owner (assigned to you)
   // 2. You manage the event it's for
-  // 3. You're ADMIN or SUPER_ADMIN in the ministry
+  // 3. You're MINISTRY_ADMIN or SUPER_ADMIN in the ministry
 
   if (actionItem.ownerId === user.id) return true;
-  if (isSuperAdmin(user.role)) return true;
+  if (isSuperAdmin(user.systemRole)) return true;
 
   const event = actionItem.event;
-  if (user.role === "ADMIN" && user.ministryId === event.ministryId) return true;
+  if (user.systemRole === "MINISTRY_ADMIN" && user.ministryId === event.ministryId) return true;
   if (canManageExistingEvent(user, eventToAccessRecord(event))) return true;
 
   return false;
@@ -158,4 +158,3 @@ export function canUpdateActionItem(
   if (actionItem.ownerId === user.id) return true;
   return canManageExistingEvent(user, eventToAccessRecord(actionItem.event));
 }
-

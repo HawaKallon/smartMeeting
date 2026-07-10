@@ -16,7 +16,7 @@ export default async function AdminUsersPage({
 }) {
   const user = await requireAdminRole();
 
-  const superAdmin = isSuperAdmin(user.role);
+  const superAdmin = isSuperAdmin(user.systemRole);
   const { q, role, ministryId } = await searchParams;
 
   // Super-admins can target any ministry; surface the list for the create form + filter.
@@ -38,7 +38,7 @@ export default async function AdminUsersPage({
       { email: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (role) where.role = role as Prisma.UserWhereInput["role"];
+  if (role) where.systemRole = role as Prisma.UserWhereInput["role"];
   if (superAdmin && ministryId) where.ministryId = ministryId;
 
   const users = await prisma.user.findMany({
@@ -112,7 +112,7 @@ export default async function AdminUsersPage({
                   )}
                   <td className="px-6 py-3">
                     <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-600">
-                      {ROLE_LABELS[u.role]}
+                      {ROLE_LABELS[u.systemRole]}
                     </span>
                   </td>
                   <td className="px-6 py-3">
@@ -131,7 +131,7 @@ export default async function AdminUsersPage({
                     <UserRowActions
                       userId={u.id}
                       userName={u.name || u.email}
-                      role={u.role}
+                      role={u.systemRole}
                       active={u.active}
                     />
                   </td>

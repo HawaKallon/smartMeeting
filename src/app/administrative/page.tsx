@@ -12,8 +12,8 @@ import type { ColorCategory } from "@/generated/prisma/enums";
 
 export default async function Dashboard() {
   const user = await requireUser();
-  const isStaff = canManageEvents(user.role);
-  const canViewAll = canViewMinistrySchedule(user.role);
+  const isStaff = canManageEvents(user.systemRole);
+  const canViewAll = canViewMinistrySchedule(user.systemRole);
 
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());

@@ -248,7 +248,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <h2 className="mt-2 text-3xl font-bold">{user.name || "No name set"}</h2>
                 <p className="mt-2 text-sm text-white/80">{user.email}</p>
                 <div className="mt-5 inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white">
-                  {user.role.replace(/_/g, " ")}
+                  {user.systemRole.replace(/_/g, " ")}
                 </div>
               </div>
             </div>

@@ -13,7 +13,7 @@ export default async function ActivityLogPage({
 }) {
   const user = await requireAdminRole();
 
-  const superAdmin = isSuperAdmin(user.role);
+  const superAdmin = isSuperAdmin(user.systemRole);
   const { page, action, ministryId } = await searchParams;
   const currentPage = parseInt(page ?? "1", 10);
   const pageSize = 50;
