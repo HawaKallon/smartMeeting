@@ -516,7 +516,7 @@ async function resolveActionItemAssignee(
   const user = await prisma.user.findFirst({
     where: {
       ministryId,
-      role: { not: "SUPER_ADMIN" },
+      systemRole: { not: "SUPER_ADMIN" },
       OR: [
         { name: { equals: trimmed, mode: "insensitive" } },
         { email: { equals: trimmed, mode: "insensitive" } },

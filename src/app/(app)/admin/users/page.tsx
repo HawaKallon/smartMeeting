@@ -2,7 +2,7 @@ import { ministryScope, requireAdminRole } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
-import { ROLE_LABELS, SYSTEM_ROLE_LABELS } from "@/lib/roles";
+import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
 import { Shield, Plus, Check, X } from "lucide-react";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserFilters } from "./UserFilters";
@@ -31,7 +31,7 @@ export default async function AdminUsersPage({
   // Super-admins are platform-wide and never belong to a ministry's user list.
   const where: Prisma.UserWhereInput = {
     ...ministryScope(user),
-    role: { not: "SUPER_ADMIN" },
+    systemRole: { not: "SUPER_ADMIN" },
   };
   if (q) {
     where.OR = [
@@ -49,6 +49,7 @@ export default async function AdminUsersPage({
       name: true,
       email: true,
       systemRole: true,
+      jobTitle: true,
       active: true,
       createdAt: true,
       ministryId: true,
