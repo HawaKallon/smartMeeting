@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { MinistryRole, SystemRole } from "@/generated/prisma/enums";
 
 // Edge-compatible auth config — no Node.js-only imports (no Prisma, no bcrypt).
 // Used by the middleware (proxy.ts) to verify JWT sessions without touching the DB.
@@ -14,6 +14,8 @@ const authConfig: NextAuthConfig = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as { role: MinistryRole }).role;
+        token.systemRole = (user as unknown as { systemRole: SystemRole }).systemRole;
+        token.jobTitle = (user as unknown as { jobTitle: string | null }).jobTitle;
         token.ministryId = (user as unknown as { ministryId: string | null }).ministryId;
       }
       return token;
@@ -22,6 +24,8 @@ const authConfig: NextAuthConfig = {
       if (session.user) {
         (session.user as { id: string }).id = token.id as string;
         (session.user as { role: MinistryRole }).role = token.role as MinistryRole;
+        (session.user as { systemRole: SystemRole }).systemRole = token.systemRole as SystemRole;
+        (session.user as { jobTitle: string | null }).jobTitle = token.jobTitle as string | null;
         (session.user as { ministryId: string | null }).ministryId = token.ministryId as string | null;
       }
       return session;

@@ -4,12 +4,13 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { isGovEmail, emailDomainOf } from "@/lib/govEmail";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { MinistryRole, SystemRole } from "@/generated/prisma/enums";
 import authConfig from "./auth.config";
 
 // PRD §6.1 / §7 — authentication + role-aware session.
 // Phase 1 uses credentials (email + password) with a JWT session carrying the
 // ministry role. Email OTP and government SSO slot in here later (PRD §8 Phase 3).
+// P2: Added systemRole (access level) and jobTitle (org title) alongside role (deprecated).
 
 declare module "next-auth" {
   interface Session {
@@ -17,12 +18,16 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
-      role: MinistryRole;
+      role: MinistryRole; // deprecated, kept for backwards compat during P2.4 cutover
+      systemRole: SystemRole;
+      jobTitle: string | null;
       ministryId: string | null;
     };
   }
   interface User {
-    role: MinistryRole;
+    role: MinistryRole; // deprecated
+    systemRole: SystemRole;
+    jobTitle: string | null;
     ministryId: string | null;
   }
 }
@@ -51,6 +56,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: true,
             name: true,
             role: true,
+            systemRole: true,
+            jobTitle: true,
             ministryId: true,
             passwordHash: true,
             active: true,
@@ -68,7 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // ministry's emailDomain (e.g. "mocti.gov.sl") is the source of truth.
         // Super-admins are platform-wide and keep a null ministry.
         let ministryId: string | null = user.ministryId;
-        if (user.role !== "SUPER_ADMIN") {
+        if (user.systemRole !== "SUPER_ADMIN") {
           const domain = emailDomainOf(email);
           const ministry = domain
             ? await prisma.ministry.findUnique({
@@ -105,6 +112,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          systemRole: user.systemRole || "STAFF", // fallback for backfilled users
+          jobTitle: user.jobTitle,
           ministryId,
         };
       },
