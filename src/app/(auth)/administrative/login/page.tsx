@@ -50,16 +50,16 @@ export default async function LoginPage({
 
             <div className="relative">
               <div className="flex items-start justify-between gap-6">
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white">
+                <div className="flex h-14 w-14 items-center justify-center">
                   <Image
-                    src="/44-00-152_sierra_leone-png.png"
+                    src="/coat_of_arms.jpeg"
                     alt="Sierra Leone coat of arms"
                     width={52}
                     height={52}
                     className="h-13 w-13 object-contain"
                   />
                 </div>
-                <SierraLeoneFlag className="h-8 w-14 border-white/20" />
+                <SierraLeoneFlag className="h-12 w-20 border-white/20" />
               </div>
               <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
                 Government of Sierra Leone
@@ -82,16 +82,16 @@ export default async function LoginPage({
           <div className="flex flex-col justify-center px-6 py-10 sm:px-12 lg:px-16">
             <div className="mb-9 md:hidden">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-[#d3deef] bg-white">
+                <div className="flex h-12 w-12 items-center justify-center">
                   <Image
-                    src="/44-00-152_sierra_leone-png.png"
+                    src="/coat_of_arms.jpeg"
                     alt="Sierra Leone coat of arms"
                     width={44}
                     height={44}
                     className="h-11 w-11 object-contain"
                   />
                 </div>
-                <SierraLeoneFlag className="h-8 w-14" />
+                <SierraLeoneFlag className="h-12 w-20" />
               </div>
               <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#007236]">Government of Sierra Leone</p>
             </div>
