@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser, assertSameMinistry } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
+import { assertAdminRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 
@@ -13,9 +14,7 @@ export async function createRoom(
   try {
     const user = await requireUser();
 
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "Forbidden" };
-    }
+    assertAdminRole(user);
 
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
@@ -88,9 +87,7 @@ export async function updateRoom(
   try {
     const user = await requireUser();
 
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "Forbidden" };
-    }
+    assertAdminRole(user);
 
     const room = await prisma.room.findUnique({
       where: { id: roomId },
@@ -153,9 +150,7 @@ export async function deleteRoom(roomId: string): Promise<{ ok?: boolean; error?
   try {
     const user = await requireUser();
 
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "Forbidden" };
-    }
+    assertAdminRole(user);
 
     const room = await prisma.room.findUnique({
       where: { id: roomId },
