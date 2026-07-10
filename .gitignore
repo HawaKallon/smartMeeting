@@ -45,3 +45,9 @@ next-env.d.ts
 
 # uploaded audio
 /uploads
+
+# local review & implementation docs
+/docs/*.md
+!docs/README.md
+
+
