@@ -64,7 +64,7 @@ export default async function ActionItemsPage({
     ? await prisma.user.findMany({
         where: {
           ministryId: user.ministryId ?? undefined,
-          role: { not: "SUPER_ADMIN" },
+          systemRole: { not: "SUPER_ADMIN" },
         },
         select: { id: true, name: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }],
