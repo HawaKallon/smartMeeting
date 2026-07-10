@@ -171,6 +171,7 @@ model User {
 
   // Preferences
   emailNotifications      Boolean @default(true)
+  minutesNotifications    Boolean @default(true)      // P6: minutes publication notifications
   meetingReminders        Boolean @default(true)
   actionItemNotifications Boolean @default(true)
   theme                   String  @default("dark") // dark, light, auto
