@@ -82,7 +82,7 @@ export default async function CalendarPage({
             className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Event
+            Schedule Activity
           </Link>
         )}
       </div>
