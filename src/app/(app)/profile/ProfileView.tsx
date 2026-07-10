@@ -68,8 +68,10 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
               <div className="mt-2 flex gap-4">
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white flex-shrink-0 overflow-hidden">
                   {previewImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={previewImage} alt="Preview" className="h-full w-full object-cover" />
                   ) : user.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.image} alt={user.name || "Avatar"} className="h-full w-full object-cover" />
                   ) : (
                     (user.name ?? user.email).charAt(0).toUpperCase()
@@ -235,6 +237,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
             <div className="flex items-start gap-5">
               <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/25 bg-white/15 text-2xl font-bold text-white backdrop-blur flex-shrink-0">
                 {user.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={user.image} alt={user.name || "Avatar"} className="h-full w-full object-cover" />
                 ) : (
                   (user.name ?? user.email).charAt(0).toUpperCase()

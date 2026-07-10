@@ -1,17 +1,34 @@
 import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
-import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import Link from "next/link";
 import { AvailabilityDatePicker } from "./AvailabilityDatePicker";
 import { RoomSelect } from "./RoomSelect";
+import type { Prisma } from "@/generated/prisma/client";
+
+type SelectedRoom = Prisma.RoomGetPayload<{
+  include: {
+    bookings: {
+      include: { user: { select: { name: true; email: true } } };
+    };
+    events: {
+      select: {
+        id: true;
+        title: true;
+        startAt: true;
+        endAt: true;
+        organizer: { select: { name: true } };
+      };
+    };
+  };
+}>;
 
 export default async function RoomAvailabilityPage({
   searchParams,
 }: {
   searchParams: Promise<{ roomId?: string; date?: string }>;
 }) {
-  const user = await requireUser();
+  await requireUser();
   const sp = await searchParams;
 
   const rooms = await prisma.room.findMany({
@@ -19,10 +36,10 @@ export default async function RoomAvailabilityPage({
     select: { id: true, name: true, location: true, capacity: true },
   });
 
-  let selectedRoom = null;
+  let selectedRoom: SelectedRoom | null = null;
   let selectedDate = new Date();
-  let dayBookings: any[] = [];
-  let dayEvents: any[] = [];
+  let dayBookings: SelectedRoom["bookings"] = [];
+  let dayEvents: SelectedRoom["events"] = [];
 
   if (sp.roomId) {
     selectedRoom = await prisma.room.findUnique({

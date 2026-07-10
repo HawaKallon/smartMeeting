@@ -5,11 +5,35 @@ import { updateEvent } from "./actions";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { RecurrenceFields } from "@/components/RecurrenceFields";
 import { describeRecurrence } from "@/lib/recurrence";
+import type {
+  Classification,
+  EventType,
+  RecurrenceEndType,
+  RecurrenceFrequency,
+} from "@/generated/prisma/enums";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
 
 type Room = { id: string; name: string; location: string; capacity: number };
+type EditableEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: Date;
+  endAt: Date;
+  roomId: string | null;
+  type: EventType;
+  classification: Classification;
+  seriesId: string | null;
+  series: {
+    frequency: RecurrenceFrequency;
+    interval: number;
+    endType: RecurrenceEndType;
+    count: number | null;
+    until: Date | null;
+  } | null;
+};
 
 function toDateInput(d: Date | string | null | undefined): string {
   if (!d) return "";
@@ -17,7 +41,7 @@ function toDateInput(d: Date | string | null | undefined): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function EditEventForm({ event, rooms }: { event: any; rooms: Room[] }) {
+export function EditEventForm({ event, rooms }: { event: EditableEvent; rooms: Room[] }) {
   const [state, formAction, isPending] = useActionState(updateEvent, undefined);
   const [changePattern, setChangePattern] = useState(false);
 

@@ -15,6 +15,18 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "mistral";
 
 export const useOllama = !OPENAI_API_KEY || OPENAI_API_KEY.trim() === "";
 
+type OpenAIChatCompletionResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+};
+
+type OllamaGenerateResponse = {
+  response?: string;
+};
+
 /**
  * Generate text using available LLM provider
  */
@@ -51,8 +63,8 @@ async function generateTextOpenAI(
     throw new Error(`OpenAI API error: ${response.statusText}`);
   }
 
-  const data = (await response.json()) as any;
-  return data.choices[0]?.message?.content || "";
+  const data = (await response.json()) as OpenAIChatCompletionResponse;
+  return data.choices?.[0]?.message?.content || "";
 }
 
 /**
@@ -80,7 +92,7 @@ async function generateTextOllama(
       throw new Error(`Ollama API error: ${response.statusText}`);
     }
 
-    const data = (await response.json()) as any;
+    const data = (await response.json()) as OllamaGenerateResponse;
     return data.response || "";
   } catch (error) {
     console.error("Ollama error:", error);
