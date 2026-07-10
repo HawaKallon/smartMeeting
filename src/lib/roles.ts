@@ -1,4 +1,4 @@
-import type { SystemRole, MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 // PRD §7 — system role hierarchy and permission helpers (P2: refactored to use systemRole).
 
@@ -86,42 +86,3 @@ export function canReassignEvent(actor: ActorPerm, e: EventPerm): boolean {
   return e.organizerId === actor.id || actor.systemRole === "MINISTRY_ADMIN";
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Deprecated: MinistryRole helpers (kept for backward compat during migration)
-// ─────────────────────────────────────────────────────────────────
-
-// MinistryRole type is a union of the mapped SystemRole values.
-// Keyed by the old enum keys for reference only.
-export const ROLE_LABELS: Record<string, string> = {
-  "MINISTRY_ADMIN": "Ministry Admin / Admin",
-  "APPROVER": "Approver (PS/DS)",
-  "EXECUTIVE_VIEWER": "Executive Viewer (Deputy Minister)",
-  "EVENT_MANAGER": "Event Manager / Admin Staff",
-  "STAFF": "Staff Member",
-  "SUPER_ADMIN": "Super Admin",
-};
-
-export const MINISTRY_ROLES = [
-  "MINISTRY_ADMIN",
-  "APPROVER",
-  "EXECUTIVE_VIEWER",
-  "APPROVER",
-  "EVENT_MANAGER",
-  "MINISTRY_ADMIN",
-  "SUPER_ADMIN",
-  "STAFF",
-] as const;
-
-export const LEADERSHIP_ROLES = [
-  "MINISTRY_ADMIN",
-  "APPROVER",
-  "EXECUTIVE_VIEWER",
-] as const;
-
-export function isLeadership(role: SystemRole | undefined): boolean {
-  return (
-    role === "MINISTRY_ADMIN" ||
-    role === "APPROVER" ||
-    role === "EXECUTIVE_VIEWER"
-  );
-}
