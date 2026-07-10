@@ -3,13 +3,15 @@
 import { useActionState, useState } from "react";
 import { Plus, Edit2, Trash2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { addActionItem, updateActionItem, deleteActionItem, type ActionState } from "./actions";
-import { DatePicker } from "@/components/DatePicker";
+import { DateTimePicker } from "@/components/DateTimePicker";
 
 type Item = {
   id: string;
   title: string;
   status: "TODO" | "IN_PROGRESS" | "DONE";
+  point: "ACTION_POINT" | "AGREED";
   dueDate: string | null;
+  ownerName: string | null;
   owner: { id: string; name: string | null; email: string } | null;
 };
 
@@ -45,13 +47,52 @@ const STATUS_BADGE: Record<Item["status"], string> = {
   DONE: "bg-green-500/10 text-green-400 border border-green-500/20",
 };
 
+const POINT_LABELS: Record<Item["point"], string> = {
+  ACTION_POINT: "Action Point",
+  AGREED: "Agreed",
+};
+
+const POINT_BADGE: Record<Item["point"], string> = {
+  ACTION_POINT: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+  AGREED: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+};
+
 function userLabel(u: User) {
   return u.name ?? u.email;
+}
+
+function toDateTimeLocalValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function currentLocalMinute() {
+  return toDateTimeLocalValue(new Date().toISOString());
+}
+
+function currentTimezoneOffset() {
+  return String(new Date().getTimezoneOffset());
+}
+
+function formatTimeline(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function ActionItemsPanel({ minutesId, eventId, items, users, published, canEdit }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const timelineMin = currentLocalMinute();
+  const timezoneOffset = currentTimezoneOffset();
 
   const [addState, addAction, addPending] = useActionState<ActionState, FormData>(
     addActionItem,
@@ -67,6 +108,12 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
 
   return (
     <div className="space-y-4">
+      {/* Shared datalist for responsible party suggestions — placed once at root to avoid duplicate IDs */}
+      <datalist id="responsible-parties">
+        {users.map((u) => (
+          <option key={u.id} value={userLabel(u)} />
+        ))}
+      </datalist>
       {items.length === 0 && !showAdd ? (
         <div className="rounded-lg bg-secondary/30 p-6 text-center">
           <p className="text-sm text-muted-foreground">No action items yet.</p>
@@ -80,6 +127,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                   <input type="hidden" name="itemId" value={item.id} />
                   <input type="hidden" name="minutesId" value={minutesId} />
                   <input type="hidden" name="eventId" value={eventId} />
+                  <input type="hidden" name="timezoneOffset" value={timezoneOffset} />
 
                   {editState?.error ? (
                     <div className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
@@ -91,35 +139,46 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                     </div>
                   ) : null}
 
-                  <div className="grid gap-3">
-                    <input
-                      name="title"
-                      defaultValue={item.title}
-                      required
+                  {/* Row 1: Point + Timeline */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <select name="point" defaultValue={item.point} className={field}>
+                      <option value="ACTION_POINT">Action Point</option>
+                      <option value="AGREED">Agreed</option>
+                    </select>
+                    <DateTimePicker
+                      name="dueDate"
+                      defaultValue={toDateTimeLocalValue(item.dueDate)}
+                      placeholder="Timeline"
                       className={field}
-                      placeholder="Action item title"
+                      min={timelineMin}
                     />
-                    <div className="grid grid-cols-2 gap-3">
-                      <select
-                        name="ownerId"
-                        defaultValue={item.owner?.id ?? ""}
-                        className={field}
-                      >
-                        <option value="">No owner</option>
-                        {users.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {userLabel(u)}
-                          </option>
-                        ))}
-                      </select>
-                      <DatePicker name="dueDate" defaultValue={item.dueDate ?? ""} placeholder="Due date" />
-                    </div>
+                  </div>
+
+                  {/* Row 2: Responsible party + Status */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      list="responsible-parties"
+                      name="ownerName"
+                      defaultValue={item.ownerName ?? item.owner?.name ?? ""}
+                      className={field}
+                      placeholder="Responsible party"
+                    />
                     <select name="status" defaultValue={item.status} className={field}>
                       <option value="TODO">To Do</option>
                       <option value="IN_PROGRESS">In Progress</option>
                       <option value="DONE">Done</option>
                     </select>
                   </div>
+
+                  {/* Row 3: Action point description (last) */}
+                  <textarea
+                    name="title"
+                    defaultValue={item.title}
+                    required
+                    rows={2}
+                    className={field}
+                    placeholder="Action point description"
+                  />
 
                   <div className="flex gap-2">
                     <button
@@ -152,14 +211,17 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{item.title}</p>
                       <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
-                        {item.owner && (
+                        <span className={`rounded-full px-2.5 py-1 font-medium ${POINT_BADGE[item.point]}`}>
+                          {POINT_LABELS[item.point]}
+                        </span>
+                        {(item.ownerName || item.owner) && (
                           <span className="rounded-full bg-sidebar-primary/10 px-2.5 py-1 text-sidebar-primary">
-                            {userLabel(item.owner)}
+                            {item.ownerName || userLabel(item.owner!)}
                           </span>
                         )}
                         {item.dueDate && (
                           <span className="rounded-full bg-muted/50 px-2.5 py-1 text-muted-foreground">
-                            Due: {new Date(item.dueDate + "T00:00:00").toLocaleDateString()}
+                            Timeline: {formatTimeline(item.dueDate)}
                           </span>
                         )}
                         <span className={`rounded-full px-2.5 py-1 font-medium ${STATUS_BADGE[item.status]}`}>
@@ -205,6 +267,7 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
             <form action={addAction} className="space-y-3 rounded-lg border border-border bg-secondary/50 p-4">
               <input type="hidden" name="minutesId" value={minutesId} />
               <input type="hidden" name="eventId" value={eventId} />
+              <input type="hidden" name="timezoneOffset" value={timezoneOffset} />
 
               {addState?.error ? (
                 <div className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
@@ -212,24 +275,31 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, published, 
                 </div>
               ) : null}
 
+              {/* Row 1: Point + Timeline */}
+              <div className="grid grid-cols-2 gap-3">
+                <select name="point" defaultValue="ACTION_POINT" className={field}>
+                  <option value="ACTION_POINT">Action Point</option>
+                  <option value="AGREED">Agreed</option>
+                </select>
+                <DateTimePicker name="dueDate" placeholder="Timeline" className={field} min={timelineMin} />
+              </div>
+
+              {/* Row 2: Responsible party (full row for add form) */}
               <input
-                name="title"
-                required
+                list="responsible-parties"
+                name="ownerName"
                 className={field}
-                placeholder="Action item title"
+                placeholder="Responsible party"
               />
 
-              <div className="grid grid-cols-2 gap-3">
-                <select name="ownerId" defaultValue="" className={field}>
-                  <option value="">No owner</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {userLabel(u)}
-                    </option>
-                  ))}
-                </select>
-                <DatePicker name="dueDate" placeholder="Due date" />
-              </div>
+              {/* Row 3: Action point description (last) */}
+              <textarea
+                name="title"
+                required
+                rows={2}
+                className={field}
+                placeholder="Action point description"
+              />
 
               <div className="flex gap-2">
                 <button

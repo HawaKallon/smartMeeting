@@ -63,28 +63,34 @@ export default async function MinutesPage({
     });
   }
 
-  const users = await prisma.user.findMany({
-    where: {
-      ministryId: event.ministryId,
-      role: { not: "SUPER_ADMIN" },
-    },
-    select: { id: true, name: true, email: true },
-    orderBy: [{ name: "asc" }, { email: "asc" }],
+  const attendees = await prisma.eventAttendee.findMany({
+    where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
   });
+  const users = attendees
+    .map((a) => ({
+      id: a.user?.id ?? a.id,
+      name: a.user?.name ?? a.externalName ?? null,
+      email: a.user?.email ?? a.externalEmail ?? "",
+    }))
+    .filter((p) => p.name || p.email);
 
   const isAdmin = canManageExistingEvent(user, event);
   const isApprover = canViewMinutesForEvent(user, event) && !isAdmin;
   const isPublished = minutes.status === "PUBLISHED";
 
   // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
-  const segments: any[] = [];
+  const segments: Segment[] = [];
 
   // Serialize dates for client components.
   const itemsForClient = minutes.actionItems.map((item) => ({
     id: item.id,
     title: item.title,
     status: item.status as "TODO" | "IN_PROGRESS" | "DONE",
-    dueDate: item.dueDate ? item.dueDate.toISOString().slice(0, 10) : null,
+    point: item.point as "ACTION_POINT" | "AGREED",
+    dueDate: item.dueDate ? item.dueDate.toISOString() : null,
+    ownerName: item.ownerName,
     owner: item.owner,
   }));
 
