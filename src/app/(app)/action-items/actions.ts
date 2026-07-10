@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/guard";
-import { isSuperAdmin } from "@/lib/roles";
+import { canManageEvents } from "@/lib/roles";
 import { audit } from "@/lib/audit";
 import { notifyMeetingInviteesActionItemStatusChanged } from "@/lib/actionItemNotifications";
 
@@ -42,7 +42,7 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
   });
   if (!item) return;
 
-  const isStaff = isSuperAdmin(session.role) || session.role === "ADMIN_STAFF" || session.role === "ADMIN";
+  const isStaff = canManageEvents(session.role);
   const isOwner = item.ownerId === session.id;
   if (!isStaff && !isOwner) return;
   if (item.status === status) return;
