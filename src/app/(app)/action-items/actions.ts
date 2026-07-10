@@ -14,10 +14,7 @@ const Schema = z.object({
 });
 
 export async function changeItemStatus(formData: FormData): Promise<void> {
-  const session = await assertRole(
-    "MINISTER", "PERMANENT_SECRETARY", "DEPUTY_MINISTER",
-    "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN", "SUPER_ADMIN",
-  );
+  const session = await assertRole("SUPER_ADMIN", "MINISTRY_ADMIN", "EVENT_MANAGER", "EXECUTIVE_ASSISTANT", "APPROVER", "EXECUTIVE_VIEWER", "STAFF");
 
   const parsed = Schema.safeParse({
     itemId: formData.get("itemId"),
@@ -42,7 +39,7 @@ export async function changeItemStatus(formData: FormData): Promise<void> {
   });
   if (!item) return;
 
-  const isStaff = canManageEvents(session.role);
+  const isStaff = canManageEvents(session.systemRole);
   const isOwner = item.ownerId === session.id;
   if (!isStaff && !isOwner) return;
   if (item.status === status) return;
