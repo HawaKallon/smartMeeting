@@ -11,8 +11,8 @@ export type ScopedUser = { systemRole: SystemRole; ministryId: string | null };
 const NO_MINISTRY = "__none__";
 
 function eventScope(user: ScopedUser): Prisma.EventWhereInput {
-  if (isSuperAdmin(user.systemRole)) return {};
-  return { ministryId: user.ministryId ?? NO_MINISTRY };
+  if (isSuperAdmin(user.systemRole)) return { scope: "OFFICIAL" };
+  return { ministryId: user.ministryId ?? NO_MINISTRY, scope: "OFFICIAL" };
 }
 
 function roomScope(user: ScopedUser): Prisma.RoomWhereInput {

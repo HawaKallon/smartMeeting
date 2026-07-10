@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const dataset = req.nextUrl.searchParams.get("dataset") ?? "events";
 
   if (dataset === "events") {
-    const where: Prisma.EventWhereInput = scopeId ? { ministryId: scopeId } : {};
+    const where: Prisma.EventWhereInput = { scope: "OFFICIAL", ...(scopeId ? { ministryId: scopeId } : {}) };
     const rows = await prisma.event.findMany({
       where,
       orderBy: { startAt: "desc" },
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (dataset === "attendance") {
-    const where: Prisma.AttendanceWhereInput = scopeId ? { event: { ministryId: scopeId } } : {};
+    const where: Prisma.AttendanceWhereInput = { event: { scope: "OFFICIAL", ...(scopeId ? { ministryId: scopeId } : {}) } };
     const rows = await prisma.attendance.findMany({
       where,
       orderBy: { checkInAt: "desc" },
