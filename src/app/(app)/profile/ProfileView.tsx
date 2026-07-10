@@ -5,6 +5,7 @@ import type { SystemRole } from "@/generated/prisma/enums";
 import { useActionState } from "react";
 import { Check, X, CalendarRange, ClipboardList, ShieldCheck, BellRing } from "lucide-react";
 import { updateProfile } from "./actions";
+import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
 import type { User } from "@/generated/prisma/client";
 
 const field = "mt-1 w-full rounded-xl border border-border bg-secondary/55 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
@@ -248,8 +249,15 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">Official profile</p>
                 <h2 className="mt-2 text-3xl font-bold">{user.name || "No name set"}</h2>
                 <p className="mt-2 text-sm text-white/80">{user.email}</p>
-                <div className="mt-5 inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white">
-                  {(user.systemRole || "STAFF").replace(/_/g, " ")}
+                <div className="mt-5 flex flex-wrap gap-2 items-center">
+                  {user.jobTitle && (
+                    <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white">
+                      {user.jobTitle}
+                    </div>
+                  )}
+                  <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/80">
+                    {SYSTEM_ROLE_LABELS[user.systemRole as SystemRole] || "Staff"}
+                  </div>
                 </div>
               </div>
             </div>
