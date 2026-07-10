@@ -1,4 +1,4 @@
-import { requireUser, ministryScope } from "@/lib/guard";
+import { ministryScope, requireAdminRole } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
@@ -11,19 +11,7 @@ export default async function ActivityLogPage({
 }: {
   searchParams: Promise<{ page?: string; action?: string; ministryId?: string }>;
 }) {
-  const user = await requireUser();
-
-  // Only ADMIN or SUPER_ADMIN can view activity log
-  if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-    return (
-      <div className="space-y-6">
-        <BackButton href="/administrative" label="Dashboard" />
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-          <p className="text-red-400">You don&apos;t have permission to access this page</p>
-        </div>
-      </div>
-    );
-  }
+  const user = await requireAdminRole();
 
   const superAdmin = isSuperAdmin(user.role);
   const { page, action, ministryId } = await searchParams;
