@@ -16,6 +16,8 @@ export function DateTimePicker({
   onChange,
   required,
   placeholder,
+  className,
+  min,
 }: {
   name?: string;
   value?: string;
@@ -23,6 +25,8 @@ export function DateTimePicker({
   onChange?: (v: string) => void;
   required?: boolean;
   placeholder?: string;
+  className?: string;
+  min?: string;
 }) {
   const controlled = value !== undefined;
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +42,8 @@ export function DateTimePicker({
       onChange={handleChange}
       required={required}
       placeholder={placeholder}
-      className={inputClass}
+      min={min}
+      className={className ?? inputClass}
     />
   );
 }
