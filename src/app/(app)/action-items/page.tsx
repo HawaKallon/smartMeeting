@@ -2,8 +2,8 @@ import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { canManageEvents } from "@/lib/roles";
-import { KanbanBoard } from "./KanbanBoard";
-import { OwnerFilter } from "./OwnerFilter";
+import { ActionItemsView } from "./ActionItemsView";
+import { ListTodo } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 
 export default async function ActionItemsPage({
@@ -26,10 +26,20 @@ export default async function ActionItemsPage({
   const rawItems = await prisma.actionItem.findMany({
     where,
     orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
-    include: {
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      point: true,
+      dueDate: true,
+      ownerId: true,
+      ownerName: true,
+      createdAt: true,
+      updatedAt: true,
       owner: { select: { id: true, name: true, email: true } },
       minutes: {
         select: {
+          eventId: true,
           event: { select: { title: true } },
         },
       },
@@ -40,9 +50,14 @@ export default async function ActionItemsPage({
     id: i.id,
     title: i.title,
     status: i.status as "TODO" | "IN_PROGRESS" | "DONE",
-    dueDate: i.dueDate ? i.dueDate.toISOString().slice(0, 10) : null,
+    point: i.point as "ACTION_POINT" | "AGREED",
+    dueDate: i.dueDate ? i.dueDate.toISOString() : null,
     eventTitle: i.minutes.event.title,
-    ownerName: i.owner?.name ?? i.owner?.email ?? null,
+    eventId: i.minutes.eventId,
+    ownerId: i.ownerId,
+    ownerName: i.owner?.name ?? i.ownerName ?? i.owner?.email ?? null,
+    createdAt: i.createdAt.toISOString(),
+    updatedAt: i.updatedAt.toISOString(),
   }));
 
   const users = isStaff
@@ -65,33 +80,29 @@ export default async function ActionItemsPage({
   return (
     <div className="space-y-6">
       <BackButton href="/administrative" label="Dashboard" />
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Task board</p>
-          <h1 className="mt-2 text-2xl font-bold text-foreground">Action Items</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {totals.todo} to do · {totals.inProgress} in progress · {totals.done} done
-          </p>
-        </div>
-
-        {isStaff && users.length > 0 && (
-          <OwnerFilter users={users} currentFilter={ownerFilter ?? "all"} />
-        )}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Task board</p>
+        <h1 className="mt-2 text-2xl font-bold text-foreground">Action Items</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {totals.todo} to do · {totals.inProgress} in progress · {totals.done} done
+        </p>
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-[1.75rem] border border-border bg-card px-8 py-16 text-center shadow-[0_16px_40px_rgba(15,35,63,0.07)]">
-          <p className="text-sm text-muted-foreground">No action items yet.</p>
+        <div className="rounded-xl border border-border bg-card px-8 py-16 text-center shadow-sm">
+          <ListTodo className="mx-auto h-8 w-8 text-primary/25" />
+          <p className="mt-3 text-sm text-muted-foreground">No action items yet.</p>
           <p className="mt-1 text-xs text-muted-foreground/60">
             Action items are created from meeting minutes.
           </p>
         </div>
       ) : (
-        <KanbanBoard
+        <ActionItemsView
           items={items}
           canMoveAny={isStaff}
           currentUserId={user.id}
           ownerFilter={ownerFilter ?? "all"}
+          users={users}
         />
       )}
     </div>

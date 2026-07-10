@@ -7,13 +7,43 @@ import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
-import { sendMinutesSms, sendActionItemSms } from "@/lib/sms";
+import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
 import { canManageExistingEvent } from "@/lib/eventAccess";
+import { notify } from "@/lib/notify";
+import {
+  notifyMeetingInviteesActionItemCreated,
+  notifyMeetingInviteesActionItemStatusChanged,
+} from "@/lib/actionItemNotifications";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
 
-type Segment = { speaker: string; start: number; end: number; text: string };
+function parseFutureTimeline(
+  value: string | undefined,
+  timezoneOffset: string | undefined,
+): { date: Date | null } | { error: string } {
+  if (!value) return { date: null };
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  const offset = Number(timezoneOffset);
+  const date = match && Number.isFinite(offset)
+    ? new Date(
+        Date.UTC(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+          Number(match[4]),
+          Number(match[5]),
+        ) + offset * 60_000,
+      )
+    : new Date(value);
+
+  if (Number.isNaN(date.getTime()) || date <= new Date()) {
+    return { error: "Timeline must be in the future." };
+  }
+
+  return { date };
+}
 
 // ── Generate Minutes Summary (AI) ────────────────────────────────────────────
 
@@ -227,8 +257,10 @@ const AddItemSchema = z.object({
   minutesId: z.string().min(1),
   eventId: z.string().min(1),
   title: z.string().min(1, "Title is required"),
-  ownerId: z.string().optional(),
+  ownerName: z.string().optional(),
   dueDate: z.string().optional(),
+  timezoneOffset: z.string().optional(),
+  point: z.enum(["ACTION_POINT", "AGREED"]),
 });
 
 export async function addActionItem(
@@ -241,12 +273,16 @@ export async function addActionItem(
     minutesId: formData.get("minutesId"),
     eventId: formData.get("eventId"),
     title: formData.get("title"),
-    ownerId: (formData.get("ownerId") as string) || undefined,
+    ownerName: (formData.get("ownerName") as string) || undefined,
     dueDate: (formData.get("dueDate") as string) || undefined,
+    timezoneOffset: (formData.get("timezoneOffset") as string) || undefined,
+    point: formData.get("point") ?? "ACTION_POINT",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const { minutesId, eventId, title, ownerId, dueDate } = parsed.data;
+  const { minutesId, eventId, title, ownerName, dueDate, timezoneOffset, point } = parsed.data;
+  const timeline = parseFutureTimeline(dueDate, timezoneOffset);
+  if ("error" in timeline) return { error: timeline.error };
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -258,12 +294,19 @@ export async function addActionItem(
   if (!minutes) return { error: "Minutes not found." };
   if (minutes.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
+  const assignee = ownerName
+    ? await resolveActionItemAssignee(event.ministryId, eventId, ownerName)
+    : null;
+  const ownerId = assignee?.kind === "internal" ? assignee.userId : null;
+
   const item = await prisma.actionItem.create({
     data: {
       minutesId,
       title,
-      ownerId: ownerId ?? null,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      ownerId,
+      ownerName: ownerName ?? null,
+      dueDate: timeline.date,
+      point,
     },
   });
 
@@ -276,10 +319,29 @@ export async function addActionItem(
     ministryId: event.ministryId,
   });
 
-  // Notify the owner if one was assigned.
-  if (ownerId) {
-    await notifyActionItemOwner({ ownerId, title, dueDate: item.dueDate, eventId, minutesId });
+  // Notify internal users in-app/email, and external guests by email only.
+  if (assignee?.kind === "internal") {
+    await notifyActionItemOwner({ ownerId: assignee.userId, title, dueDate: item.dueDate, eventId, minutesId });
+  } else if (assignee?.kind === "external") {
+    await notifyExternalActionItemOwner({
+      to: assignee.email,
+      toName: assignee.name,
+      title,
+      dueDate: item.dueDate,
+      eventId,
+    });
   }
+
+  await notifyMeetingInviteesActionItemCreated({
+    eventId,
+    title,
+    ownerName: ownerName ?? null,
+    dueDate: item.dueDate,
+    exclusions: {
+      userIds: assignee?.kind === "internal" ? [assignee.userId] : [],
+      emails: assignee ? [assignee.email] : [],
+    },
+  });
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
@@ -292,8 +354,10 @@ const UpdateItemSchema = z.object({
   minutesId: z.string().min(1),
   eventId: z.string().min(1),
   title: z.string().min(1, "Title is required"),
-  ownerId: z.string().optional(),
+  ownerName: z.string().optional(),
   dueDate: z.string().optional(),
+  timezoneOffset: z.string().optional(),
+  point: z.enum(["ACTION_POINT", "AGREED"]),
   status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
 });
 
@@ -308,13 +372,17 @@ export async function updateActionItem(
     minutesId: formData.get("minutesId"),
     eventId: formData.get("eventId"),
     title: formData.get("title"),
-    ownerId: (formData.get("ownerId") as string) || undefined,
+    ownerName: (formData.get("ownerName") as string) || undefined,
     dueDate: (formData.get("dueDate") as string) || undefined,
+    timezoneOffset: (formData.get("timezoneOffset") as string) || undefined,
+    point: formData.get("point") ?? "ACTION_POINT",
     status: formData.get("status") ?? "TODO",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const { itemId, minutesId, eventId, title, ownerId, dueDate, status } = parsed.data;
+  const { itemId, minutesId, eventId, title, ownerName, dueDate, timezoneOffset, point, status } = parsed.data;
+  const timeline = parseFutureTimeline(dueDate, timezoneOffset);
+  if ("error" in timeline) return { error: timeline.error };
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -328,14 +396,25 @@ export async function updateActionItem(
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
   if (minutes?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
 
-  const ownerChanged = ownerId && ownerId !== item.ownerId;
+  const oldStatus = item.status as "TODO" | "IN_PROGRESS" | "DONE";
+  const assignee = ownerName
+    ? await resolveActionItemAssignee(event.ministryId, eventId, ownerName)
+    : null;
+  const ownerId = assignee?.kind === "internal" ? assignee.userId : null;
+  const ownerChanged = assignee ? assigneeChanged(item, assignee, ownerName ?? null) : false;
+  const ownerNameChanged = normalizeAssignee(item.ownerName) !== normalizeAssignee(ownerName);
+  const dueDateChanged = (item.dueDate?.getTime() ?? null) !== (timeline.date?.getTime() ?? null);
+  const resetReminder = ownerChanged || ownerNameChanged || dueDateChanged;
 
   await prisma.actionItem.update({
     where: { id: itemId },
     data: {
       title,
-      ownerId: ownerId ?? null,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      ownerId,
+      ownerName: ownerName ?? null,
+      dueDate: timeline.date,
+      ...(resetReminder ? { reminderSentAt: null } : {}),
+      point,
       status,
     },
   });
@@ -350,15 +429,30 @@ export async function updateActionItem(
   });
 
   // Notify new owner if ownership changed.
-  if (ownerChanged) {
+  if (ownerChanged && assignee?.kind === "internal") {
     await notifyActionItemOwner({
-      ownerId: ownerId!,
+      ownerId: assignee.userId,
       title,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      dueDate: timeline.date,
       eventId,
       minutesId,
     });
+  } else if (ownerChanged && assignee?.kind === "external") {
+    await notifyExternalActionItemOwner({
+      to: assignee.email,
+      toName: assignee.name,
+      title,
+      dueDate: timeline.date,
+      eventId,
+    });
   }
+
+  await notifyMeetingInviteesActionItemStatusChanged({
+    eventId,
+    title,
+    oldStatus,
+    newStatus: status,
+  });
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);
   return { ok: true };
@@ -403,19 +497,114 @@ export async function deleteActionItem(formData: FormData): Promise<void> {
 
 // ── Internal helper ──────────────────────────────────────────────────────────
 
+type ResolvedActionItemAssignee =
+  | { kind: "internal"; userId: string; email: string }
+  | { kind: "external"; attendeeId: string; name: string; email: string };
+
+function normalizeAssignee(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+async function resolveActionItemAssignee(
+  ministryId: string,
+  eventId: string,
+  ownerName: string,
+): Promise<ResolvedActionItemAssignee | null> {
+  const trimmed = ownerName.trim();
+  if (!trimmed) return null;
+
+  const user = await prisma.user.findFirst({
+    where: {
+      ministryId,
+      role: { not: "SUPER_ADMIN" },
+      OR: [
+        { name: { equals: trimmed, mode: "insensitive" } },
+        { email: { equals: trimmed, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, email: true },
+  });
+  if (user) return { kind: "internal", userId: user.id, email: user.email };
+
+  const externalByEmail = await prisma.eventAttendee.findFirst({
+    where: {
+      eventId,
+      externalEmail: { equals: trimmed, mode: "insensitive" },
+    },
+    select: { id: true, externalName: true, externalEmail: true },
+  });
+  if (externalByEmail?.externalEmail) {
+    return {
+      kind: "external",
+      attendeeId: externalByEmail.id,
+      name: externalByEmail.externalName ?? externalByEmail.externalEmail,
+      email: externalByEmail.externalEmail,
+    };
+  }
+
+  const externalByName = await prisma.eventAttendee.findMany({
+    where: {
+      eventId,
+      externalName: { equals: trimmed, mode: "insensitive" },
+    },
+    select: { id: true, externalName: true, externalEmail: true },
+    take: 2,
+  });
+  const external = externalByName[0];
+  if (externalByName.length === 1 && external?.externalEmail) {
+    return {
+      kind: "external",
+      attendeeId: external.id,
+      name: external.externalName ?? external.externalEmail,
+      email: external.externalEmail,
+    };
+  }
+
+  return null;
+}
+
+function assigneeChanged(
+  item: { ownerId: string | null; ownerName: string | null },
+  assignee: ResolvedActionItemAssignee,
+  ownerName: string | null,
+) {
+  if (assignee.kind === "internal") return assignee.userId !== item.ownerId;
+  return item.ownerId !== null || normalizeAssignee(item.ownerName) !== normalizeAssignee(ownerName);
+}
+
+async function notifyExternalActionItemOwner({
+  to, toName, title, dueDate, eventId,
+}: {
+  to: string; toName: string; title: string; dueDate: Date | null; eventId: string;
+}) {
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { title: true } });
+  if (!event) return;
+
+  await sendActionItemEmail({
+    to,
+    toName,
+    title,
+    eventTitle: event.title,
+    dueDate,
+    minutesUrl: null,
+  });
+}
+
 async function notifyActionItemOwner({
-  ownerId, title, dueDate, eventId, minutesId,
+  ownerId, title, dueDate, eventId,
 }: {
   ownerId: string; title: string; dueDate: Date | null;
-  eventId: string; minutesId: string;
+  eventId: string; minutesId?: string;
 }) {
   const [owner, event] = await Promise.all([
-    prisma.user.findUnique({ where: { id: ownerId }, select: { name: true, email: true } }),
+    prisma.user.findUnique({ where: { id: ownerId }, select: { id: true, name: true, email: true, ministryId: true } }),
     prisma.event.findUnique({ where: { id: eventId }, select: { title: true } }),
   ]);
   if (!owner || !event) return;
 
   const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
+  const dueDateStr = dueDate ? dueDate.toLocaleDateString() : "No deadline set";
+  const body = `Action item: ${title}\nTimeline: ${dueDateStr}`;
 
   await Promise.allSettled([
     sendActionItemEmail({
@@ -426,11 +615,13 @@ async function notifyActionItemOwner({
       dueDate,
       minutesUrl,
     }),
-    sendActionItemSms({
-      to: owner.email, // phone field would replace this in a full implementation
-      toName: owner.name ?? owner.email,
-      title,
-      dueDate,
+    notify({
+      userId: owner.id,
+      type: "ACTION_ITEM",
+      title: "New action item assigned",
+      body,
+      link: minutesUrl,
+      ministryId: owner.ministryId,
     }),
   ]);
 }
