@@ -2,8 +2,9 @@ import { requireUser, ministryScope } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
-import { Activity, Filter } from "lucide-react";
+import { Activity } from "lucide-react";
 import { ActivityFilters } from "./ActivityFilters";
+import type { Prisma } from "@/generated/prisma/client";
 
 export default async function ActivityLogPage({
   searchParams,
@@ -18,7 +19,7 @@ export default async function ActivityLogPage({
       <div className="space-y-6">
         <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-          <p className="text-red-400">You don't have permission to access this page</p>
+          <p className="text-red-400">You don&apos;t have permission to access this page</p>
         </div>
       </div>
     );
@@ -39,7 +40,7 @@ export default async function ActivityLogPage({
     : [];
 
   // Build where clause: scope by ministry + filter by action + filter by ministry (super-admin)
-  const where: any = { ...ministryScope(user) };
+  const where: Prisma.AuditLogWhereInput = { ...ministryScope(user) };
   if (action) where.action = action;
   if (superAdmin && ministryId) where.ministryId = ministryId;
 

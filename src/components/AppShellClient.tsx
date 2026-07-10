@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { MinistryRole, Notification } from "@/generated/prisma/client";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";

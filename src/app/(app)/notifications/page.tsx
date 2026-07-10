@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
 import { Bell, ArrowUpRight } from "lucide-react";
-import { markRead, markAllRead } from "./actions";
+import { markAllRead } from "./actions";
 
 export default async function NotificationsPage() {
   const user = await requireUser();

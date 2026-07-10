@@ -5,11 +5,6 @@ import { useEffect, useState } from "react";
 import { deletePublicEvent } from "../../actions";
 import { BackButton } from "@/components/BackButton";
 
-interface PublicEvent {
-  id: string;
-  title: string;
-}
-
 export default function DeletePublicEventPage({
   params,
 }: {
