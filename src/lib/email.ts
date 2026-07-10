@@ -584,3 +584,74 @@ export async function sendMeetingReminderEmail({
     logError(to, `Reminder: ${eventTitle} starts in 1 hour`, err);
   }
 }
+
+export async function sendPublicEventInviteEmail({
+  to,
+  toName,
+  eventTitle,
+  eventDescription,
+  startAt,
+  endAt,
+  venueName,
+  organizerMinistryName,
+  eventUrl,
+}: {
+  to: string;
+  toName: string;
+  eventTitle: string;
+  eventDescription?: string | null;
+  startAt: Date;
+  endAt: Date;
+  venueName?: string | null;
+  organizerMinistryName: string;
+  eventUrl: string;
+}) {
+  if (!resend) return skip(to, `RESEND_API_KEY not set`);
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured. Set EMAIL_FROM in .env to your verified Resend domain`);
+  }
+
+  const date = startAt.toLocaleDateString("en-GB", {
+    timeZone: "Africa/Freetown",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const startTime = startAt.toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Freetown",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const endTime = endAt.toLocaleTimeString("en-GB", {
+    timeZone: "Africa/Freetown",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const location = venueName || "To be confirmed";
+
+  const lines = [
+    `Dear ${toName},`,
+    ``,
+    `Your ministry has been invited to attend the following public event:`,
+    ``,
+    `  Event   : ${eventTitle}`,
+    `  Organizer : ${organizerMinistryName}`,
+    `  Date    : ${date}`,
+    `  Time    : ${startTime}–${endTime} GMT`,
+    `  Venue   : ${location}`,
+  ];
+  if (eventDescription) lines.push(``, `Description:`, eventDescription);
+  lines.push(``, `Details: ${eventUrl}`);
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `You're invited: ${eventTitle}`,
+      text: lines.join("\n"),
+    });
+  } catch (err) {
+    logError(to, `You're invited: ${eventTitle}`, err);
+  }
+}
