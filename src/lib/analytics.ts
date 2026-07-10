@@ -84,7 +84,7 @@ export async function getReportAnalytics(user: ScopedUser): Promise<ReportAnalyt
     invited,
   ] = await Promise.all([
     prisma.user.count({ where: userScope(user) }),
-    prisma.user.groupBy({ by: ["role"], where: userScope(user), _count: { _all: true } }),
+    prisma.user.groupBy({ by: ["systemRole"], where: userScope(user), _count: { _all: true } }),
     superAdmin ? prisma.ministry.count() : Promise.resolve(0),
     superAdmin ? prisma.ministry.count({ where: { active: true } }) : Promise.resolve(0),
     prisma.room.count({ where: roomScope(user) }),
@@ -115,7 +115,7 @@ export async function getReportAnalytics(user: ScopedUser): Promise<ReportAnalyt
     superAdmin,
     users: {
       total: usersTotal,
-      byRole: usersByRoleRaw.map((r) => ({ role: r.systemRole, count: r._count._all })),
+      byRole: usersByRoleRaw.map((r) => ({ role: (r.systemRole as SystemRole), count: r._count._all })),
     },
     ministries: superAdmin ? { total: ministriesTotal, active: ministriesActive } : null,
     rooms: { total: roomsTotal },
