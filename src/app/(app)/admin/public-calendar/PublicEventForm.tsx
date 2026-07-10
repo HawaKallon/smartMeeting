@@ -6,20 +6,26 @@ import { useCallback, useState } from "react";
 import { Upload } from "lucide-react";
 import { createPublicEvent, updatePublicEvent, publishPublicEvent, unpublishPublicEvent, type ActionState } from "./actions";
 import { CATEGORY_LIST, CATEGORY_LABELS } from "@/lib/public-event-categories";
+import { MinistryMultiSelect } from "@/components/MinistryMultiSelect";
 import type { PublicEvent } from "@/generated/prisma/client";
 
 interface PublicEventFormProps {
-  event?: PublicEvent;
+  event?: PublicEvent & { invitedMinistries?: { id: string }[] };
   isNew?: boolean;
+  ministries?: { id: string; name: string; code: string }[];
+  userMinistryId?: string | null;
 }
 
-export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
+export function PublicEventForm({ event, isNew, ministries = [], userMinistryId }: PublicEventFormProps) {
   const saveAction = event ? updatePublicEvent.bind(null, event.id) : createPublicEvent;
   const [state, action, isPending] = useActionState<ActionState, FormData>(
     saveAction,
     undefined,
   );
   const [preview, setPreview] = useState<string | null>(event?.bannerImage || null);
+  const [selectedMinistries, setSelectedMinistries] = useState<string[]>(
+    event?.invitedMinistries?.map(m => m.id) ?? []
+  );
 
   const handleImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -213,6 +219,15 @@ export function PublicEventForm({ event, isNew }: PublicEventFormProps) {
             placeholder="https://example.com/register"
           />
         </div>
+
+        {/* Invite Ministries */}
+        <MinistryMultiSelect
+          ministries={ministries}
+          selected={selectedMinistries}
+          onSelectionChange={setSelectedMinistries}
+          disabledMinistryId={userMinistryId}
+          helperText="Search or select ministries. Leadership at selected ministries will be notified when this event is published."
+        />
 
         {state?.error && (
           <div className="rounded-xl bg-red-100 p-3 text-sm text-red-800">
