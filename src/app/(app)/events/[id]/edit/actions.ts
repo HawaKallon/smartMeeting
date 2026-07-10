@@ -28,6 +28,7 @@ const UpdateEventSchema = z
   .object({
     title: z.string().min(2, "Title is required"),
     type: z.enum(["MEETING", "CONFERENCE", "APPOINTMENT"]),
+    eventScope: z.enum(["OFFICIAL", "TEAM"]).default("TEAM"),
     classification: z.enum(["PUBLIC", "RESTRICTED"]).default("PUBLIC"),
     startAt: z.coerce.date(),
     endAt: z.coerce.date(),
@@ -57,6 +58,7 @@ export async function updateEvent(
   const parsed = UpdateEventSchema.safeParse({
     title: formData.get("title"),
     type: formData.get("type"),
+    eventScope: formData.get("eventScope") || "TEAM",
     classification: formData.get("classification") || "PUBLIC",
     startAt: formData.get("startAt"),
     endAt: formData.get("endAt"),
@@ -64,7 +66,7 @@ export async function updateEvent(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
-  const { title, type, classification, startAt, endAt } = parsed.data;
+  const { title, type, eventScope, classification, startAt, endAt } = parsed.data;
 
   const anchor = await prisma.event.findFirst({
     where: {
@@ -288,6 +290,7 @@ export async function updateEvent(
             title,
             description,
             type: type as EventType,
+            scope: eventScope as "OFFICIAL" | "TEAM",
             classification: classification as Classification,
             roomId,
             startAt: u.startAt,
