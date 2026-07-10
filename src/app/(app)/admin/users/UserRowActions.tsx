@@ -14,7 +14,7 @@ import {
 } from "./actions";
 
 // Roles a super-admin / admin may assign — never SUPER_ADMIN.
-const ASSIGNABLE_ROLES = MINISTRY_ROLES.filter((r) => r !== "SUPER_ADMIN") as MinistryRole[];
+const ASSIGNABLE_ROLES = ["MINISTER", "PERMANENT_SECRETARY", "DEPUTY_MINISTER", "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN", "STAFF_MEMBER"] as const;
 
 const iconBtn =
   "rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50";
@@ -27,7 +27,7 @@ export function UserRowActions({
 }: {
   userId: string;
   userName: string;
-  role: MinistryRole;
+  role: SystemRole;
   active: boolean;
 }) {
   const router = useRouter();

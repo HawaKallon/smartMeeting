@@ -4,31 +4,31 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { MinistryRole, EventType, CheckInMethod } from "@/generated/prisma/enums";
 
 // A user with just the fields needed to scope analytics queries.
-export type ScopedUser = { role: MinistryRole; ministryId: string | null };
+export type ScopedUser = { role: SystemRole; ministryId: string | null };
 
 // A sentinel ministry id that matches no real row (cuids never equal this) — used
 // when a non-super-admin somehow has no ministry, so they simply see nothing.
 const NO_MINISTRY = "__none__";
 
 function eventScope(user: ScopedUser): Prisma.EventWhereInput {
-  if (isSuperAdmin(user.role)) return {};
+  if (isSuperAdmin(user.systemRole)) return {};
   return { ministryId: user.ministryId ?? NO_MINISTRY };
 }
 
 function roomScope(user: ScopedUser): Prisma.RoomWhereInput {
-  if (isSuperAdmin(user.role)) return {};
+  if (isSuperAdmin(user.systemRole)) return {};
   return { ministryId: user.ministryId ?? NO_MINISTRY };
 }
 
 function userScope(user: ScopedUser): Prisma.UserWhereInput {
   const base: Prisma.UserWhereInput = { role: { not: "SUPER_ADMIN" } };
-  if (isSuperAdmin(user.role)) return base;
+  if (isSuperAdmin(user.systemRole)) return base;
   return { ...base, ministryId: user.ministryId ?? NO_MINISTRY };
 }
 
 export type ReportAnalytics = {
   superAdmin: boolean;
-  users: { total: number; byRole: { role: MinistryRole; count: number }[] };
+  users: { total: number; byRole: { role: SystemRole; count: number }[] };
   ministries: { total: number; active: number } | null;
   rooms: { total: number };
   events: {
@@ -60,7 +60,7 @@ function lastSixMonths(now: Date): { key: string; label: string }[] {
 }
 
 export async function getReportAnalytics(user: ScopedUser): Promise<ReportAnalytics> {
-  const superAdmin = isSuperAdmin(user.role);
+  const superAdmin = isSuperAdmin(user.systemRole);
   const now = new Date();
   const evWhere = eventScope(user);
   const attWhere: Prisma.AttendanceWhereInput = { event: evWhere };
@@ -115,7 +115,7 @@ export async function getReportAnalytics(user: ScopedUser): Promise<ReportAnalyt
     superAdmin,
     users: {
       total: usersTotal,
-      byRole: usersByRoleRaw.map((r) => ({ role: r.role, count: r._count._all })),
+      byRole: usersByRoleRaw.map((r) => ({ role: r.systemRole, count: r._count._all })),
     },
     ministries: superAdmin ? { total: ministriesTotal, active: ministriesActive } : null,
     rooms: { total: roomsTotal },

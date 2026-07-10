@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     const cols: CsvColumn<(typeof rows)[number]>[] = [
       { header: "Name", value: (r) => r.name },
       { header: "Email", value: (r) => r.email },
-      { header: "Role", value: (r) => ROLE_LABELS[r.role] },
+      { header: "Role", value: (r) => ROLE_LABELS[r.systemRole] },
       { header: "Ministry", value: (r) => r.ministry?.name },
       { header: "Active", value: (r) => r.active },
       { header: "Created", value: (r) => r.createdAt },

@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { ROLE_LABELS, MINISTRY_ROLES } from "@/lib/roles";
 import type { MinistryRole } from "@/generated/prisma/enums";
 
-const ASSIGNABLE_ROLES = MINISTRY_ROLES.filter((r) => r !== "SUPER_ADMIN") as MinistryRole[];
+const ASSIGNABLE_ROLES = ["MINISTER", "PERMANENT_SECRETARY", "DEPUTY_MINISTER", "DEPUTY_SECRETARY", "ADMIN_STAFF", "ADMIN", "STAFF_MEMBER"] as const;
 
 const control =
   "rounded-xl border border-border bg-secondary/55 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";

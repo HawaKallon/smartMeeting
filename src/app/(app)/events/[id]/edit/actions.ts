@@ -392,7 +392,7 @@ export async function deleteEvent(
 
 /** Load an event (ministry-scoped) with the fields needed for reassign checks. */
 async function loadEventForReassign(
-  user: { role: MinistryRole; ministryId: string | null },
+  user: { role: SystemRole; ministryId: string | null },
   eventId: string,
 ) {
   return prisma.event.findFirst({
@@ -428,7 +428,7 @@ export async function addCoOrganizer(
       where: { id: userId },
       select: { id: true, name: true, email: true, role: true, ministryId: true },
     });
-    if (!target || target.role === "SUPER_ADMIN" || target.ministryId !== event.ministryId) {
+    if (!target || target.systemRole === "SUPER_ADMIN" || target.ministryId !== event.ministryId) {
       return { error: "Pick a user from this ministry" };
     }
 

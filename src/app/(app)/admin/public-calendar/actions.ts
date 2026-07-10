@@ -240,7 +240,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
           where: {
             ministryId: { in: invitedMinistryIds },
             active: true,
-            role: { in: LEADERSHIP_ROLES },
+            systemRole: { in: ["MINISTRY_ADMIN", "APPROVER", "EXECUTIVE_VIEWER"] },
           },
           select: { id: true, email: true, name: true, ministryId: true, emailNotifications: true },
         });

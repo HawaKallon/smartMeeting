@@ -72,7 +72,7 @@ function ReportDoc({ a, scopeLabel, generatedDate }: { a: ReportAnalytics; scope
         </View>
 
         <Text style={s.sectionTitle}>Users by role</Text>
-        <Table rows={a.users.byRole.map((r) => ({ label: ROLE_LABELS[r.role], value: r.count }))} />
+        <Table rows={a.users.byRole.map((r) => ({ label: ROLE_LABELS[r.systemRole], value: r.count }))} />
 
         <Text style={s.sectionTitle}>Events</Text>
         <Table

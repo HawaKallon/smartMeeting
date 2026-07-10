@@ -34,7 +34,7 @@ export async function createMinistry(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can create ministries" };
     }
 
@@ -118,7 +118,7 @@ export async function createMinistry(
     const { user: admin, emailSent } = await provisionUser({
       name: adminName,
       email: adminEmail,
-      role: "ADMIN",
+      role: "MINISTRY_ADMIN",
       ministryId: ministry.id,
     });
 
@@ -127,7 +127,7 @@ export async function createMinistry(
       action: "CREATE_USER",
       entityType: "User",
       entityId: admin.id,
-      metadata: { name: adminName, email: adminEmail, role: "ADMIN", emailSent },
+      metadata: { name: adminName, email: adminEmail, role: "MINISTRY_ADMIN", emailSent },
       ministryId: ministry.id,
     });
 
@@ -147,7 +147,7 @@ export async function addMinistryAdmin(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can add ministry admins" };
     }
 
@@ -186,7 +186,7 @@ export async function addMinistryAdmin(
     const { user: admin, emailSent } = await provisionUser({
       name: adminName,
       email: adminEmail,
-      role: "ADMIN",
+      role: "MINISTRY_ADMIN",
       ministryId: ministry.id,
     });
 
@@ -195,7 +195,7 @@ export async function addMinistryAdmin(
       action: "CREATE_USER",
       entityType: "User",
       entityId: admin.id,
-      metadata: { name: adminName, email: adminEmail, role: "ADMIN", emailSent },
+      metadata: { name: adminName, email: adminEmail, role: "MINISTRY_ADMIN", emailSent },
       ministryId: ministry.id,
     });
 
@@ -214,7 +214,7 @@ export async function toggleMinistryActive(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can manage ministries" };
     }
 
@@ -263,7 +263,7 @@ export async function updateMinistry(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can edit ministries" };
     }
 

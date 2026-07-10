@@ -29,7 +29,7 @@ export default async function CalendarDayPage({
     where: {
       startAt: { gte: startOfDay, lt: endOfDay },
       ...ministryScope(user),
-      ...(canViewMinistrySchedule(user.role) ? {} : { organizerId: user.id }),
+      ...(canViewMinistrySchedule(user.systemRole) ? {} : { organizerId: user.id }),
     },
     orderBy: { startAt: "asc" },
     include: {
@@ -62,7 +62,7 @@ export default async function CalendarDayPage({
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
-  const canAdd = canManageEvents(user.role);
+  const canAdd = canManageEvents(user.systemRole);
 
   return (
     <div className="space-y-6">
