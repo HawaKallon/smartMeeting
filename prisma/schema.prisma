@@ -21,6 +21,7 @@ enum MinistryRole {
   ADMIN_STAFF
   ADMIN
   SUPER_ADMIN // platform super-admin, across all ministries
+  STAFF_MEMBER // regular staff member (safe default, no special permissions)
 }
 
 enum EventType {
@@ -150,7 +151,7 @@ model User {
   email         String       @unique
   name          String?
   passwordHash  String? // for credential/OTP fallback
-  role          MinistryRole @default(DEPUTY_SECRETARY)
+  role          MinistryRole @default(STAFF_MEMBER)
   ministryId    String? // null for SUPER_ADMIN users
   ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   active        Boolean      @default(true) // deactivated users cannot log in
