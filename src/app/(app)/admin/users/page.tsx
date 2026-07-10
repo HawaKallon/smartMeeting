@@ -2,7 +2,7 @@ import { ministryScope, requireAdminRole } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
-import { ROLE_LABELS } from "@/lib/roles";
+import { ROLE_LABELS, SYSTEM_ROLE_LABELS } from "@/lib/roles";
 import { Shield, Plus, Check, X } from "lucide-react";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserFilters } from "./UserFilters";

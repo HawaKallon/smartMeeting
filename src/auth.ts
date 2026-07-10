@@ -35,12 +35,12 @@ declare module "next-auth" {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
-    Credentials({
+    Credentials(({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials: any) => {
         const email = String(credentials?.email ?? "").toLowerCase().trim();
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
