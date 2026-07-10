@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import { signOut } from "next-auth/react";
-import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
+import { SYSTEM_ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
 import { canManageUsers } from "@/lib/permissions";
-import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 import { NavLink, SidebarNavProvider } from "./SidebarNav";
 import { useSidebarState } from "./SidebarState";
 import {
@@ -305,7 +305,7 @@ export function Sidebar({
                 {user.name ?? user.email}
               </p>
               <p className="text-xs text-sidebar-foreground/55">
-                {ROLE_LABELS[user.systemRole]}
+                {SYSTEM_ROLE_LABELS[user.systemRole]}
               </p>
             </div>
           </div>

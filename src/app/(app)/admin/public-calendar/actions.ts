@@ -9,7 +9,6 @@ import { audit } from "@/lib/audit";
 import { savePublicImage } from "@/lib/cloudinary";
 import { sendPublicEventInviteEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
-import { LEADERSHIP_ROLES } from "@/lib/roles";
 import { PublicEventCategory } from "@/generated/prisma/enums";
 
 const PublicEventSchema = z
