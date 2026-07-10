@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
-import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
+import { sendMinutesEmail, sendMinutesSubmittedEmail, sendActionItemEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
@@ -79,7 +79,7 @@ export async function generateMinutesSummary(
   const existing = await prisma.minutes.findFirst({
     where: { eventId },
   });
-  if (existing?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
+  if (existing?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
 
   // Pull the meeting notes (body) from the minutes record.
   const minutes = await prisma.minutes.findFirst({
@@ -150,11 +150,11 @@ export async function saveMinutesDraft(
   if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const existing = await prisma.minutes.findUnique({ where: { eventId } });
-  if (existing?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
+  if (existing?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
 
   const minutes = await prisma.minutes.upsert({
     where: { eventId },
-    create: { eventId, body, summary },
+    create: { eventId, body, summary, draftedById: user.id, draftedAt: new Date() },
     update: { body, summary },
   });
 
@@ -182,7 +182,7 @@ export async function publishMinutes(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const approver = await assertRole("APPROVER", "APPROVER");
+  const approver = await assertRole("APPROVER");
 
   const parsed = PublishSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -204,6 +204,7 @@ export async function publishMinutes(
   if (!event) return { error: "Event not found." };
   assertSameMinistry(approver, event.ministryId);
   if (minutes.status === "PUBLISHED") return { error: "Already published." };
+  if (minutes.status !== "SUBMITTED") return { error: "Minutes must be submitted for review before publishing." };
 
   await prisma.minutes.update({
     where: { id: minutesId },
@@ -251,6 +252,62 @@ export async function publishMinutes(
   return { ok: true };
 }
 
+// ── Submit Minutes for Review ────────────────────────────────────────────────
+
+const SubmitSchema = z.object({
+  eventId: z.string().min(1),
+  minutesId: z.string().min(1),
+});
+
+export async function submitMinutes(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+
+  const parsed = SubmitSchema.safeParse({
+    eventId: formData.get("eventId"),
+    minutesId: formData.get("minutesId"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const { eventId, minutesId } = parsed.data;
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, title: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+  });
+  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
+
+  const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
+  if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
+  if (minutes.status !== "DRAFT") return { error: "Only draft minutes can be submitted for review." };
+
+  await prisma.minutes.update({
+    where: { id: minutesId },
+    data: { status: "SUBMITTED", submittedAt: new Date(), submittedById: user.id },
+  });
+
+  await audit({
+    actorId: user.id,
+    action: "SUBMIT_MINUTES",
+    entityType: "Minutes",
+    entityId: minutesId,
+    metadata: { eventId },
+    ministryId: event.ministryId,
+  });
+
+  await notifyApproversOfSubmission({
+    eventId,
+    ministryId: event.ministryId,
+    eventTitle: event.title,
+    submitterName: user.name ?? user.email,
+  });
+
+  revalidatePath(`/administrative/events/${eventId}/minutes`);
+  return { ok: true };
+}
+
 // ── Add Action Item ──────────────────────────────────────────────────────────
 
 const AddItemSchema = z.object({
@@ -292,7 +349,7 @@ export async function addActionItem(
 
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
   if (!minutes) return { error: "Minutes not found." };
-  if (minutes.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
+  if (minutes.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
 
   const assignee = ownerName
     ? await resolveActionItemAssignee(event.ministryId, eventId, ownerName)
@@ -394,7 +451,7 @@ export async function updateActionItem(
   if (!item || item.minutesId !== minutesId) return { error: "Action item not found." };
 
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
-  if (minutes?.status === "PUBLISHED") return { error: "Minutes are published and cannot be edited." };
+  if (minutes?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
 
   const oldStatus = item.status as "TODO" | "IN_PROGRESS" | "DONE";
   const assignee = ownerName
@@ -479,7 +536,7 @@ export async function deleteActionItem(formData: FormData): Promise<void> {
   if (!item || item.minutesId !== minutesId) return;
 
   const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
-  if (minutes?.status === "PUBLISHED") return;
+  if (minutes?.status !== "DRAFT") return;
 
   await prisma.actionItem.delete({ where: { id: itemId } });
 
@@ -570,6 +627,40 @@ function assigneeChanged(
 ) {
   if (assignee.kind === "internal") return assignee.userId !== item.ownerId;
   return item.ownerId !== null || normalizeAssignee(item.ownerName) !== normalizeAssignee(ownerName);
+}
+
+async function notifyApproversOfSubmission({
+  eventId, ministryId, eventTitle, submitterName,
+}: { eventId: string; ministryId: string; eventTitle: string; submitterName: string }) {
+  const approvers = await prisma.user.findMany({
+    where: { ministryId, systemRole: "APPROVER", active: true },
+    select: { id: true, name: true, email: true, ministryId: true },
+  });
+  if (approvers.length === 0) return;
+
+  const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
+
+  await Promise.allSettled(
+    approvers.map((a) =>
+      Promise.allSettled([
+        sendMinutesSubmittedEmail({
+          to: a.email,
+          toName: a.name ?? a.email,
+          eventTitle,
+          submitterName,
+          minutesUrl,
+        }),
+        notify({
+          userId: a.id,
+          type: "MINUTES_SUBMITTED",
+          title: "Minutes pending your approval",
+          body: `${submitterName} submitted minutes for "${eventTitle}" for review.`,
+          link: minutesUrl,
+          ministryId: a.ministryId,
+        }),
+      ]),
+    ),
+  );
 }
 
 async function notifyExternalActionItemOwner({
