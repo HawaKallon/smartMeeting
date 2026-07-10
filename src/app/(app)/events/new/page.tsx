@@ -54,7 +54,7 @@ export default async function NewEventPage({
     <div className="space-y-6">
       <div>
         <BackButton href="/administrative" label="Dashboard" />
-        <h1 className="mt-4 text-3xl font-bold text-foreground">New Event</h1>
+        <h1 className="mt-4 text-3xl font-bold text-foreground">Schedule an Activity</h1>
       </div>
 
       <div className="rounded-lg border border-border bg-card p-6">
