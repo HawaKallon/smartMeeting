@@ -56,7 +56,7 @@ export async function inviteUser(
         organizer: { select: { name: true, email: true } },
       },
     }),
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, ministryId: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, ministryId: true, emailNotifications: true } }),
   ]);
   if (!event || !canManageExistingEvent(staff, event)) return { error: "Event not found or you don't have access." };
   if (!user) return { error: "User not found." };
@@ -112,25 +112,27 @@ export async function inviteUser(
     ministryId: event.ministryId,
   });
 
-  // Send invite email if user has an email address.
-  await sendInviteEmail({
-    to: user.email,
-    toName: user.name ?? user.email,
-    eventTitle: event.title,
-    eventDescription: event.description,
-    eventType: event.type,
-    classification: event.classification,
-    startAt: emailEvent.startAt,
-    endAt: emailEvent.endAt,
-    venueName: emailEvent.venueName,
-    roomName: emailEvent.room?.name ?? null,
-    organizerName: event.organizer.name ?? event.organizer.email,
-    organizerEmail: event.organizer.email,
-    ministryName: event.ministry.name,
-    recurrenceText: event.series ? describeRecurrence(event.series) : null,
-    acceptUrl: rsvpUrl(token, "CONFIRMED"),
-    declineUrl: rsvpUrl(token, "DECLINED"),
-  }).catch((err) => console.error("[email] invite failed:", err));
+  // Send invite email if user has an email address and has opted in.
+  if (user.emailNotifications !== false) {
+    await sendInviteEmail({
+      to: user.email,
+      toName: user.name ?? user.email,
+      eventTitle: event.title,
+      eventDescription: event.description,
+      eventType: event.type,
+      classification: event.classification,
+      startAt: emailEvent.startAt,
+      endAt: emailEvent.endAt,
+      venueName: emailEvent.venueName,
+      roomName: emailEvent.room?.name ?? null,
+      organizerName: event.organizer.name ?? event.organizer.email,
+      organizerEmail: event.organizer.email,
+      ministryName: event.ministry.name,
+      recurrenceText: event.series ? describeRecurrence(event.series) : null,
+      acceptUrl: rsvpUrl(token, "CONFIRMED"),
+      declineUrl: rsvpUrl(token, "DECLINED"),
+    }).catch((err) => console.error("[email] invite failed:", err));
+  }
 
   for (const targetId of targetEventIds) {
     revalidatePath(`/administrative/events/${targetId}/attendees`);
