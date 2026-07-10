@@ -115,7 +115,7 @@ export function canSubmitMinutes(
   return canDraftMinutes(user, minutes.event);
 }
 
-export function canPublishMinutes(user: ActorPerm, event: Event): boolean {
+export function canPublishMinutes(user: ActorPerm, event: Event & { coOrganizers?: Array<{ id: string }> }): boolean {
   // P4: Scope-based publishing rules
   if (event.scope === "TEAM") {
     // Organizer or co-organizer can publish (no role gate)
