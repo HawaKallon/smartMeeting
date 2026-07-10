@@ -31,6 +31,11 @@ enum EventType {
   APPOINTMENT
 }
 
+enum EventScope {
+  OFFICIAL  // Ministry business, approver required
+  TEAM      // Team/personal meeting, no approver required
+}
+
 enum RecurrenceFrequency {
   DAILY
   WEEKLY
@@ -194,6 +199,7 @@ model Event {
   title          String
   description    String?
   type           EventType      @default(MEETING)
+  scope          EventScope     @default(TEAM) // P4: governance vs. team scope
   startAt        DateTime
   endAt          DateTime
   venueName      String?
