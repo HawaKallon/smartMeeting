@@ -1,6 +1,6 @@
 "use server";
 
-import { requireUser } from "@/lib/guard";
+import { requireUser, assertAdminRole } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
@@ -17,9 +17,7 @@ import type { MinistryRole } from "@/generated/prisma/enums";
  */
 async function authorizeManageUser(userId: string) {
   const user = await requireUser();
-  if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-    return { error: "You do not have permission to manage users" as string };
-  }
+  await assertAdminRole();
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
@@ -41,11 +39,7 @@ export async function createUser(
 ): Promise<{ ok?: boolean; emailSent?: boolean; error?: string }> {
   try {
     const user = await requireUser();
-
-    // Only ADMIN or SUPER_ADMIN can create users
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "You do not have permission to create users" };
-    }
+    await assertAdminRole();
 
     const name = formData.get("name") as string;
     // Normalize to match how auth.ts looks users up at login (lowercase + trim).
@@ -129,11 +123,7 @@ export async function createUser(
 export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?: string }> {
   try {
     const user = await requireUser();
-
-    // Only ADMIN or SUPER_ADMIN can delete users
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "You do not have permission to delete users" };
-    }
+    await assertAdminRole();
 
     // Prevent self-deletion
     if (user.id === userId) {
