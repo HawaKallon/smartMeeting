@@ -16,8 +16,8 @@ import {
 type MinimalUser = { systemRole: SystemRole; ministryId?: string | null };
 
 export function canCreateEvent(user: MinimalUser | null): boolean {
-  if (!user) return false;
-  return canManageEvents(user.systemRole);
+  // P4: All authenticated users can create events
+  return user !== null;
 }
 
 export function canManageUsers(user: MinimalUser | null, targetMinistryId?: string): boolean {
@@ -116,8 +116,18 @@ export function canSubmitMinutes(
 }
 
 export function canPublishMinutes(user: ActorPerm, event: Event): boolean {
-  // APPROVER role in same ministry
-  return canApproveMinutes(user.systemRole) && user.ministryId === event.ministryId;
+  // P4: Scope-based publishing rules
+  if (event.scope === "TEAM") {
+    // Organizer or co-organizer can publish (no role gate)
+    return event.organizerId === user.id ||
+           (event.coOrganizers && event.coOrganizers.some(co => co.id === user.id)) ||
+           isSuperAdmin(user.systemRole);
+  }
+  if (event.scope === "OFFICIAL") {
+    // APPROVER role in same ministry required
+    return canApproveMinutes(user.systemRole) && user.ministryId === event.ministryId;
+  }
+  return false;
 }
 
 export function canViewMinutes(
