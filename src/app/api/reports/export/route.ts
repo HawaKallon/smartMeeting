@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isSuperAdmin, ROLE_LABELS } from "@/lib/roles";
+import { isSuperAdmin } from "@/lib/roles";
 import { toCsv, type CsvColumn } from "@/lib/csv";
 import type { SystemRole } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 
-  const { role, ministryId } = session.user;
-  const superAdmin = isSuperAdmin(role);
+  const { systemRole, ministryId } = session.user;
+  const superAdmin = isSuperAdmin(systemRole);
   // Re-derive scope from the session — never trust a query param for tenancy.
   const scopeId = superAdmin ? undefined : ministryId ?? NO_MINISTRY;
 
