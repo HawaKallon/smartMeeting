@@ -1,3 +1,7 @@
+import Image from "next/image";
+
+const FLAG_SRC = "/sl-flag.png";
+
 export function SierraLeoneFlag({
   className = "",
   label = "Sierra Leone flag",
@@ -7,12 +11,15 @@ export function SierraLeoneFlag({
 }) {
   return (
     <span
-      className={`inline-flex overflow-hidden rounded-md border border-[#d8e1ee] bg-white shadow-sm ${className}`}
-      aria-label={label}
+      className={`relative inline-flex overflow-hidden ${className}`}
     >
-      <span className="flex-1 bg-[#007236]" />
-      <span className="flex-1 bg-white" />
-      <span className="flex-1 bg-[#003580]" />
+      <Image
+        src={FLAG_SRC}
+        alt={label}
+        fill
+        sizes="64px"
+        className="object-cover"
+      />
     </span>
   );
 }
