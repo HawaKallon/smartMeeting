@@ -8,6 +8,7 @@ import { canManageEvent, canReassignEvent } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
+import type { SystemRole } from "@/generated/prisma/enums";
 import { generateOccurrences, MAX_OCCURRENCES } from "@/lib/recurrence";
 import type { Prisma } from "@/generated/prisma/client";
 import type {
@@ -426,7 +427,7 @@ export async function addCoOrganizer(
     // Assignee must be a (non-super-admin) member of the same ministry.
     const target = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, role: true, ministryId: true },
+      select: { id: true, name: true, email: true, systemRole: true, ministryId: true },
     });
     if (!target || target.systemRole === "SUPER_ADMIN" || target.ministryId !== event.ministryId) {
       return { error: "Pick a user from this ministry" };

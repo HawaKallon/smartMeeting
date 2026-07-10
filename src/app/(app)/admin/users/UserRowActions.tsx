@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Trash2, Power } from "lucide-react";
 import { ROLE_LABELS, MINISTRY_ROLES } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
 import {
   updateUserRole,
   setUserActive,

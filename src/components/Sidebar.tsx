@@ -4,7 +4,7 @@ import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
 import { canManageUsers } from "@/lib/permissions";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole,  MinistryRole } from "@/generated/prisma/enums";
 import { NavLink, SidebarNavProvider } from "./SidebarNav";
 import { useSidebarState } from "./SidebarState";
 import {

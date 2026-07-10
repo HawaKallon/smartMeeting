@@ -13,7 +13,7 @@ import {
 // User-level capabilities
 // ────────────────────────────────────────────────────────────────────────────
 
-type MinimalUser = { role: SystemRole; ministryId?: string | null };
+type MinimalUser = { systemRole: SystemRole; ministryId?: string | null };
 
 export function canCreateEvent(user: MinimalUser | null): boolean {
   if (!user) return false;
