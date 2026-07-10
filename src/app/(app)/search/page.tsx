@@ -110,7 +110,7 @@ export default async function SearchPage({
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Global search</p>
         <h1 className="mt-2 text-2xl font-bold text-foreground">Search Results</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Results for "<span className="font-semibold">{query}</span>"
+          Results for &quot;<span className="font-semibold">{query}</span>&quot;
         </p>
       </div>
 

@@ -2,9 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canManageEvents, canApproveMinutes, canManageEvent, canReassignEvent } from "@/lib/roles";
+import { canManageEvent, canReassignEvent } from "@/lib/roles";
 import { canViewMinutesForEvent } from "@/lib/eventAccess";
-import { COLOR_META } from "@/lib/colors";
 import { ManageCoOrganizers } from "./ManageCoOrganizers";
 // import { Uploader } from "./recordings/Uploader";
 // import { MeetingRecorder } from "./recordings/MeetingRecorder";
@@ -46,7 +45,6 @@ export default async function EventDetailPage({
     organizerId: event.organizerId,
     coOrganizerIds,
   };
-  const isAdmin = canManageEvents(user.role);
   const canManage = canManageEvent(user, eventPerm);
   const canReassign = canReassignEvent(user, eventPerm);
   const canViewMinutes = canViewMinutesForEvent(user, {

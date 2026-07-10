@@ -3,8 +3,25 @@ import { requireStaffRole, ministryScope } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { COLOR_META } from "@/lib/colors";
-import { Calendar, Clock, MapPin, Users, Search } from "lucide-react";
+import { Calendar, Clock, MapPin } from "lucide-react";
 import type { ColorCategory } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
+
+type EventListItem = Prisma.EventGetPayload<{
+  select: {
+    id: true;
+    title: true;
+    startAt: true;
+    endAt: true;
+    description: true;
+    type: true;
+    colorCategory: true;
+    room: { select: { name: true; location: true } };
+    venueName: true;
+    organizer: { select: { name: true } };
+    _count: { select: { attendances: true; attendees: true } };
+  };
+}>;
 
 export default async function AllEventsPage() {
   const user = await requireStaffRole();
@@ -89,7 +106,7 @@ function EventSection({
   highlight = false,
 }: {
   title: string;
-  events: any[];
+  events: EventListItem[];
   highlight?: boolean;
 }) {
   return (

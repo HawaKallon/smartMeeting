@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canViewMinistrySchedule, canManageEvents } from "@/lib/roles";
-import { COLOR_META } from "@/lib/colors";
 import { BackButton } from "@/components/BackButton";
 import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 
