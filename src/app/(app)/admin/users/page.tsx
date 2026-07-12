@@ -39,7 +39,9 @@ export default async function AdminUsersPage({
       { email: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (role) where.systemRole = role as Prisma.UserWhereInput["systemRole"];
+  if (role && SYSTEM_ROLES.includes(role as any)) {
+    where.systemRole = role as Prisma.UserWhereInput["systemRole"];
+  }
   if (superAdmin && ministryId) where.ministryId = ministryId;
 
   const users = await prisma.user.findMany({
