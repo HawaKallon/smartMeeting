@@ -27,7 +27,7 @@ export default async function ApprovalsPage() {
       status: "SUBMITTED",
       event: {
         scope: "OFFICIAL",
-        ...(isSuperAdmin(user.systemRole) ? {} : { ministryId: user.ministryId }),
+        ...(isSuperAdmin(user.systemRole) ? {} : user.ministryId ? { ministryId: user.ministryId } : {}),
       },
     },
     select: {
