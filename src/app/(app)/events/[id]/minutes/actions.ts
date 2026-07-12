@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
+import { requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
 import { isMinistryAdminLevel } from "@/lib/roles";

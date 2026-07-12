@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { COLOR_META } from "@/lib/colors";
 import type { ColorCategory } from "@/generated/prisma/enums";
 
@@ -10,7 +9,6 @@ interface UpcomingEventRowProps {
   id: string;
   title: string;
   startAt: Date;
-  endAt: Date;
   room: { name: string; location: string } | null;
   type: string;
   colorCategory: ColorCategory | null;
@@ -23,7 +21,6 @@ export function UpcomingEventRow({
   id,
   title,
   startAt,
-  endAt,
   room,
   type,
   colorCategory,
