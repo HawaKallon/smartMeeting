@@ -7,17 +7,29 @@ import Link from "next/link";
 export default async function RoomDetailPage({ params }: { params: { id: string } }) {
   await requireUser();
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in90Days = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+
   const room = await prisma.room.findUnique({
     where: { id: params.id },
     include: {
       bookings: {
-        where: { status: "CONFIRMED" },
+        where: {
+          status: "CONFIRMED",
+          endTime: { gte: today },
+          startTime: { lte: in90Days },
+        },
         orderBy: { startTime: "asc" },
         include: {
           user: { select: { id: true, name: true, email: true } },
         },
       },
       events: {
+        where: {
+          endAt: { gte: today },
+          startAt: { lte: in90Days },
+        },
         orderBy: { startAt: "asc" },
         select: {
           id: true,
@@ -41,11 +53,8 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const upcomingBookings = room.bookings.filter((b) => b.endTime > today);
-  const upcomingEvents = room.events.filter((e) => e.endAt > today);
+  const upcomingBookings = room.bookings;
+  const upcomingEvents = room.events;
 
   return (
     <div className="space-y-6">

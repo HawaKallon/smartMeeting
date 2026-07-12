@@ -42,27 +42,6 @@ export default async function RoomAvailabilityPage({
   let dayEvents: SelectedRoom["events"] = [];
 
   if (sp.roomId) {
-    selectedRoom = await prisma.room.findUnique({
-      where: { id: sp.roomId },
-      include: {
-        bookings: {
-          where: { status: "CONFIRMED" },
-          orderBy: { startTime: "asc" },
-          include: { user: { select: { name: true, email: true } } },
-        },
-        events: {
-          orderBy: { startAt: "asc" },
-          select: {
-            id: true,
-            title: true,
-            startAt: true,
-            endAt: true,
-            organizer: { select: { name: true } },
-          },
-        },
-      },
-    });
-
     if (sp.date) {
       const [year, month, day] = sp.date.split("-").map(Number);
       selectedDate = new Date(year, month - 1, day);
@@ -75,13 +54,38 @@ export default async function RoomAvailabilityPage({
     );
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
+    selectedRoom = await prisma.room.findUnique({
+      where: { id: sp.roomId },
+      include: {
+        bookings: {
+          where: {
+            status: "CONFIRMED",
+            startTime: { gte: startOfDay },
+            endTime: { lte: endOfDay },
+          },
+          orderBy: { startTime: "asc" },
+          include: { user: { select: { name: true, email: true } } },
+        },
+        events: {
+          where: {
+            startAt: { gte: startOfDay },
+            endAt: { lte: endOfDay },
+          },
+          orderBy: { startAt: "asc" },
+          select: {
+            id: true,
+            title: true,
+            startAt: true,
+            endAt: true,
+            organizer: { select: { name: true } },
+          },
+        },
+      },
+    });
+
     if (selectedRoom) {
-      dayBookings = selectedRoom.bookings.filter(
-        (b) => b.startTime >= startOfDay && b.startTime < endOfDay
-      );
-      dayEvents = selectedRoom.events.filter(
-        (e) => e.startAt >= startOfDay && e.startAt < endOfDay
-      );
+      dayBookings = selectedRoom.bookings;
+      dayEvents = selectedRoom.events;
     }
   }
 
