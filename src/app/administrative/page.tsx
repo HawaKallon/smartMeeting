@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { UpcomingEventRow } from "./UpcomingEventRow";
-import type { ColorCategory } from "@/generated/prisma/enums";
 
 export default async function Dashboard() {
   const user = await requireUser();

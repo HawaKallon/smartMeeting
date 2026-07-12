@@ -200,7 +200,7 @@ export async function updateUserRole(
     const { user, target } = auth;
 
     // Only assignable system roles — never grant SUPER_ADMIN here.
-    if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as any)) {
+    if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as SystemRole)) {
       return { error: "Invalid role" };
     }
     if (role === target.systemRole) return { ok: true };
@@ -220,7 +220,7 @@ export async function updateUserRole(
       }
     }
 
-    await prisma.user.update({ where: { id: userId }, data: { systemRole: role as any as SystemRole } });
+    await prisma.user.update({ where: { id: userId }, data: { systemRole: role as SystemRole } });
 
     await audit({
       actorId: user.id,
