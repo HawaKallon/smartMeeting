@@ -40,7 +40,7 @@ export default async function MinutesPage({
   if (!canViewMinutesForEvent(user, event)) notFound();
 
   // Lazy-init minutes from transcript text if no record yet.
-  let minutes = await prisma.minutes.findUnique({
+  const minutesQuery = prisma.minutes.findUnique({
     where: { eventId: id },
     include: {
       drafted: { select: { name: true, email: true } },
@@ -53,7 +53,16 @@ export default async function MinutesPage({
     },
   });
 
-  if (!minutes) {
+  const attendeesQuery = prisma.eventAttendee.findMany({
+    where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const [minutesFromDb, attendees] = await Promise.all([minutesQuery, attendeesQuery]);
+
+  let minutes: typeof minutesFromDb;
+  if (!minutesFromDb) {
     const segs = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
     const body = segs.map((s) => `${s.speaker}: ${s.text}`).join("\n");
     minutes = await prisma.minutes.upsert({
@@ -70,13 +79,9 @@ export default async function MinutesPage({
         },
       },
     });
+  } else {
+    minutes = minutesFromDb;
   }
-
-  const attendees = await prisma.eventAttendee.findMany({
-    where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
-    include: { user: { select: { id: true, name: true, email: true } } },
-    orderBy: { createdAt: "asc" },
-  });
   const users = attendees
     .map((a) => ({
       id: a.user?.id ?? a.id,
