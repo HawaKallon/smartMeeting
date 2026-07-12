@@ -689,7 +689,7 @@ async function notifyApproversOfSubmission({
   eventId, ministryId, eventTitle, submitterName,
 }: { eventId: string; ministryId: string; eventTitle: string; submitterName: string }) {
   const approvers = await prisma.user.findMany({
-    where: { ministryId, systemRole: "APPROVER", active: true },
+    where: { ministryId, systemRole: { in: ["LEADERSHIP", "MINISTER"] }, active: true },
     select: { id: true, name: true, email: true, ministryId: true },
   });
   if (approvers.length === 0) return;
