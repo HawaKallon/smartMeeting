@@ -200,10 +200,11 @@ export async function updateUserRole(
     const { user, target } = auth;
 
     // Only assignable system roles — never grant SUPER_ADMIN here.
-    if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as SystemRole)) {
+    if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as any)) {
       return { error: "Invalid role" };
     }
-    if (role === target.systemRole) return { ok: true };
+    const validatedRole = role as SystemRole;
+    if (validatedRole === target.systemRole) return { ok: true };
 
     // MINISTER role can only be assigned by SUPER_ADMIN
     if (role === "MINISTER" && !isSuperAdmin(user.systemRole)) {
