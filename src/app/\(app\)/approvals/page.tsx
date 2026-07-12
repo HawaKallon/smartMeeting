@@ -15,7 +15,7 @@ export default async function ApprovalsPage() {
       <div className="space-y-6">
         <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-          <p className="text-red-400">You don't have permission to access this page.</p>
+          <p className="text-red-400">You don&apos;t have permission to access this page.</p>
         </div>
       </div>
     );
