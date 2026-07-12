@@ -8,6 +8,9 @@ import { ActionItemsPanel } from "./ActionItemsPanel";
 import { PublishButton } from "./PublishButton";
 import { SubmitButton } from "./SubmitButton";
 import { FileText, CheckCircle, Clock, Send, Hourglass } from "lucide-react";
+import { isMinutesArchived, isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
+import { isSuperAdmin } from "@/lib/roles";
+import { isMinistryAdminLevel } from "@/lib/roles";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
 
@@ -95,6 +98,14 @@ export default async function MinutesPage({
   const isSubmitted = minutes.status === "SUBMITTED";
   const isPublished = minutes.status === "PUBLISHED";
 
+  // Check if minutes are archived (6+ months old)
+  const archived = isMinutesArchived(event.startAt);
+  const canViewArchived = isSuperAdmin(user.systemRole);
+
+
+  // Check if edit window is closed (unless user is admin-level)
+  const canOverrideEditWindow = isMinistryAdminLevel(user.systemRole);
+  const editWindowClosed = isMinutesEditWindowClosed(event.startAt) && !canOverrideEditWindow;
   // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
   const segments: Segment[] = [];
 
@@ -108,6 +119,18 @@ export default async function MinutesPage({
     ownerName: item.ownerName,
     owner: item.owner,
   }));
+
+  // Handle archived minutes
+  if (archived && !canViewArchived) {
+    return (
+      <div className="space-y-6">
+        <BackButton href={`/administrative/events/${id}`} label={event.title} />
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
+          <p className="text-red-400">This record has been archived and is no longer accessible.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -183,11 +206,20 @@ export default async function MinutesPage({
           </h2>
           {isAdmin ? (
             <>
+              {minutes.status === "DRAFT" && !editWindowClosed && (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 mb-4">
+                  <p className="flex items-center gap-2 text-sm text-amber-400">
+                    <Clock className="h-4 w-4" />
+                    Minutes can only be edited within 2 days of the meeting. After that they lock automatically for everyone except admins.
+                  </p>
+                </div>
+              )}
               <MinutesEditor
                 eventId={id}
                 body={minutes.body}
                 summary={minutes.summary ?? null}
                 status={minutes.status as "DRAFT" | "SUBMITTED" | "PUBLISHED"}
+                editWindowClosed={editWindowClosed}
               />
               {minutes.status === "DRAFT" && (
                 <div className="mt-4">

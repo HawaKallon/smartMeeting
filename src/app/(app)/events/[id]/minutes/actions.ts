@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
+import { isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
+import { isMinistryAdminLevel } from "@/lib/roles";
 import { sendMinutesEmail, sendMinutesSubmittedEmail, sendActionItemEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms } from "@/lib/sms";
@@ -152,12 +154,17 @@ export async function saveMinutesDraft(
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    select: { id: true, startAt: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
   });
   if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const existing = await prisma.minutes.findUnique({ where: { eventId } });
   if (existing?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
+
+  // Check edit-window: can only edit within 2 days of the meeting, unless admin-level
+  if (isMinutesEditWindowClosed(event.startAt) && !isMinistryAdminLevel(user.systemRole)) {
+    return { error: "Minutes can only be edited within 2 days of the meeting." };
+  }
 
   const minutes = await prisma.minutes.upsert({
     where: { eventId },
