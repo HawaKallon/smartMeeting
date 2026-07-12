@@ -246,7 +246,7 @@ export function Sidebar({
                 collapsed={collapsed}
               />
             )}
-            {canManageUsers(user) && (
+            {canManageUsers(user) && !isSuperAdminUser && (
               <>
                 <NavLink
                   href="/administrative/admin/users"
