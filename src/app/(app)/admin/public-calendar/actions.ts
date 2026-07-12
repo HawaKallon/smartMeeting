@@ -239,7 +239,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
           where: {
             ministryId: { in: invitedMinistryIds },
             active: true,
-            systemRole: { in: ["MINISTRY_ADMIN", "APPROVER", "EXECUTIVE_VIEWER"] },
+            systemRole: { in: ["MINISTRY_ADMIN", "MINISTER", "LEADERSHIP"] },
           },
           select: { id: true, email: true, name: true, ministryId: true, emailNotifications: true },
         });
