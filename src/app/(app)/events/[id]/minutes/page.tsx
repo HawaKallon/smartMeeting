@@ -27,6 +27,7 @@ export default async function MinutesPage({
     select: {
       id: true,
       title: true,
+      startAt: true,
       scope: true,
       ministryId: true,
       organizerId: true,
