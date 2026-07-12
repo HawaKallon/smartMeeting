@@ -28,27 +28,44 @@ export default async function AllEventsPage() {
 
   const now = new Date();
 
-  const events = await prisma.event.findMany({
-    where: ministryScope(user),
-    orderBy: { startAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      startAt: true,
-      endAt: true,
-      description: true,
-      type: true,
-      colorCategory: true,
-      room: { select: { name: true, location: true } },
-      venueName: true,
-      organizer: { select: { name: true } },
-      _count: { select: { attendances: true, attendees: true } },
-    },
-  });
+  const selectBlock = {
+    id: true,
+    title: true,
+    startAt: true,
+    endAt: true,
+    description: true,
+    type: true,
+    colorCategory: true,
+    room: { select: { name: true, location: true } },
+    venueName: true,
+    organizer: { select: { name: true } },
+    _count: { select: { attendances: true, attendees: true } },
+  };
 
-  const past = events.filter((e) => e.endAt < now);
-  const present = events.filter((e) => e.startAt <= now && e.endAt >= now);
-  const upcoming = events.filter((e) => e.startAt > now);
+  const [upcoming, present, past] = await Promise.all([
+    prisma.event.findMany({
+      where: { ...ministryScope(user), startAt: { gt: now } },
+      orderBy: { startAt: "asc" },
+      take: 20,
+      select: selectBlock,
+    }),
+    prisma.event.findMany({
+      where: {
+        ...ministryScope(user),
+        startAt: { lte: now },
+        endAt: { gte: now },
+      },
+      orderBy: { startAt: "asc" },
+      take: 20,
+      select: selectBlock,
+    }),
+    prisma.event.findMany({
+      where: { ...ministryScope(user), endAt: { lt: now } },
+      orderBy: { startAt: "desc" },
+      take: 20,
+      select: selectBlock,
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
