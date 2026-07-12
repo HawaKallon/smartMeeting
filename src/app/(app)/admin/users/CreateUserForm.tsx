@@ -94,7 +94,7 @@ export function CreateUserForm({
           <label className={label}>System Role *</label>
           <select name="role" required className={field}>
             <option value="">Select a role</option>
-            {ASSIGNABLE_SYSTEM_ROLES.map((r) => (
+            {ASSIGNABLE_SYSTEM_ROLES.filter((r) => isSuperAdmin || r !== "MINISTER").map((r) => (
               <option key={r} value={r}>
                 {SYSTEM_ROLE_LABELS[r as SystemRole]}
               </option>

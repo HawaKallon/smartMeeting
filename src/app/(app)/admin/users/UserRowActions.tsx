@@ -24,11 +24,13 @@ export function UserRowActions({
   userName,
   role,
   active,
+  isSuperAdmin = false,
 }: {
   userId: string;
   userName: string;
   role: SystemRole;
   active: boolean;
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -54,7 +56,7 @@ export function UserRowActions({
         className="rounded-lg border border-border bg-muted/50 px-2 py-1 text-xs text-foreground focus:border-ring focus:outline-none disabled:opacity-50"
         title="Change role"
       >
-        {ASSIGNABLE_SYSTEM_ROLES.map((r) => (
+        {ASSIGNABLE_SYSTEM_ROLES.filter((r) => isSuperAdmin || r !== "MINISTER").map((r) => (
           <option key={r} value={r}>
             {SYSTEM_ROLE_LABELS[r as SystemRole]}
           </option>
