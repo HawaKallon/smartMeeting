@@ -9,7 +9,6 @@ import { SidebarStateProvider, useSidebarState } from "./SidebarState";
 type AppShellClientProps = {
   user: { id: string; name?: string | null; email: string; systemRole: SystemRole };
   ministryName?: string | null;
-  notifications?: Notification[];
   compactMode?: boolean;
   children: React.ReactNode;
 };
@@ -25,7 +24,6 @@ export function AppShellClient(props: AppShellClientProps) {
 function AppShellFrame({
   user,
   ministryName,
-  notifications = [],
   compactMode = false,
   children,
 }: AppShellClientProps) {
@@ -38,7 +36,7 @@ function AppShellFrame({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar user={user} ministryName={ministryName} notifications={notifications} />
+        <Topbar user={user} ministryName={ministryName} />
         <main className={`flex-1 overflow-y-auto ${compactMode ? "p-3 sm:p-4" : "p-3 sm:p-6"}`}>
           {children}
         </main>
