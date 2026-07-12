@@ -94,7 +94,13 @@ export async function generateMinutesSummary(
 
   let summary: string;
   try {
-    const { summary: overview, keyPoints } = await summarizeMeeting(minutes.body);
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Summarization timed out after 30 seconds")), 30000);
+    });
+    const { summary: overview, keyPoints } = await Promise.race([
+      summarizeMeeting(minutes.body),
+      timeoutPromise as Promise<Awaited<ReturnType<typeof summarizeMeeting>>>,
+    ]);
     const points = keyPoints.length
       ? `\n\nKey points:\n${keyPoints.map((p) => `- ${p}`).join("\n")}`
       : "";
