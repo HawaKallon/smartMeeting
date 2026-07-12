@@ -21,7 +21,7 @@ interface Props {
   editWindowClosed?: boolean;
 }
 
-export function MinutesEditor({ eventId, body, summary, status }: Props) {
+export function MinutesEditor({ eventId, body, summary, status, editWindowClosed = false }: Props) {
   const locked = status !== "DRAFT" || editWindowClosed;
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     saveMinutesDraft,
