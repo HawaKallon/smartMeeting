@@ -21,7 +21,7 @@ export function RoomSchedulePreview({
   const selectedRoom = rooms.find((r) => r.id === roomId);
   const scheduleUrl = useMemo(() => {
     if (!roomId || !startAt || !endAt) return null;
-    return `/api/administrative/rooms/${roomId}/schedule?startAt=${startAt}&endAt=${endAt}`;
+    return `/api/rooms/${roomId}/schedule?startAt=${startAt}&endAt=${endAt}`;
   }, [roomId, startAt, endAt]);
 
   useEffect(() => {
