@@ -140,18 +140,25 @@ export async function createEvent(
   }
 
   // Block-on-clash: every occurrence must be free before anything is created.
+  const conflictReasons = await Promise.all(
+    slots.map((s) =>
+      findSlotConflict({
+        roomId: data.roomId,
+        venueName: data.venueName ?? null,
+        startAt: s.startAt,
+        endAt: s.endAt,
+      })
+    )
+  );
+
   const conflicts: string[] = [];
-  for (const s of slots) {
-    const reason = await findSlotConflict({
-      roomId: data.roomId,
-      venueName: data.venueName ?? null,
-      startAt: s.startAt,
-      endAt: s.endAt,
-    });
+  slots.forEach((s, i) => {
+    const reason = conflictReasons[i];
     if (reason) {
       conflicts.push(`${s.startAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} — ${reason}`);
     }
-  }
+  });
+
   if (conflicts.length) {
     const shown = conflicts.slice(0, 3).join("; ");
     const more = conflicts.length > 3 ? ` …and ${conflicts.length - 3} more` : "";
