@@ -56,8 +56,10 @@ export default async function MinutesPage({
   if (!minutes) {
     const segs = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
     const body = segs.map((s) => `${s.speaker}: ${s.text}`).join("\n");
-    minutes = await prisma.minutes.create({
-      data: { eventId: id, body, draftedById: user.id, draftedAt: new Date() },
+    minutes = await prisma.minutes.upsert({
+      where: { eventId: id },
+      update: {},
+      create: { eventId: id, body, draftedById: user.id, draftedAt: new Date() },
       include: {
         drafted: { select: { name: true, email: true } },
         submitted: { select: { name: true, email: true } },
