@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { signOut } from "next-auth/react";
-import { SYSTEM_ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
+import { SYSTEM_ROLE_LABELS, canManageEvents, isSuperAdmin, canApproveMinutes } from "@/lib/roles";
 import { canManageUsers } from "@/lib/permissions";
 import type { SystemRole } from "@/generated/prisma/enums";
 import { NavLink, SidebarNavProvider } from "./SidebarNav";
@@ -24,6 +24,7 @@ import {
   User,
   Users,
   Activity,
+  ClipboardCheck,
 } from "lucide-react";
 
 export function Sidebar({
@@ -34,6 +35,7 @@ export function Sidebar({
   const isStaff = canManageEvents(user.systemRole);
   const isSuperAdminUser = isSuperAdmin(user.systemRole);
   const isAdmin = canManageUsers(user) || isSuperAdminUser;
+  const canApprove = canApproveMinutes(user.systemRole);
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
   const { collapsed, toggleCollapsed } = useSidebarState();
 
@@ -44,6 +46,7 @@ export function Sidebar({
       "/administrative/calendar",
       "/administrative/action-items",
       "/administrative/notifications",
+      ...(canApprove ? ["/administrative/approvals"] : []),
       ...(isStaff
         ? [
             "/administrative/events/new",
@@ -160,6 +163,14 @@ export function Sidebar({
               label="Notifications"
               collapsed={collapsed}
             />
+            {canApprove && (
+              <NavLink
+                href="/administrative/approvals"
+                icon={<ClipboardCheck className="h-4 w-4" />}
+                label="Approvals"
+                collapsed={collapsed}
+              />
+            )}
           </NavSection>
 
           {isStaff && (
