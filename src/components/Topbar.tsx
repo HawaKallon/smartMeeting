@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { SystemRole } from "@/generated/prisma/enums";
 import { Building2, Menu } from "lucide-react";
-import type { Notification } from "@/generated/prisma/client";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 import { SierraLeoneFlag } from "./SierraLeoneFlag";
@@ -9,11 +8,9 @@ import { SierraLeoneFlag } from "./SierraLeoneFlag";
 export function Topbar({
   user,
   ministryName,
-  notifications = [],
 }: {
   user: { id: string; name?: string | null; email: string; systemRole: SystemRole };
   ministryName?: string | null;
-  notifications?: Notification[];
 }) {
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
 
@@ -46,7 +43,7 @@ export function Topbar({
       </div>
 
       <div className="flex items-center gap-3">
-        <NotificationBell initialNotifications={notifications} />
+        <NotificationBell />
 
         <SierraLeoneFlag className="hidden h-8 w-14 sm:inline-flex" />
 
