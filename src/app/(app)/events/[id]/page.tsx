@@ -28,7 +28,6 @@ export default async function EventDetailPage({
       organizer: { select: { name: true, email: true } },
       coOrganizers: { select: { id: true, name: true, email: true } },
       room: { select: { id: true, name: true, location: true, capacity: true } },
-      attendances: { orderBy: { checkInAt: "desc" } },
       series: true,
       _count: { select: { attendees: true, attendances: true } },
     },
