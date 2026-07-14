@@ -25,14 +25,14 @@ export async function assertRole(...roles: SystemRole[]) {
   return session.user;
 }
 
-/** Page guard: operational staff (EVENT_MANAGER, EXECUTIVE_ASSISTANT, MINISTRY_ADMIN, SUPER_ADMIN). */
+/** Page guard: operational staff (STAFF, MINISTRY_ADMIN, MINISTER, SUPER_ADMIN). */
 export async function requireStaffRole() {
-  return requireRole("EVENT_MANAGER", "EXECUTIVE_ASSISTANT", "MINISTRY_ADMIN", "SUPER_ADMIN");
+  return requireRole("STAFF", "MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
-/** Action guard: operational staff (EVENT_MANAGER, EXECUTIVE_ASSISTANT, MINISTRY_ADMIN, SUPER_ADMIN). */
+/** Action guard: operational staff (STAFF, MINISTRY_ADMIN, MINISTER, SUPER_ADMIN). */
 export async function assertStaffRole() {
-  return assertRole("EVENT_MANAGER", "EXECUTIVE_ASSISTANT", "MINISTRY_ADMIN", "SUPER_ADMIN");
+  return assertRole("STAFF", "MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
 /** Page guard: platform super-admin only. */
@@ -50,14 +50,14 @@ export async function assertSuperAdmin() {
   return session.user;
 }
 
-/** Page guard: ministry admin or super-admin. */
+/** Page guard: ministry-admin-level or super-admin. */
 export async function requireAdminRole() {
-  return requireRole("MINISTRY_ADMIN", "SUPER_ADMIN");
+  return requireRole("MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
-/** Action guard: ministry admin or super-admin. */
+/** Action guard: ministry-admin-level or super-admin. */
 export async function assertAdminRole() {
-  return assertRole("MINISTRY_ADMIN", "SUPER_ADMIN");
+  return assertRole("MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
 /** Scope helper: returns where clause for ministry filtering. Super-admins bypass filtering. */

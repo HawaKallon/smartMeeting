@@ -39,7 +39,9 @@ export default async function AdminUsersPage({
       { email: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (role) where.systemRole = role as Prisma.UserWhereInput["systemRole"];
+  if (role && SYSTEM_ROLES.includes(role as any)) {
+    where.systemRole = role as Prisma.UserWhereInput["systemRole"];
+  }
   if (superAdmin && ministryId) where.ministryId = ministryId;
 
   const users = await prisma.user.findMany({
@@ -77,7 +79,7 @@ export default async function AdminUsersPage({
       </div>
 
       {/* Filters */}
-      <UserFilters ministries={superAdmin ? ministries : undefined} />
+      <UserFilters ministries={superAdmin ? ministries : undefined} isSuperAdmin={superAdmin} />
 
       <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
         <div className="overflow-x-auto">
@@ -137,6 +139,7 @@ export default async function AdminUsersPage({
                       userName={u.name || u.email}
                       role={u.systemRole as SystemRole}
                       active={u.active}
+                      isSuperAdmin={superAdmin}
                     />
                   </td>
                 </tr>

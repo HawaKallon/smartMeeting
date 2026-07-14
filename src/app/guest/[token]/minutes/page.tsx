@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { isMinutesArchived } from "@/lib/minutesPolicy";
 import { hashRsvpToken, validRsvpToken } from "@/lib/rsvp";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -53,6 +54,7 @@ export default async function GuestMinutesPage({
   // Access control: only confirmed/invited attendees can view published minutes
   if (!minutes || minutes.status !== "PUBLISHED") notFound();
   if (attendee.status === "DECLINED") notFound();
+  if (isMinutesArchived(event.startAt)) notFound();
 
   const statusIcons = {
     TODO: <AlertCircle className="h-4 w-4" />,

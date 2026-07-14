@@ -4,6 +4,8 @@ import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canManageEvent, canReassignEvent } from "@/lib/roles";
 import { canViewMinutesForEvent } from "@/lib/eventAccess";
+import { isMinutesArchived } from "@/lib/minutesPolicy";
+import { isSuperAdmin } from "@/lib/roles";
 import { ManageCoOrganizers } from "./ManageCoOrganizers";
 // import { Uploader } from "./recordings/Uploader";
 // import { MeetingRecorder } from "./recordings/MeetingRecorder";
@@ -47,6 +49,10 @@ export default async function EventDetailPage({
     organizerId: event.organizerId,
     coOrganizers: event.coOrganizers,
   });
+
+  // Check if minutes are archived
+  const minutesArchived = isMinutesArchived(event.startAt);
+  const canViewArchivedMinutes = isSuperAdmin(user.systemRole);
 
   // Eligible co-organizer candidates: same-ministry users who aren't already
   // the organizer or a co-organizer (only needed when the viewer can reassign).
@@ -237,11 +243,24 @@ export default async function EventDetailPage({
               </>
             ) : null}
             {canViewMinutes ? (
-              <ActionButton
-                href={`/administrative/events/${id}/minutes`}
-                icon={<FileText className="h-4 w-4" />}
-                label="Meeting Minutes"
-              />
+              minutesArchived && !canViewArchivedMinutes ? (
+                <div
+                  className="flex items-center gap-3 rounded-lg border border-muted-foreground/30 bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground cursor-not-allowed opacity-50"
+                  title="This record has been archived"
+                >
+                  <FileText className="h-4 w-4" />
+                  <div className="flex flex-col gap-0.5">
+                    <span>Meeting Minutes</span>
+                    <span className="text-xs font-normal text-muted-foreground">Archived</span>
+                  </div>
+                </div>
+              ) : (
+                <ActionButton
+                  href={`/administrative/events/${id}/minutes`}
+                  icon={<FileText className="h-4 w-4" />}
+                  label="Meeting Minutes"
+                />
+              )
             ) : null}
           </div>
         </div>
