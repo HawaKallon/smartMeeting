@@ -18,10 +18,11 @@ interface Props {
   body: string;
   summary: string | null;
   status: "DRAFT" | "SUBMITTED" | "PUBLISHED";
+  editWindowClosed?: boolean;
 }
 
-export function MinutesEditor({ eventId, body, summary, status }: Props) {
-  const locked = status !== "DRAFT";
+export function MinutesEditor({ eventId, body, summary, status, editWindowClosed = false }: Props) {
+  const locked = status !== "DRAFT" || editWindowClosed;
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     saveMinutesDraft,
     undefined,

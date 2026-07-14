@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { assertRole } from "@/lib/guard";
-import { canManageEvents } from "@/lib/roles";
+import { canManageEvents, SYSTEM_ROLES } from "@/lib/roles";
 import { audit } from "@/lib/audit";
 import { notifyMeetingInviteesActionItemStatusChanged } from "@/lib/actionItemNotifications";
 
@@ -14,7 +14,7 @@ const Schema = z.object({
 });
 
 export async function changeItemStatus(formData: FormData): Promise<void> {
-  const session = await assertRole("SUPER_ADMIN", "MINISTRY_ADMIN", "EVENT_MANAGER", "EXECUTIVE_ASSISTANT", "APPROVER", "EXECUTIVE_VIEWER", "STAFF");
+  const session = await assertRole(...SYSTEM_ROLES);
 
   const parsed = Schema.safeParse({
     itemId: formData.get("itemId"),

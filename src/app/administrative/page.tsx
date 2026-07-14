@@ -2,13 +2,12 @@ import Link from "next/link";
 import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canManageEvents, canViewMinistrySchedule } from "@/lib/roles";
-import { COLOR_META } from "@/lib/colors";
 import {
   CalendarDays, CheckSquare, Users, TrendingUp,
   ArrowUpRight, PlusCircle, ClipboardList,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
-import type { ColorCategory } from "@/generated/prisma/enums";
+import { UpcomingEventRow } from "./UpcomingEventRow";
 
 export default async function Dashboard() {
   const user = await requireUser();
@@ -153,49 +152,21 @@ export default async function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {upcoming.map((e, i) => {
-                const isToday = e.startAt >= startOfDay && e.startAt < tomorrow;
-                return (
-                  <tr
-                    key={e.id}
-                    className={`transition-colors hover:bg-secondary/35 ${i < upcoming.length - 1 ? "border-b border-border/50" : ""}`}
-                  >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        {e.colorCategory ? (
-                          <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${COLOR_META[e.colorCategory as ColorCategory].dot}`} />
-                        ) : (
-                          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-muted-foreground/30" />
-                        )}
-                        <span className="font-medium text-foreground">{e.title}</span>
-                        {isToday && (
-                          <span className="rounded-md bg-primary/12 px-1.5 py-0.5 text-xs font-medium text-primary">Today</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-muted-foreground">
-                      {e.startAt.toLocaleString("en-GB", {
-                        weekday: "short", month: "short", day: "numeric",
-                        hour: "2-digit", minute: "2-digit",
-                      })}
-                    </td>
-                    <td className="px-5 py-3 text-muted-foreground">
-                      {e.room ? `${e.room.name} (${e.room.location})` : "—"}
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className="rounded-md bg-secondary/70 px-2 py-0.5 text-xs font-medium text-primary capitalize">
-                        {e.type.toLowerCase()}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 font-medium text-foreground">{e._count.attendances}</td>
-                    <td className="px-5 py-3">
-                      <Link href={`/administrative/events/${e.id}`} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                        Open →
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
+              {upcoming.map((e, i) => (
+                <UpcomingEventRow
+                  key={e.id}
+                  id={e.id}
+                  title={e.title}
+                  startAt={e.startAt}
+                  endAt={e.endAt}
+                  room={e.room}
+                  type={e.type}
+                  colorCategory={e.colorCategory}
+                  attendanceCount={e._count.attendances}
+                  startOfDay={startOfDay}
+                  tomorrow={tomorrow}
+                />
+              ))}
             </tbody>
           </table>
         )}

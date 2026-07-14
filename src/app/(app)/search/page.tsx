@@ -60,7 +60,7 @@ export default async function SearchPage({
         eventId: true,
         body: true,
         summary: true,
-        event: { select: { title: true } },
+        event: { select: { title: true, startAt: true } },
       },
       take: 20,
     }),
@@ -155,18 +155,30 @@ export default async function SearchPage({
                 Meeting Minutes ({minutes.length})
               </h2>
               <div className="space-y-2">
-                {minutes.map((m) => (
-                  <Link
-                    key={m.id}
-                    href={`/administrative/events/${m.eventId}/minutes`}
-                    className="block rounded-[1.35rem] border border-border bg-card p-4 shadow-sm transition-colors hover:bg-secondary/30"
-                  >
-                    <p className="font-medium text-foreground">{m.event.title}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {m.summary || m.body}
-                    </p>
-                  </Link>
-                ))}
+                {minutes.map((m) => {
+                  const archived = isMinutesArchived(m.event.startAt);
+                  const canView = !archived || isSuperAdmin(user.systemRole);
+                  return canView ? (
+                    <Link
+                      key={m.id}
+                      href={`/administrative/events/${m.eventId}/minutes`}
+                      className="block rounded-[1.35rem] border border-border bg-card p-4 shadow-sm transition-colors hover:bg-secondary/30"
+                    >
+                      <p className="font-medium text-foreground">{m.event.title}</p>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {m.summary || m.body}
+                      </p>
+                    </Link>
+                  ) : (
+                    <div
+                      key={m.id}
+                      className="rounded-[1.35rem] border border-border/50 bg-card/50 p-4 shadow-sm opacity-50 cursor-not-allowed"
+                    >
+                      <p className="font-medium text-muted-foreground">{m.event.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground/75">Archived</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
