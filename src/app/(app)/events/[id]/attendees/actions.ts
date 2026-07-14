@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { SYSTEM_ROLES } from "@/lib/roles";
 import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { sendInviteEmail } from "@/lib/email";
@@ -372,15 +373,7 @@ export async function selfRsvp(
   formData: FormData,
 ): Promise<ActionState> {
   // Any authenticated user can respond to their own invite.
-  const session = await assertRole(
-    "MINISTRY_ADMIN",
-    "APPROVER",
-    "EXECUTIVE_VIEWER",
-    "APPROVER",
-    "EVENT_MANAGER",
-    "MINISTRY_ADMIN",
-    "SUPER_ADMIN",
-  );
+  const session = await assertRole(...SYSTEM_ROLES);
 
   const parsed = SelfRsvpSchema.safeParse({
     eventId: formData.get("eventId"),

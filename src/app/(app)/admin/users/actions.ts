@@ -1,7 +1,7 @@
 "use server";
 
 import { requireUser, assertAdminRole } from "@/lib/guard";
-import { isSuperAdmin, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
+import { isSuperAdmin, ASSIGNABLE_SYSTEM_ROLES, isMinistryAdminLevel } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
@@ -116,6 +116,9 @@ export async function createUser(
     revalidatePath("/administrative/admin/users");
     return { ok: true, emailSent };
   } catch (err) {
+    if ((err as any)?.code === "P2002") {
+      return { error: "This ministry already has a Minister. Reassign the current one first." };
+    }
     console.error("Failed to create user:", err);
     return { error: "Failed to create user" };
   }
@@ -200,9 +203,25 @@ export async function updateUserRole(
     if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as any)) {
       return { error: "Invalid role" };
     }
-    if (role === target.systemRole) return { ok: true };
+    const validatedRole = role as SystemRole;
+    if (validatedRole === target.systemRole) return { ok: true };
 
-    await prisma.user.update({ where: { id: userId }, data: { systemRole: role as any as SystemRole } });
+    // MINISTER role can only be assigned by SUPER_ADMIN
+    if (role === "MINISTER" && !isSuperAdmin(user.systemRole)) {
+      return { error: "Only a super admin can assign the Minister role" };
+    }
+
+    // Enforce one MINISTER per ministry
+    if (role === "MINISTER") {
+      const existingMinister = await prisma.user.count({
+        where: { ministryId: target.ministryId, systemRole: "MINISTER", id: { not: userId } },
+      });
+      if (existingMinister > 0) {
+        return { error: "This ministry already has a Minister. Reassign the current one first." };
+      }
+    }
+
+    await prisma.user.update({ where: { id: userId }, data: { systemRole: role as SystemRole } });
 
     await audit({
       actorId: user.id,
@@ -216,6 +235,9 @@ export async function updateUserRole(
     revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
+    if ((err as any)?.code === "P2002") {
+      return { error: "This ministry already has a Minister. Reassign the current one first." };
+    }
     console.error("Failed to update user role:", err);
     return { error: "Failed to update user role" };
   }
