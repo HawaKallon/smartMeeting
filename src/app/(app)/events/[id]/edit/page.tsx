@@ -20,6 +20,7 @@ export default async function EditEventPage({
       title: true,
       description: true,
       type: true,
+      scope: true,
       classification: true,
       roomId: true,
       geofenceRadius: true,
