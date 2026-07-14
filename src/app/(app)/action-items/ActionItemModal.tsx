@@ -59,12 +59,13 @@ export function ActionItemModal({ item, open, onClose }: Props) {
         <div className="px-6 py-5 space-y-5">
           {/* Title Card with Point Badge */}
           <div className="rounded-lg border border-border bg-secondary/20 p-4 border-l-4 border-l-primary">
+          <h3 className="text-base font-semibold text-foreground mb-2">{item.title}</h3>
             <div className="mb-3">
               <span className={`inline-block px-3 py-1.5 rounded-md text-sm font-medium ${POINT_COLORS[item.point]}`}>
                 {POINT_LABELS[item.point]}
               </span>
             </div>
-            <h3 className="text-base font-semibold text-foreground mb-2">{item.title}</h3>
+            
           </div>
 
           {/* Description */}
