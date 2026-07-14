@@ -152,7 +152,7 @@ export default async function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {upcoming.map((e, i) => (
+              {upcoming.map((e) => (
                 <UpcomingEventRow
                   key={e.id}
                   id={e.id}
