@@ -1,14 +1,13 @@
 "use server";
 
 import { requireUser, assertAdminRole } from "@/lib/guard";
-import { isSuperAdmin } from "@/lib/roles";
+import { isSuperAdmin, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { provisionUser, regenerateTempPassword } from "@/lib/provisionUser";
 import { isGovEmail, emailDomainOf, GOV_EMAIL_ERROR } from "@/lib/govEmail";
-import { MINISTRY_ROLES } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 /**
  * Authorize the current user to manage `userId`, returning both records.
@@ -21,12 +20,12 @@ async function authorizeManageUser(userId: string) {
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, role: true, ministryId: true, active: true },
+    select: { id: true, email: true, name: true, systemRole: true, ministryId: true, active: true },
   });
   if (!target) return { error: "User not found" };
-  if (target.role === "SUPER_ADMIN") return { error: "Super Admin accounts cannot be managed here" };
+  if (target.systemRole === "SUPER_ADMIN") return { error: "Super Admin accounts cannot be managed here" };
 
-  if (user.role === "ADMIN" && user.ministryId !== target.ministryId) {
+  if (user.systemRole === "MINISTRY_ADMIN" && user.ministryId !== target.ministryId) {
     return { error: "You can only manage users from your own ministry" };
   }
 
@@ -46,6 +45,7 @@ export async function createUser(
     const email = (formData.get("email") as string)?.toLowerCase().trim();
     const role = formData.get("role") as string;
     const ministryIdParam = formData.get("ministryId") as string;
+    const jobTitle = (formData.get("jobTitle") as string)?.trim() || null;
 
     if (!name || !email || !role) {
       return { error: "All fields are required" };
@@ -58,7 +58,7 @@ export async function createUser(
 
     // Super-admin can choose any ministry; regular admins use their own
     let targetMinistryId = ministryIdParam;
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       if (!user.ministryId) {
         return { error: "Cannot create users without a ministry context" };
       }
@@ -98,8 +98,9 @@ export async function createUser(
     const { user: newUser, emailSent } = await provisionUser({
       name,
       email,
-      role: role as MinistryRole,
+      systemRole: role as SystemRole,
       ministryId: targetMinistryId,
+      jobTitle,
     });
 
     // Audit log
@@ -140,7 +141,7 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
     }
 
     // Regular admins can only delete users from their own ministry
-    if (user.role === "ADMIN" && user.ministryId !== userToDelete.ministryId) {
+    if (user.systemRole === "MINISTRY_ADMIN" && user.ministryId !== userToDelete.ministryId) {
       return { error: "You can only delete users from your own ministry" };
     }
 
@@ -195,20 +196,20 @@ export async function updateUserRole(
     if ("error" in auth) return { error: auth.error };
     const { user, target } = auth;
 
-    // Only assignable ministry roles — never grant SUPER_ADMIN here.
-    if (!MINISTRY_ROLES.includes(role as MinistryRole) || role === "SUPER_ADMIN") {
+    // Only assignable system roles — never grant SUPER_ADMIN here.
+    if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as any)) {
       return { error: "Invalid role" };
     }
-    if (role === target.role) return { ok: true };
+    if (role === target.systemRole) return { ok: true };
 
-    await prisma.user.update({ where: { id: userId }, data: { role: role as MinistryRole } });
+    await prisma.user.update({ where: { id: userId }, data: { systemRole: role as any as SystemRole } });
 
     await audit({
       actorId: user.id,
       action: "UPDATE_USER_ROLE",
       entityType: "User",
       entityId: userId,
-      metadata: { email: target.email, from: target.role, to: role },
+      metadata: { email: target.email, from: target.systemRole, to: role },
       ministryId: target.ministryId,
     });
 

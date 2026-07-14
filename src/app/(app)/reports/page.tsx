@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/guard";
-import { canManageEvents, isSuperAdmin, ROLE_LABELS } from "@/lib/roles";
+import type { SystemRole } from "@/generated/prisma/enums";
+import { canManageEvents, isSuperAdmin, SYSTEM_ROLE_LABELS } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
 import { getReportAnalytics } from "@/lib/analytics";
@@ -15,19 +16,20 @@ const TYPE_LABELS: Record<string, string> = {
 const METHOD_LABELS: Record<string, string> = { QR: "QR code", MANUAL: "Manual", GEO: "Geofence" };
 
 const ROLE_COLORS: Record<string, string> = {
-  MINISTER: "#6366f1",
-  PERMANENT_SECRETARY: "#8b5cf6",
-  DEPUTY_MINISTER: "#ec4899",
-  DEPUTY_SECRETARY: "#f59e0b",
-  ADMIN_STAFF: "#10b981",
-  ADMIN: "#06b6d4",
+  SUPER_ADMIN: "#000000",
+  MINISTRY_ADMIN: "#06b6d4",
+  EVENT_MANAGER: "#10b981",
+  EXECUTIVE_ASSISTANT: "#06b6d4",
+  APPROVER: "#8b5cf6",
+  EXECUTIVE_VIEWER: "#ec4899",
+  STAFF: "#94a3b8",
 };
 const ROLE_FALLBACK_COLOR = "#94a3b8";
 
 export default async function ReportsPage() {
   const user = await requireUser();
 
-  if (!canManageEvents(user.role) && !isSuperAdmin(user.role)) {
+  if (!canManageEvents(user.systemRole) && !isSuperAdmin(user.systemRole)) {
     return (
       <div className="space-y-6">
         <BackButton href="/administrative" label="Dashboard" />
@@ -101,7 +103,7 @@ export default async function ReportsPage() {
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#4e678f]">Largest group</p>
                       <p className="text-sm font-semibold text-[#0f2340]">
-                        {ROLE_LABELS[topRole.role]} · {topRole.count} user{topRole.count === 1 ? "" : "s"}
+                        {SYSTEM_ROLE_LABELS[topRole.role as SystemRole]} · {topRole.count} user{topRole.count === 1 ? "" : "s"}
                       </p>
                     </div>
                   </div>
@@ -113,11 +115,11 @@ export default async function ReportsPage() {
                 <div className="mt-4 h-4 overflow-hidden rounded-full bg-white shadow-[inset_0_1px_2px_rgba(15,35,63,0.08)]">
                   {a.users.byRole.map((role) => (
                     <div
-                      key={role.role}
+                      key={role.role as SystemRole}
                       className="h-full float-left"
                       style={{
                         width: `${a.users.total > 0 ? (role.count / a.users.total) * 100 : 0}%`,
-                        backgroundColor: ROLE_COLORS[role.role] ?? ROLE_FALLBACK_COLOR,
+                        backgroundColor: ROLE_COLORS[role.role as SystemRole] ?? ROLE_FALLBACK_COLOR,
                       }}
                     />
                   ))}
@@ -126,13 +128,13 @@ export default async function ReportsPage() {
                   {a.users.byRole.map((role) => {
                     const percent = a.users.total > 0 ? Math.round((role.count / a.users.total) * 100) : 0;
                     return (
-                      <div key={role.role} className="flex items-center justify-between text-sm">
+                      <div key={role.role as SystemRole} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <span
                             className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: ROLE_COLORS[role.role] ?? ROLE_FALLBACK_COLOR }}
+                            style={{ backgroundColor: ROLE_COLORS[role.role as SystemRole] ?? ROLE_FALLBACK_COLOR }}
                           />
-                          <span className="font-medium text-foreground">{ROLE_LABELS[role.role]}</span>
+                          <span className="font-medium text-foreground">{SYSTEM_ROLE_LABELS[role.role as SystemRole]}</span>
                         </div>
                         <span className="text-muted-foreground">
                           {role.count} · {percent}%
@@ -147,16 +149,16 @@ export default async function ReportsPage() {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {a.users.byRole.map((role) => {
                 const percent = a.users.total > 0 ? Math.round((role.count / a.users.total) * 100) : 0;
-                const color = ROLE_COLORS[role.role] ?? ROLE_FALLBACK_COLOR;
+                const color = ROLE_COLORS[role.role as SystemRole] ?? ROLE_FALLBACK_COLOR;
                 return (
                   <div
-                    key={role.role}
+                    key={role.role as SystemRole}
                     className="rounded-[1.45rem] border border-border bg-card p-5 shadow-[0_12px_28px_rgba(15,35,63,0.06)]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                          {ROLE_LABELS[role.role]}
+                          {SYSTEM_ROLE_LABELS[role.role as SystemRole]}
                         </p>
                         <p className="mt-3 text-3xl font-semibold text-foreground">{role.count}</p>
                       </div>

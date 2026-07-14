@@ -182,7 +182,7 @@ export async function publishMinutes(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const approver = await assertRole("PERMANENT_SECRETARY", "DEPUTY_SECRETARY");
+  const approver = await assertRole("APPROVER", "APPROVER");
 
   const parsed = PublishSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -516,7 +516,7 @@ async function resolveActionItemAssignee(
   const user = await prisma.user.findFirst({
     where: {
       ministryId,
-      role: { not: "SUPER_ADMIN" },
+      systemRole: { not: "SUPER_ADMIN" },
       OR: [
         { name: { equals: trimmed, mode: "insensitive" } },
         { email: { equals: trimmed, mode: "insensitive" } },

@@ -31,7 +31,7 @@ export default async function CalendarPage({
     where: {
       startAt: { gte: start, lt: end },
       ...ministryScope(user),
-      ...(canViewMinistrySchedule(user.role) ? {} : { organizerId: user.id }),
+      ...(canViewMinistrySchedule(user.systemRole) ? {} : { organizerId: user.id }),
     },
     orderBy: { startAt: "asc" },
     select: {
@@ -75,7 +75,7 @@ export default async function CalendarPage({
             View all upcoming events • <span className="text-blue-400">Click any date to see day view</span>
           </p>
         </div>
-        {canManageEvents(user.role) && (
+        {canManageEvents(user.systemRole) && (
           <Link
             href="/administrative/events/new"
             className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"

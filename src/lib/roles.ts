@@ -1,97 +1,88 @@
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 
-// PRD §7 — ministry role hierarchy and permission helpers.
+// PRD §7 — system role hierarchy and permission helpers (P2: refactored to use systemRole).
 
-export const MINISTRY_ROLES = [
-  "MINISTER",
-  "PERMANENT_SECRETARY",
-  "DEPUTY_MINISTER",
-  "DEPUTY_SECRETARY",
-  "ADMIN_STAFF",
-  "ADMIN",
+export const SYSTEM_ROLES = [
   "SUPER_ADMIN",
-  "STAFF_MEMBER",
+  "MINISTRY_ADMIN",
+  "EVENT_MANAGER",
+  "EXECUTIVE_ASSISTANT",
+  "APPROVER",
+  "EXECUTIVE_VIEWER",
+  "STAFF",
 ] as const;
 
-export const ROLE_LABELS: Record<MinistryRole, string> = {
-  MINISTER: "Minister",
-  PERMANENT_SECRETARY: "Permanent Secretary",
-  DEPUTY_MINISTER: "Deputy Minister",
-  DEPUTY_SECRETARY: "Deputy Secretary",
-  ADMIN_STAFF: "Admin Staff",
-  ADMIN: "Admin",
+export const ASSIGNABLE_SYSTEM_ROLES = SYSTEM_ROLES.filter((r) => r !== "SUPER_ADMIN");
+
+export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   SUPER_ADMIN: "Super Admin",
-  STAFF_MEMBER: "Staff",
+  MINISTRY_ADMIN: "Ministry Admin",
+  EVENT_MANAGER: "Event Manager",
+  EXECUTIVE_ASSISTANT: "Executive Assistant",
+  APPROVER: "Approver",
+  EXECUTIVE_VIEWER: "Executive Viewer",
+  STAFF: "Staff",
 };
 
 /**
- * Operational staff: create/manage events, letters, attendance.
- * Includes both Admin Staff (ministry ops) and Admin (tech team).
+ * Operational staff: create/manage events, letters, attendance, draft minutes.
+ * Includes EVENT_MANAGER, EXECUTIVE_ASSISTANT, MINISTRY_ADMIN, and SUPER_ADMIN.
  */
-export function canManageEvents(role: MinistryRole | undefined): boolean {
-  return isSuperAdmin(role) || role === "ADMIN_STAFF" || role === "ADMIN";
-}
-
-/** Roles that can approve/route minutes (PRD §7 PS, DS). */
-export function canApproveMinutes(role: MinistryRole | undefined): boolean {
-  return role === "PERMANENT_SECRETARY" || role === "DEPUTY_SECRETARY";
-}
-
-/** Roles that may view ministry-wide schedule. */
-export function canViewMinistrySchedule(role: MinistryRole | undefined): boolean {
+export function canManageEvents(role: SystemRole | undefined): boolean {
   return (
     isSuperAdmin(role) ||
-    role === "MINISTER" ||
-    role === "PERMANENT_SECRETARY" ||
-    role === "DEPUTY_MINISTER" ||
-    role === "DEPUTY_SECRETARY" ||
-    role === "ADMIN_STAFF" ||
-    role === "ADMIN"
+    role === "MINISTRY_ADMIN" ||
+    role === "EVENT_MANAGER" ||
+    role === "EXECUTIVE_ASSISTANT"
+  );
+}
+
+/** Roles that can approve/publish minutes (P2: collapsed PERMANENT_SECRETARY/DEPUTY_SECRETARY into APPROVER). */
+export function canApproveMinutes(role: SystemRole | undefined): boolean {
+  return role === "APPROVER";
+}
+
+/** Roles that may view ministry-wide schedule (refactored for new role hierarchy). */
+export function canViewMinistrySchedule(role: SystemRole | undefined): boolean {
+  return (
+    isSuperAdmin(role) ||
+    canManageEvents(role) ||
+    role === "APPROVER" ||
+    role === "EXECUTIVE_VIEWER"
   );
 }
 
 /** Every authenticated ministry user can confirm/check in to attendance. */
-export function canCheckIn(role: MinistryRole | undefined): boolean {
+export function canCheckIn(role: SystemRole | undefined): boolean {
   return role !== undefined;
 }
 
 /** Super-admin (platform-wide admin). */
-export function isSuperAdmin(role: MinistryRole | undefined): boolean {
+export function isSuperAdmin(role: SystemRole | undefined): boolean {
   return role === "SUPER_ADMIN";
-}
-
-/** Leadership roles: MINISTER, PERMANENT_SECRETARY, DEPUTY_MINISTER, DEPUTY_SECRETARY. */
-export const LEADERSHIP_ROLES: MinistryRole[] = [
-  "MINISTER",
-  "PERMANENT_SECRETARY",
-  "DEPUTY_MINISTER",
-  "DEPUTY_SECRETARY",
-];
-
-export function isLeadership(role: MinistryRole | undefined): boolean {
-  return role !== undefined && (LEADERSHIP_ROLES as string[]).includes(role);
 }
 
 // Per-event permissions: the organizer, their co-organizers, and ministry ADMINs
 // may manage a given event; only the organizer or a ministry ADMIN may reassign it.
 
 export type EventPerm = { ministryId: string; organizerId: string; coOrganizerIds: string[] };
-export type ActorPerm = { id: string; role: MinistryRole; ministryId: string | null };
+export type ActorPerm = { id: string; systemRole: SystemRole; ministryId: string | null };
 
 /** Can this actor edit/cancel/manage the given event? */
 export function canManageEvent(actor: ActorPerm, e: EventPerm): boolean {
-  if (isSuperAdmin(actor.role)) return true;
+  if (isSuperAdmin(actor.systemRole)) return true;
   if (actor.ministryId !== e.ministryId) return false;
   return (
     e.organizerId === actor.id ||
     e.coOrganizerIds.includes(actor.id) ||
-    actor.role === "ADMIN"
+    actor.systemRole === "MINISTRY_ADMIN"
   );
 }
 
 /** Can this actor add/remove co-organizers (reassign) on the given event? */
 export function canReassignEvent(actor: ActorPerm, e: EventPerm): boolean {
-  if (isSuperAdmin(actor.role)) return true;
+  if (isSuperAdmin(actor.systemRole)) return true;
   if (actor.ministryId !== e.ministryId) return false;
-  return e.organizerId === actor.id || actor.role === "ADMIN";
+  return e.organizerId === actor.id || actor.systemRole === "MINISTRY_ADMIN";
 }
+

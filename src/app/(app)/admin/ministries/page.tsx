@@ -11,7 +11,7 @@ import { EditMinistryButton } from "./EditMinistryButton";
 export default async function AdminMinistriesPage() {
   const user = await requireUser();
 
-  if (!isSuperAdmin(user.role)) {
+  if (!isSuperAdmin(user.systemRole)) {
     return (
       <div className="space-y-6">
         <BackButton href="/administrative" label="Dashboard" />
