@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { assertStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
 import { sendInviteEmail } from "@/lib/email";
@@ -19,6 +19,7 @@ const EventSchema = z
     title: z.string().min(2, "Title is required"),
     description: z.string().optional(),
     type: z.enum(["MEETING", "CONFERENCE", "APPOINTMENT"]),
+    scope: z.enum(["OFFICIAL", "TEAM"]).default("TEAM"),
     startAt: z.coerce.date(),
     endAt: z.coerce.date(),
     venueName: z.string().optional(),
@@ -47,12 +48,13 @@ export async function createEvent(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const user = await assertStaffRole();
+  const user = await requireUser();
 
   const parsed = EventSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description") || undefined,
     type: formData.get("type"),
+    scope: formData.get("scope") || "TEAM",
     startAt: formData.get("startAt"),
     endAt: formData.get("endAt"),
     venueName: formData.get("venueName") || undefined,
@@ -191,6 +193,7 @@ export async function createEvent(
     title: data.title,
     description: data.description,
     type: data.type,
+    scope: data.scope,
     venueName: data.venueName,
     venueLat,
     venueLng,
