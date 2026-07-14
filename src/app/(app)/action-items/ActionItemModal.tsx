@@ -85,9 +85,15 @@ export function ActionItemModal({ item, open, onClose }: Props) {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Owner
+                Assignee
               </p>
               <p className="text-sm text-foreground">{item.ownerName || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                Assigned by
+              </p>
+              <p className="text-sm text-foreground">{item.assignedByName || "—"}</p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">

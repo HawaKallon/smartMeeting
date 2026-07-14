@@ -183,6 +183,7 @@ model User {
   attendeeOf        EventAttendee[]
   attendances       Attendance[]
   actionItems       ActionItem[]    @relation("ActionItemOwner")
+  assignedActionItems ActionItem[]  @relation("ActionItemAssignedBy")
   minutesDrafted    Minutes[]       @relation("MinutesDrafted")
   minutesSubmitted  Minutes[]       @relation("MinutesSubmitted")
   minutesApproved   Minutes[]       @relation("MinutesApprover")
@@ -373,6 +374,8 @@ model ActionItem {
   ownerId   String?
   owner     User?            @relation("ActionItemOwner", fields: [ownerId], references: [id])
   ownerName String?
+  assignedById String?
+  assignedBy   User?         @relation("ActionItemAssignedBy", fields: [assignedById], references: [id])
   dueDate   DateTime?
   reminderSentAt DateTime?
   point     ActionItemPoint  @default(ACTION_POINT)
@@ -382,6 +385,7 @@ model ActionItem {
 
   @@index([minutesId])
   @@index([ownerId])
+  @@index([assignedById])
   @@index([reminderSentAt])
 }
 

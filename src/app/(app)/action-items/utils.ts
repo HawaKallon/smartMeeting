@@ -13,6 +13,7 @@ export type ActionItemListItem = {
   eventId: string;
   ownerId: string | null;
   ownerName: string | null;
+  assignedByName: string | null;
   createdAt: string;
   updatedAt: string;
 };
