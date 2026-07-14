@@ -1,7 +1,7 @@
 import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
-import { isSuperAdmin } from "@/lib/roles";
+import { canManageUsers } from "@/lib/permissions";
 import { Inbox, Users, Calendar, Home } from "lucide-react";
 import Link from "next/link";
 
@@ -80,7 +80,7 @@ export default async function SearchPage({
       },
       take: 20,
     }),
-    user.role === "ADMIN" || isSuperAdmin(user.role)
+    canManageUsers(user)
       ? prisma.user.findMany({
           where: {
             ...scope,
