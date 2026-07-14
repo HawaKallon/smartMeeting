@@ -17,10 +17,11 @@ interface Props {
   eventId: string;
   body: string;
   summary: string | null;
-  published: boolean;
+  status: "DRAFT" | "SUBMITTED" | "PUBLISHED";
 }
 
-export function MinutesEditor({ eventId, body, summary, published }: Props) {
+export function MinutesEditor({ eventId, body, summary, status }: Props) {
+  const locked = status !== "DRAFT";
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     saveMinutesDraft,
     undefined,
@@ -40,7 +41,7 @@ export function MinutesEditor({ eventId, body, summary, published }: Props) {
     if (genState && "ok" in genState) setSummaryText(genState.summary);
   }
 
-  if (published) {
+  if (locked) {
     return (
       <div className="space-y-6">
         <div>
@@ -61,9 +62,11 @@ export function MinutesEditor({ eventId, body, summary, published }: Props) {
             </div>
           </div>
         ) : null}
-        <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 p-3">
-          <div className="h-2 w-2 rounded-full bg-yellow-500" />
-          <p className="text-xs text-yellow-400">Published — locked for editing.</p>
+        <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 p-3">
+          <div className="h-2 w-2 rounded-full bg-blue-500" />
+          <p className="text-xs text-blue-400">
+            {status === "PUBLISHED" ? "Published — locked for editing." : "Submitted — pending approval."}
+          </p>
         </div>
       </div>
     );

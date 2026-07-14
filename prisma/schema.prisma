@@ -77,6 +77,7 @@ enum RecordingStatus {
 
 enum MinutesStatus {
   DRAFT
+  SUBMITTED
   PUBLISHED
 }
 
@@ -178,6 +179,8 @@ model User {
   attendeeOf        EventAttendee[]
   attendances       Attendance[]
   actionItems       ActionItem[]    @relation("ActionItemOwner")
+  minutesDrafted    Minutes[]       @relation("MinutesDrafted")
+  minutesSubmitted  Minutes[]       @relation("MinutesSubmitted")
   minutesApproved   Minutes[]       @relation("MinutesApprover")
   auditLogs         AuditLog[]
   notifications     Notification[]
@@ -328,17 +331,27 @@ model Transcript {
 }
 
 model Minutes {
-  id           String        @id @default(cuid())
-  eventId      String        @unique
-  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  body         String        @default("")
-  summary      String?
-  status       MinutesStatus @default(DRAFT)
-  approvedById String?
-  approver     User?         @relation("MinutesApprover", fields: [approvedById], references: [id])
-  publishedAt  DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  eventId       String        @unique
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  body          String        @default("")
+  summary       String?
+  status        MinutesStatus @default(DRAFT)
+
+  draftedById   String?
+  drafted       User?         @relation("MinutesDrafted", fields: [draftedById], references: [id])
+  draftedAt     DateTime?
+
+  submittedById String?
+  submitted     User?         @relation("MinutesSubmitted", fields: [submittedById], references: [id])
+  submittedAt   DateTime?
+
+  approvedById  String?
+  approver      User?         @relation("MinutesApprover", fields: [approvedById], references: [id])
+  publishedAt   DateTime?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   actionItems ActionItem[]
 }
