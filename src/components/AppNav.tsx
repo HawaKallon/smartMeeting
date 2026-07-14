@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { signOut } from "@/auth";
-import { ROLE_LABELS, canManageEvents } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import { SYSTEM_ROLE_LABELS, canManageEvents } from "@/lib/roles";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 export function AppNav({
   user,
 }: {
-  user: { name?: string | null; email: string; role: MinistryRole };
+  user: { name?: string | null; email: string; systemRole: SystemRole };
 }) {
-  const isAdmin = canManageEvents(user.role);
+  const isAdmin = canManageEvents(user.systemRole);
 
   return (
     <header className="border-b bg-white">
@@ -43,7 +43,7 @@ export function AppNav({
             <span className="block font-medium text-gray-900">
               {user.name ?? user.email}
             </span>
-            <span className="block text-gray-500">{ROLE_LABELS[user.role]}</span>
+            <span className="block text-gray-500">{SYSTEM_ROLE_LABELS[user.systemRole]}</span>
           </span>
           <form
             action={async () => {

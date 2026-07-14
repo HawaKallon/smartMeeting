@@ -9,7 +9,6 @@ import { audit } from "@/lib/audit";
 import { savePublicImage } from "@/lib/cloudinary";
 import { sendPublicEventInviteEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
-import { LEADERSHIP_ROLES } from "@/lib/roles";
 import { PublicEventCategory } from "@/generated/prisma/enums";
 
 const PublicEventSchema = z
@@ -240,7 +239,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
           where: {
             ministryId: { in: invitedMinistryIds },
             active: true,
-            role: { in: LEADERSHIP_ROLES },
+            systemRole: { in: ["MINISTRY_ADMIN", "APPROVER", "EXECUTIVE_VIEWER"] },
           },
           select: { id: true, email: true, name: true, ministryId: true, emailNotifications: true },
         });

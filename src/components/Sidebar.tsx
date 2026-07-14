@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import { signOut } from "next-auth/react";
-import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
+import { SYSTEM_ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
 import { canManageUsers } from "@/lib/permissions";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 import { NavLink, SidebarNavProvider } from "./SidebarNav";
 import { useSidebarState } from "./SidebarState";
 import {
@@ -29,10 +29,10 @@ import {
 export function Sidebar({
   user,
 }: {
-  user: { name?: string | null; email: string; role: MinistryRole };
+  user: { name?: string | null; email: string; systemRole: SystemRole };
 }) {
-  const isStaff = canManageEvents(user.role);
-  const isSuperAdminUser = isSuperAdmin(user.role);
+  const isStaff = canManageEvents(user.systemRole);
+  const isSuperAdminUser = isSuperAdmin(user.systemRole);
   const isAdmin = canManageUsers(user) || isSuperAdminUser;
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
   const { collapsed, toggleCollapsed } = useSidebarState();
@@ -305,7 +305,7 @@ export function Sidebar({
                 {user.name ?? user.email}
               </p>
               <p className="text-xs text-sidebar-foreground/55">
-                {ROLE_LABELS[user.role]}
+                {SYSTEM_ROLE_LABELS[user.systemRole]}
               </p>
             </div>
           </div>

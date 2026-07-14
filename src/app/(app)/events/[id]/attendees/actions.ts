@@ -371,12 +371,12 @@ export async function selfRsvp(
 ): Promise<ActionState> {
   // Any authenticated user can respond to their own invite.
   const session = await assertRole(
-    "MINISTER",
-    "PERMANENT_SECRETARY",
-    "DEPUTY_MINISTER",
-    "DEPUTY_SECRETARY",
-    "ADMIN_STAFF",
-    "ADMIN",
+    "MINISTRY_ADMIN",
+    "APPROVER",
+    "EXECUTIVE_VIEWER",
+    "APPROVER",
+    "EVENT_MANAGER",
+    "MINISTRY_ADMIN",
     "SUPER_ADMIN",
   );
 

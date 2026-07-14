@@ -1,0 +1,6 @@
+-- CreateEnum
+CREATE TYPE "SystemRole" AS ENUM ('SUPER_ADMIN', 'MINISTRY_ADMIN', 'EVENT_MANAGER', 'EXECUTIVE_ASSISTANT', 'APPROVER', 'EXECUTIVE_VIEWER', 'STAFF');
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "jobTitle" TEXT,
+ADD COLUMN     "systemRole" "SystemRole";
