@@ -1,5 +1,5 @@
 import { ministryScope, requireAdminRole } from "@/lib/guard";
-import { isSuperAdmin } from "@/lib/roles";
+import { isSuperAdmin, SYSTEM_ROLES } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { SYSTEM_ROLE_LABELS } from "@/lib/roles";

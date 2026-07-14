@@ -1,9 +1,9 @@
 "use client";
 
-import { X, ListTodo, ArrowRight } from "lucide-react";
+import { X, ListTodo, ArrowRight, Calendar, User, CheckCircle2, TargetIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
-import { POINT_COLORS, POINT_LABELS, STATUS_LABELS, formatTimeline, type ActionItemListItem } from "./utils";
+import { POINT_COLORS, POINT_LABELS, STATUS_LABELS, STATUS_ICON_COMPONENTS, formatTimeline, type ActionItemListItem } from "./utils";
 
 interface Props {
   item: ActionItemListItem | null;
@@ -41,10 +41,9 @@ export function ActionItemModal({ item, open, onClose }: Props) {
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-card shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header with Close Button */}
         <div className="sticky top-0 border-b border-border bg-card px-6 py-4 flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1">
-            <ListTodo className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+          <div>
             <h2 className="text-lg font-semibold text-foreground">{item.title}</h2>
           </div>
           <button
@@ -57,62 +56,111 @@ export function ActionItemModal({ item, open, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="space-y-6 px-6 py-5">
-          {/* Point badge */}
-          <div className="flex items-center gap-2">
-            <span className={`inline-block px-3 py-1.5 rounded-md text-sm font-medium ${POINT_COLORS[item.point]}`}>
-              {POINT_LABELS[item.point]}
-            </span>
+        <div className="px-6 py-5 space-y-5">
+          {/* Title Card with Point Badge */}
+          <div className="rounded-lg border border-border bg-secondary/20 p-4 border-l-4 border-l-primary">
+            <div className="mb-3">
+              <span className={`inline-block px-3 py-1.5 rounded-md text-sm font-medium ${POINT_COLORS[item.point]}`}>
+                {POINT_LABELS[item.point]}
+              </span>
+            </div>
+            <h3 className="text-base font-semibold text-foreground mb-2">{item.title}</h3>
           </div>
 
-          {/* Full description */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-              Description
-            </p>
-            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-              {item.title}
-            </p>
-          </div>
+          {/* Description */}
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            {item.title}
+          </p>
 
-          {/* Details grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Event
+          {/* Cards Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Assignee Card */}
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 hover:bg-secondary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center text-blue-400">
+                  <User size={14} />
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                Assignee
               </p>
-              <p className="text-sm text-foreground">{item.eventTitle}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Owner
+              <p className="text-sm font-medium text-foreground truncate" title={item.ownerName || ""}>
+                {item.ownerName || "—"}
               </p>
-              <p className="text-sm text-foreground">{item.ownerName || "—"}</p>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+
+            {/* Assigned by Card */}
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 hover:bg-secondary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-purple-500/20 flex items-center justify-center text-purple-400">
+                  <TargetIcon size={14} />
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                Assigned by
+              </p>
+              <p className="text-sm font-medium text-foreground truncate" title={item.assignedByName || ""}>
+                {item.assignedByName || "—"}
+              </p>
+            </div>
+
+            {/* Timeline Card */}
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 hover:bg-secondary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-orange-500/20 flex items-center justify-center text-orange-400">
+                  <Calendar size={14} />
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                 Timeline
               </p>
-              <p className="text-sm text-foreground">
+              <p className="text-sm font-medium text-foreground">
                 {formatTimeline(item.dueDate, { year: true })}
               </p>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+
+            {/* Status Card */}
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 hover:bg-secondary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-green-500/20 flex items-center justify-center text-green-400">
+                  {(() => {
+                    const IconComponent = STATUS_ICON_COMPONENTS[item.status];
+                    return <IconComponent size={14} />;
+                  })()}
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                 Status
               </p>
-              <p className="text-sm text-foreground">{STATUS_LABELS[item.status]}</p>
+              <p className="text-sm font-medium text-foreground">
+                {STATUS_LABELS[item.status]}
+              </p>
+            </div>
+
+            {/* Event Card - Full width at bottom */}
+            <div className="col-span-2 rounded-lg border border-border bg-secondary/30 p-3 hover:bg-secondary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                  <ListTodo size={14} />
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                Event
+              </p>
+              <p className="text-sm font-medium text-foreground">
+                {item.eventTitle}
+              </p>
             </div>
           </div>
 
-          {/* Timestamps */}
-          <div className="border-t border-border pt-4">
+          {/* Metadata */}
+          <div className="pt-3 border-t border-border">
             <p className="text-xs text-muted-foreground">
               Created {formatDateTime(item.createdAt)} · Updated {formatDateTime(item.updatedAt)}
             </p>
           </div>
 
-          {/* Meeting link */}
+          {/* Meeting Link */}
           <Link
             href={`/administrative/events/${item.eventId}/minutes`}
             onClick={onClose}
