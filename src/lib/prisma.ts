@@ -8,7 +8,18 @@ const globalForPrisma = globalThis as unknown as {
 
 function createClient() {
   const adapter = new PrismaPg({ connectionString: normalizedDatabaseUrl() });
-  return new PrismaClient({ adapter });
+  const client = new PrismaClient({
+    adapter,
+    log: [{ emit: "event", level: "query" }],
+  });
+
+  client.$on("query", (e) => {
+    if (e.duration > 500) {
+      console.log(`[SLOW QUERY] ${e.duration}ms: ${e.query}`);
+    }
+  });
+
+  return client;
 }
 
 export const prisma = globalForPrisma.prisma ?? createClient();

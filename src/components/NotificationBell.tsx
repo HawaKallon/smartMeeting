@@ -1,16 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import type { Notification } from "@/generated/prisma/client";
+import { getRecentNotifications } from "@/app/(app)/notifications/actions";
 
-interface NotificationBellProps {
-  initialNotifications: Notification[];
-}
-
-export function NotificationBell({ initialNotifications }: NotificationBellProps) {
+export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const notifs = await getRecentNotifications();
+      setNotifications(notifs);
+    };
+    fetchNotifications();
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
