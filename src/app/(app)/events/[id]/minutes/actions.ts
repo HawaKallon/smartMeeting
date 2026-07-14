@@ -196,10 +196,20 @@ export async function publishMinutes(
   if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { title: true, startAt: true, ministryId: true, attendees: {
-      where: { status: { in: ["INVITED", "CONFIRMED"] } },
-      include: { user: { select: { name: true, email: true } } },
-    } },
+    select: {
+      title: true,
+      startAt: true,
+      ministryId: true,
+      attendees: {
+        where: { status: { in: ["INVITED", "CONFIRMED"] } },
+        select: {
+          rsvpTokenHash: true,
+          externalName: true,
+          externalEmail: true,
+          user: { select: { name: true, email: true } },
+        },
+      },
+    },
   });
   if (!event) return { error: "Event not found." };
   assertSameMinistry(approver, event.ministryId);
@@ -224,13 +234,13 @@ export async function publishMinutes(
   const eventDate = event.startAt.toLocaleDateString("en-GB", {
     weekday: "short", year: "numeric", month: "short", day: "numeric",
   });
-  const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
 
   await Promise.allSettled(
-    event.attendees
-      .filter((a) => a.user?.email)
-      .map((a) =>
-        Promise.allSettled([
+    event.attendees.map((a) => {
+      // Internal attendees: send full link and SMS
+      if (a.user?.email) {
+        const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
+        return Promise.allSettled([
           sendMinutesEmail({
             to: a.user!.email,
             toName: a.user!.name ?? a.user!.email,
@@ -244,8 +254,27 @@ export async function publishMinutes(
             toName: a.user!.name ?? a.user!.email,
             eventTitle: event.title,
           }),
-        ])
-      ),
+        ]);
+      }
+
+      // External attendees: send guest portal link
+      if (a.externalEmail && a.rsvpTokenHash) {
+        const guestPortalUrl = absoluteAppUrl(`/guest/${a.rsvpTokenHash}/minutes`);
+        return Promise.allSettled([
+          sendMinutesEmail({
+            to: a.externalEmail,
+            toName: a.externalName ?? a.externalEmail,
+            eventTitle: event.title,
+            eventDate,
+            summary: minutes.summary,
+            minutesUrl: guestPortalUrl,
+          }),
+        ]);
+      }
+
+      // Fallback: do nothing if neither internal nor external email available
+      return Promise.resolve();
+    }),
   );
 
   revalidatePath(`/administrative/events/${eventId}/minutes`);
@@ -386,6 +415,7 @@ export async function addActionItem(
       title,
       dueDate: item.dueDate,
       eventId,
+      attendeeId: assignee.attendeeId,
     });
   }
 
@@ -501,6 +531,7 @@ export async function updateActionItem(
       title,
       dueDate: timeline.date,
       eventId,
+      attendeeId: assignee.attendeeId,
     });
   }
 
@@ -664,12 +695,32 @@ async function notifyApproversOfSubmission({
 }
 
 async function notifyExternalActionItemOwner({
-  to, toName, title, dueDate, eventId,
+  to, toName, title, dueDate, eventId, attendeeId,
 }: {
-  to: string; toName: string; title: string; dueDate: Date | null; eventId: string;
+  to: string;
+  toName: string;
+  title: string;
+  dueDate: Date | null;
+  eventId: string;
+  attendeeId?: string;
 }) {
-  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { title: true } });
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { title: true },
+  });
   if (!event) return;
+
+  // Get guest portal URL if attendee ID is provided
+  let minutesUrl: string | null = null;
+  if (attendeeId) {
+    const attendee = await prisma.eventAttendee.findUnique({
+      where: { id: attendeeId },
+      select: { rsvpTokenHash: true },
+    });
+    if (attendee?.rsvpTokenHash) {
+      minutesUrl = absoluteAppUrl(`/guest/${attendee.rsvpTokenHash}/action-items`);
+    }
+  }
 
   await sendActionItemEmail({
     to,
@@ -677,7 +728,7 @@ async function notifyExternalActionItemOwner({
     title,
     eventTitle: event.title,
     dueDate,
-    minutesUrl: null,
+    minutesUrl,
   });
 }
 
