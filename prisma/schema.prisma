@@ -234,6 +234,9 @@ model Event {
   @@index([seriesId])
   @@index([ministryId])
   @@index([roomId])
+  @@index([ministryId, startAt])
+  @@index([ministryId, endAt])
+  @@index([organizerId, startAt])
 }
 
 // PRD §6 — a recurring meeting series. Each occurrence is a full Event row
@@ -272,6 +275,7 @@ model EventAttendee {
   @@unique([eventId, userId])
   @@index([eventId])
   @@index([rsvpTokenHash])
+  @@index([userId, status])
 }
 
 model Attendance {
@@ -399,6 +403,7 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@index([ministryId])
+  @@index([ministryId, createdAt])
 }
 
 /// In-app notifications for events (invites, minutes, action items).

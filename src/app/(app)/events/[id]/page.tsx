@@ -28,7 +28,6 @@ export default async function EventDetailPage({
       organizer: { select: { name: true, email: true } },
       coOrganizers: { select: { id: true, name: true, email: true } },
       room: { select: { id: true, name: true, location: true, capacity: true } },
-      attendances: { orderBy: { checkInAt: "desc" } },
       series: true,
       _count: { select: { attendees: true, attendances: true } },
     },
@@ -51,22 +50,23 @@ export default async function EventDetailPage({
 
   // Eligible co-organizer candidates: same-ministry users who aren't already
   // the organizer or a co-organizer (only needed when the viewer can reassign).
-  const candidates = canReassign
-    ? await prisma.user.findMany({
-        where: {
-          ministryId: event.ministryId,
-          systemRole: { not: "SUPER_ADMIN" },
-          id: { notIn: [event.organizerId, ...coOrganizerIds] },
-        },
-        select: { id: true, name: true, email: true },
-        orderBy: [{ name: "asc" }, { email: "asc" }],
-      })
-    : [];
-
-  const myInvite = await prisma.eventAttendee.findUnique({
-    where: { eventId_userId: { eventId: id, userId: user.id } },
-    select: { id: true, status: true },
-  });
+  const [candidates, myInvite] = await Promise.all([
+    canReassign
+      ? prisma.user.findMany({
+          where: {
+            ministryId: event.ministryId,
+            systemRole: { not: "SUPER_ADMIN" },
+            id: { notIn: [event.organizerId, ...coOrganizerIds] },
+          },
+          select: { id: true, name: true, email: true },
+          orderBy: [{ name: "asc" }, { email: "asc" }],
+        })
+      : Promise.resolve([]),
+    prisma.eventAttendee.findUnique({
+      where: { eventId_userId: { eventId: id, userId: user.id } },
+      select: { id: true, status: true },
+    }),
+  ]);
 
   return (
     <div className="flex flex-col h-full gap-6">
