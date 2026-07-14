@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { ROLE_LABELS, canManageEvents, isSuperAdmin } from "@/lib/roles";
+import { canManageUsers } from "@/lib/permissions";
 import type { MinistryRole } from "@/generated/prisma/enums";
 import { NavLink, SidebarNavProvider } from "./SidebarNav";
 import { useSidebarState } from "./SidebarState";
@@ -32,7 +33,7 @@ export function Sidebar({
 }) {
   const isStaff = canManageEvents(user.role);
   const isSuperAdminUser = isSuperAdmin(user.role);
-  const isAdmin = user.role === "ADMIN" || isSuperAdminUser;
+  const isAdmin = canManageUsers(user) || isSuperAdminUser;
   const initial = (user.name ?? user.email).charAt(0).toUpperCase();
   const { collapsed, toggleCollapsed } = useSidebarState();
 
@@ -66,7 +67,7 @@ export function Sidebar({
           ]
         : []),
       ...(isAdmin ? ["/administrative/admin/public-calendar"] : []),
-      ...(user.role === "ADMIN"
+      ...(canManageUsers(user)
         ? [
             "/administrative/admin/users",
             "/administrative/admin/rooms",
@@ -245,7 +246,7 @@ export function Sidebar({
                 collapsed={collapsed}
               />
             )}
-            {user.role === "ADMIN" && (
+            {canManageUsers(user) && (
               <>
                 <NavLink
                   href="/administrative/admin/users"
