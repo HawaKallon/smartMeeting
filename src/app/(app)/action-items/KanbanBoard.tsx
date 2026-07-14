@@ -244,7 +244,7 @@ function CardView({
         </div>
       )}
 
-      {/* Owner avatar + name */}
+      {/* Assignee avatar + name */}
       <div className="flex items-center gap-2 pt-1">
         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary flex-shrink-0">
           {getOwnerInitials(item.ownerName)}
