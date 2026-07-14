@@ -1,4 +1,4 @@
-import { requireStaffRole } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { EventForm } from "./EventForm";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +9,7 @@ export default async function NewEventPage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  const user = await requireStaffRole();
+  const user = await requireUser();
   const superAdmin = isSuperAdmin(user.systemRole);
 
   const { date } = await searchParams;

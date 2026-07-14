@@ -10,6 +10,7 @@ import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
 import { canManageExistingEvent } from "@/lib/eventAccess";
+import { canPublishMinutes } from "@/lib/permissions";
 import { notify } from "@/lib/notify";
 import {
   notifyMeetingInviteesActionItemCreated,
@@ -182,7 +183,7 @@ export async function publishMinutes(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const approver = await assertRole("APPROVER");
+  const user = await requireUser();
 
   const parsed = PublishSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -197,9 +198,13 @@ export async function publishMinutes(
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: {
+      id: true,
       title: true,
       startAt: true,
       ministryId: true,
+      scope: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       attendees: {
         where: { status: { in: ["INVITED", "CONFIRMED"] } },
         select: {
@@ -212,17 +217,31 @@ export async function publishMinutes(
     },
   });
   if (!event) return { error: "Event not found." };
-  assertSameMinistry(approver, event.ministryId);
-  if (minutes.status === "PUBLISHED") return { error: "Already published." };
-  if (minutes.status !== "SUBMITTED") return { error: "Minutes must be submitted for review before publishing." };
+
+  // P4: Scope-based publish authorization
+  if (event.scope === "TEAM") {
+    // TEAM scope: organizer/co-organizer can publish directly (no role gate, no SUBMITTED requirement)
+    if (!canPublishMinutes(user, { ...event, id: eventId, coOrganizers: event.coOrganizers } as any)) {
+      return { error: "You don't have permission to publish these notes." };
+    }
+    if (minutes.status === "PUBLISHED") return { error: "Already published." };
+  } else {
+    // OFFICIAL scope: requires APPROVER role + ministry + SUBMITTED status
+    assertSameMinistry(user, event.ministryId);
+    if (!canPublishMinutes(user, { ...event, id: eventId, coOrganizers: event.coOrganizers } as any)) {
+      return { error: "Only an approver in this ministry can publish." };
+    }
+    if (minutes.status === "PUBLISHED") return { error: "Already published." };
+    if (minutes.status !== "SUBMITTED") return { error: "Minutes must be submitted for review before publishing." };
+  }
 
   await prisma.minutes.update({
     where: { id: minutesId },
-    data: { status: "PUBLISHED", publishedAt: new Date(), approvedById: approver.id },
+    data: { status: "PUBLISHED", publishedAt: new Date(), approvedById: user.id },
   });
 
   await audit({
-    actorId: approver.id,
+    actorId: user.id,
     action: "PUBLISH_MINUTES",
     entityType: "Minutes",
     entityId: minutesId,
