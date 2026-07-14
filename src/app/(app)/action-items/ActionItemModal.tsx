@@ -41,11 +41,23 @@ export function ActionItemModal({ item, open, onClose }: Props) {
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-card shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header with Title */}
         <div className="sticky top-0 border-b border-border bg-card px-6 py-4 flex items-start justify-between">
           <div className="flex items-start gap-3 flex-1">
-            <ListTodo className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-            <h2 className="text-lg font-semibold text-foreground">{item.title}</h2>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <ListTodo className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-foreground">{item.title}</h2>
+              <div className="flex items-center gap-2 mt-2">
+                <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-medium ${POINT_COLORS[item.point]}`}>
+                  {POINT_LABELS[item.point]}
+                </span>
+                <span className="inline-block px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400">
+                  {STATUS_LABELS[item.status]}
+                </span>
+              </div>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -58,71 +70,73 @@ export function ActionItemModal({ item, open, onClose }: Props) {
 
         {/* Body */}
         <div className="space-y-6 px-6 py-5">
-          {/* Point badge */}
-          <div className="flex items-center gap-2">
-            <span className={`inline-block px-3 py-1.5 rounded-md text-sm font-medium ${POINT_COLORS[item.point]}`}>
-              {POINT_LABELS[item.point]}
-            </span>
-          </div>
-
-          {/* Full description */}
+          {/* Overview Section */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-              Description
-            </p>
-            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 pb-2 border-b border-border">
+              Overview
+            </h3>
+            <p className="text-sm text-foreground/90 leading-relaxed">
               {item.title}
             </p>
           </div>
 
-          {/* Details grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Event
-              </p>
-              <p className="text-sm text-foreground">{item.eventTitle}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Assignee
-              </p>
-              <p className="text-sm text-foreground">{item.ownerName || "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Assigned by
-              </p>
-              <p className="text-sm text-foreground">{item.assignedByName || "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Timeline
-              </p>
-              <p className="text-sm text-foreground">
-                {formatTimeline(item.dueDate, { year: true })}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Status
-              </p>
-              <p className="text-sm text-foreground">{STATUS_LABELS[item.status]}</p>
+          {/* Details Section */}
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 pb-2 border-b border-border">
+              Details
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Assignee */}
+              <div className="bg-secondary/30 rounded-lg border-l-3 border-blue-400 p-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  Assignee
+                </p>
+                <p className="text-sm font-medium text-foreground">{item.ownerName || "—"}</p>
+              </div>
+
+              {/* Assigned by */}
+              <div className="bg-secondary/30 rounded-lg border-l-3 border-purple-400 p-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  Assigned by
+                </p>
+                <p className="text-sm font-medium text-foreground">{item.assignedByName || "—"}</p>
+              </div>
+
+              {/* Timeline */}
+              <div className="bg-secondary/30 rounded-lg border-l-3 border-orange-400 p-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  Timeline
+                </p>
+                <p className="text-sm font-medium text-foreground">
+                  {formatTimeline(item.dueDate, { year: true })}
+                </p>
+              </div>
+
+              {/* Event */}
+              <div className="bg-secondary/30 rounded-lg border-l-3 border-green-400 p-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  Event
+                </p>
+                <p className="text-sm font-medium text-foreground truncate" title={item.eventTitle}>{item.eventTitle}</p>
+              </div>
             </div>
           </div>
 
-          {/* Timestamps */}
-          <div className="border-t border-border pt-4">
+          {/* Metadata Section */}
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 pb-2 border-b border-border">
+              Metadata
+            </h3>
             <p className="text-xs text-muted-foreground">
               Created {formatDateTime(item.createdAt)} · Updated {formatDateTime(item.updatedAt)}
             </p>
           </div>
 
-          {/* Meeting link */}
+          {/* Meeting Link */}
           <Link
             href={`/administrative/events/${item.eventId}/minutes`}
             onClick={onClose}
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors mt-2"
           >
             View meeting minutes
             <ArrowRight size={16} />
