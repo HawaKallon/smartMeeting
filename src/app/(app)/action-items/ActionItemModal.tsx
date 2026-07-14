@@ -57,27 +57,20 @@ export function ActionItemModal({ item, open, onClose }: Props) {
 
         {/* Body */}
         <div className="px-6 py-5 space-y-5">
-          {/* Event Card - Top */}
-          <div className="rounded-lg border border-border bg-secondary/30 p-3 hover:bg-secondary/40 transition-colors">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-6 h-6 rounded-md bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                <ListTodo size={14} />
-              </div>
+          {/* Title Card with Point Badge */}
+          <div className="rounded-lg border border-border bg-secondary/20 p-4 border-l-4 border-l-primary">
+            <div className="mb-3">
+              <span className={`inline-block px-3 py-1.5 rounded-md text-sm font-medium ${POINT_COLORS[item.point]}`}>
+                {POINT_LABELS[item.point]}
+              </span>
             </div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-              Meeting
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              {item.eventTitle}
-            </p>
+            <h3 className="text-base font-semibold text-foreground mb-2">{item.title}</h3>
           </div>
 
-          {/* Action Item Description Card */}
-          <div className="rounded-lg border border-border bg-secondary/20 p-4 border-l-4 border-l-primary">
-            <p className="text-sm text-foreground/90 leading-relaxed">
-              {item.title}
-            </p>
-          </div>
+          {/* Description */}
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            {item.title}
+          </p>
 
           {/* Cards Grid */}
           <div className="grid grid-cols-2 gap-3">
@@ -144,14 +137,19 @@ export function ActionItemModal({ item, open, onClose }: Props) {
               </p>
             </div>
 
-            {/* Point Type Badge - Full width at bottom */}
+            {/* Event Card - Full width at bottom */}
             <div className="col-span-2 rounded-lg border border-border bg-secondary/30 p-3 hover:bg-secondary/40 transition-colors">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Type
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                  <ListTodo size={14} />
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                Event
               </p>
-              <span className={`inline-block px-3 py-1.5 rounded-md text-sm font-medium ${POINT_COLORS[item.point]}`}>
-                {POINT_LABELS[item.point]}
-              </span>
+              <p className="text-sm font-medium text-foreground">
+                {item.eventTitle}
+              </p>
             </div>
           </div>
 
