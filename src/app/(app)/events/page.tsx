@@ -107,7 +107,7 @@ export default async function AllEventsPage() {
         <EventSection title="Past Events" events={past} />
       )}
 
-      {events.length === 0 && (
+      {upcoming.length === 0 && present.length === 0 && past.length === 0 && (
         <div className="rounded-[1.75rem] border border-border bg-card px-6 py-12 text-center shadow-[0_16px_40px_rgba(15,35,63,0.07)]">
           <Calendar className="mx-auto h-8 w-8 text-primary/25" />
           <p className="mt-3 text-sm text-muted-foreground">No events found</p>
