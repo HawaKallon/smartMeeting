@@ -93,7 +93,6 @@ export default async function SearchPage({
             id: true,
             name: true,
             email: true,
-            role: true,
           },
           take: 20,
         })

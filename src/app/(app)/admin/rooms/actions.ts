@@ -31,7 +31,7 @@ export async function createRoom(
     const longitude = formData.get("longitude") as string;
 
     let ministryId: string;
-    if (isSuperAdmin(user.role)) {
+    if (isSuperAdmin(user.systemRole)) {
       ministryId = formData.get("ministryId") as string;
       if (!ministryId) {
         return { error: "Ministry is required" };

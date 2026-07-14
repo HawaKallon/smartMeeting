@@ -15,7 +15,7 @@ export default async function AdminRoomsPage({
 }) {
   const user = await requireAdminRole();
 
-  const superAdmin = isSuperAdmin(user.role);
+  const superAdmin = isSuperAdmin(user.systemRole);
   const { ministryId } = await searchParams;
 
   // Load ministries for super-admin's filter and form

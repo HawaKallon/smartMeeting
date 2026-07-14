@@ -59,7 +59,7 @@ export default async function EventDetailPage({
     ? await prisma.user.findMany({
         where: {
           ministryId: event.ministryId,
-          role: { not: "SUPER_ADMIN" },
+          systemRole: { not: "SUPER_ADMIN" },
           id: { notIn: [event.organizerId, ...coOrganizerIds] },
         },
         select: { id: true, name: true, email: true },

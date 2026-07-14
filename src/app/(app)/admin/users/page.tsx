@@ -2,12 +2,13 @@ import { ministryScope, requireAdminRole } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
-import { ROLE_LABELS } from "@/lib/roles";
+import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
 import { Shield, Plus, Check, X } from "lucide-react";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserFilters } from "./UserFilters";
 import { UserRowActions } from "./UserRowActions";
 import type { Prisma } from "@/generated/prisma/client";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 export default async function AdminUsersPage({
   searchParams,
@@ -16,7 +17,7 @@ export default async function AdminUsersPage({
 }) {
   const user = await requireAdminRole();
 
-  const superAdmin = isSuperAdmin(user.role);
+  const superAdmin = isSuperAdmin(user.systemRole);
   const { q, role, ministryId } = await searchParams;
 
   // Super-admins can target any ministry; surface the list for the create form + filter.
@@ -30,7 +31,7 @@ export default async function AdminUsersPage({
   // Super-admins are platform-wide and never belong to a ministry's user list.
   const where: Prisma.UserWhereInput = {
     ...ministryScope(user),
-    role: { not: "SUPER_ADMIN" },
+    systemRole: { not: "SUPER_ADMIN" },
   };
   if (q) {
     where.OR = [
@@ -38,17 +39,17 @@ export default async function AdminUsersPage({
       { email: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (role) where.role = role as Prisma.UserWhereInput["role"];
+  if (role) where.systemRole = role as Prisma.UserWhereInput["systemRole"];
   if (superAdmin && ministryId) where.ministryId = ministryId;
 
   const users = await prisma.user.findMany({
     where,
     orderBy: [{ createdAt: "desc" }],
-    select: {
-      id: true,
+    select: { id: true,
       name: true,
       email: true,
-      role: true,
+      systemRole: true,
+      jobTitle: true,
       active: true,
       createdAt: true,
       ministryId: true,
@@ -112,7 +113,7 @@ export default async function AdminUsersPage({
                   )}
                   <td className="px-6 py-3">
                     <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-600">
-                      {ROLE_LABELS[u.role]}
+                      {SYSTEM_ROLE_LABELS[u.systemRole as SystemRole] || "Unknown"}
                     </span>
                   </td>
                   <td className="px-6 py-3">
@@ -131,7 +132,7 @@ export default async function AdminUsersPage({
                     <UserRowActions
                       userId={u.id}
                       userName={u.name || u.email}
-                      role={u.role}
+                      role={u.systemRole as SystemRole}
                       active={u.active}
                     />
                   </td>
