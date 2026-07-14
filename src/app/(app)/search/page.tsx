@@ -13,13 +13,13 @@ export default async function SearchPage({
   const user = await requireUser();
   const { q } = await searchParams;
 
-  if (!q || q.trim().length === 0) {
+  if (!q || q.trim().length < 2) {
     return (
       <div className="space-y-6">
         <BackButton href="/administrative" label="Dashboard" />
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <Inbox className="mx-auto h-8 w-8 text-primary/25" />
-          <p className="mt-3 text-sm text-muted-foreground">Enter a search query to get started</p>
+          <p className="mt-3 text-sm text-muted-foreground">Enter at least 2 characters to search</p>
         </div>
       </div>
     );
