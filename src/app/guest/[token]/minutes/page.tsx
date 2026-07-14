@@ -23,6 +23,7 @@ export default async function GuestMinutesPage({
         select: {
           id: true,
           title: true,
+          startAt: true,
           minutes: {
             select: {
               id: true,
