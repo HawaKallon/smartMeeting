@@ -29,9 +29,20 @@ export async function updateProfile(
       return { error: "Name cannot be empty" };
     }
 
-    const updateData: { name: string; phone: string | null; image?: string; passwordHash?: string } = {
+    const updateData: {
+      name: string;
+      phone: string | null;
+      image?: string;
+      passwordHash?: string;
+      emailNotifications?: boolean;
+      minutesNotifications?: boolean;
+      actionItemNotifications?: boolean;
+    } = {
       name: name.trim(),
       phone: phone ? phone.trim() : null,
+      emailNotifications: formData.get("emailNotifications") === "on",
+      minutesNotifications: formData.get("minutesNotifications") === "on",
+      actionItemNotifications: formData.get("actionItemNotifications") === "on",
     };
 
     // Optional password change — only when a new password is supplied.

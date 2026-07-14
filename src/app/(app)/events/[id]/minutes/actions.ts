@@ -206,7 +206,7 @@ export async function publishMinutes(
           rsvpTokenHash: true,
           externalName: true,
           externalEmail: true,
-          user: { select: { name: true, email: true } },
+          user: { select: { name: true, email: true, minutesNotifications: true } },
         },
       },
     },
@@ -237,8 +237,8 @@ export async function publishMinutes(
 
   await Promise.allSettled(
     event.attendees.map((a) => {
-      // Internal attendees: send full link and SMS
-      if (a.user?.email) {
+      // Internal attendees: send full link and SMS (if they opted in)
+      if (a.user?.email && a.user.minutesNotifications !== false) {
         const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
         return Promise.allSettled([
           sendMinutesEmail({
@@ -739,7 +739,10 @@ async function notifyActionItemOwner({
   eventId: string; minutesId?: string;
 }) {
   const [owner, event] = await Promise.all([
-    prisma.user.findUnique({ where: { id: ownerId }, select: { id: true, name: true, email: true, ministryId: true } }),
+    prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { id: true, name: true, email: true, ministryId: true, actionItemNotifications: true },
+    }),
     prisma.event.findUnique({ where: { id: eventId }, select: { title: true } }),
   ]);
   if (!owner || !event) return;
@@ -749,14 +752,16 @@ async function notifyActionItemOwner({
   const body = `Action item: ${title}\nTimeline: ${dueDateStr}`;
 
   await Promise.allSettled([
-    sendActionItemEmail({
-      to: owner.email,
-      toName: owner.name ?? owner.email,
-      title,
-      eventTitle: event.title,
-      dueDate,
-      minutesUrl,
-    }),
+    owner.actionItemNotifications !== false
+      ? sendActionItemEmail({
+          to: owner.email,
+          toName: owner.name ?? owner.email,
+          title,
+          eventTitle: event.title,
+          dueDate,
+          minutesUrl,
+        })
+      : Promise.resolve(),
     notify({
       userId: owner.id,
       type: "ACTION_ITEM",
