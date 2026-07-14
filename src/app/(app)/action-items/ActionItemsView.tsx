@@ -30,7 +30,7 @@ export function ActionItemsView({ items, canMoveAny, currentUserId, ownerFilter,
 
   return (
     <div className="space-y-4">
-      {/* Toolbar: View toggle + Owner filter */}
+      {/* Toolbar: View toggle + Assignee filter */}
       <div className="flex items-center justify-between">
         <div className="rounded-lg border border-border bg-card p-0.5 flex gap-0">
           <button

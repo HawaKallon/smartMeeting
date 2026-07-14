@@ -158,7 +158,6 @@ export default async function Dashboard() {
                   id={e.id}
                   title={e.title}
                   startAt={e.startAt}
-                  endAt={e.endAt}
                   room={e.room}
                   type={e.type}
                   colorCategory={e.colorCategory}
