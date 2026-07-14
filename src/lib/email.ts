@@ -332,6 +332,37 @@ export async function sendMinutesEmail({
   }
 }
 
+// ── Minutes Submitted for Review ─────────────────────────────────────────────
+
+export async function sendMinutesSubmittedEmail({
+  to, toName, eventTitle, submitterName, minutesUrl,
+}: {
+  to: string; toName: string; eventTitle: string; submitterName: string; minutesUrl: string;
+}) {
+  if (!resend) return skip(to, `RESEND_API_KEY not set`);
+  if (!FROM || FROM === "noreply@resend.dev") {
+    return skip(to, `EMAIL_FROM not properly configured in .env`);
+  }
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Minutes Pending Approval: ${eventTitle}`,
+      text: [
+        `Dear ${toName},`,
+        ``,
+        `${submitterName} submitted minutes for "${eventTitle}" for your review.`,
+        ``,
+        `Review and publish: ${minutesUrl}`,
+      ].join("\n"),
+    });
+    console.log(`[email] sent minutes-submitted to ${to}:`, result.data?.id);
+  } catch (err) {
+    logError(to, `Minutes Pending Approval: ${eventTitle}`, err);
+  }
+}
+
 // ── Action Item Assigned ──────────────────────────────────────────────────────
 
 export async function sendActionItemEmail({
