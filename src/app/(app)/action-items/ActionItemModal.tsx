@@ -51,7 +51,9 @@ export function ActionItemModal({ item, open, onClose }: Props) {
             aria-label="Close action item details"
             className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors flex-shrink-0"
           >
-            <X size={20} />
+            <X size={20} /> 
+
+            
           </button>
         </div>
 
@@ -64,7 +66,7 @@ export function ActionItemModal({ item, open, onClose }: Props) {
               <span className={`inline-block px-3 py-1.5 rounded-md text-sm font-medium ${POINT_COLORS[item.point]}`}>
                 {POINT_LABELS[item.point]}
               </span>
-            </div>
+            </div> 
             
           </div>
 
