@@ -43,7 +43,7 @@ export default async function MinutesPage({
   if (!canViewMinutesForEvent(user, event)) notFound();
 
   // Lazy-init minutes from transcript text if no record yet.
-  const minutesQuery = prisma.minutes.findUnique({
+  const minutesFromDb = await prisma.minutes.findUnique({
     where: { eventId: id },
     include: {
       drafted: { select: { name: true, email: true } },
@@ -55,13 +55,11 @@ export default async function MinutesPage({
     },
   });
 
-  const attendeesQuery = prisma.eventAttendee.findMany({
+  const attendees = await prisma.eventAttendee.findMany({
     where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
     include: { user: { select: { id: true, name: true, email: true } } },
     orderBy: { createdAt: "asc" },
   });
-
-  const [minutesFromDb, attendees] = await Promise.all([minutesQuery, attendeesQuery]);
 
   let minutes: typeof minutesFromDb;
   if (!minutesFromDb) {
