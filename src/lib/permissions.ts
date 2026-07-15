@@ -1,7 +1,7 @@
 import type { Event, Minutes, ActionItem } from "@/generated/prisma/client";
 import type { SystemRole } from "@/generated/prisma/enums";
 import type { ActorPerm } from "./roles";
-import { isSuperAdmin, canManageEvents, canApproveMinutes, isMinistryAdminLevel } from "./roles";
+import { isSuperAdmin, canManageEvents, isMinistryAdminLevel } from "./roles";
 import {
   canAccessMinistryEvent,
   canManageExistingEvent,
@@ -116,18 +116,10 @@ export function canSubmitMinutes(
 }
 
 export function canPublishMinutes(user: ActorPerm, event: Event & { coOrganizers?: Array<{ id: string }> }): boolean {
-  // P4: Scope-based publishing rules
-  if (event.scope === "TEAM") {
-    // Organizer or co-organizer can publish (no role gate)
-    return event.organizerId === user.id ||
-           (event.coOrganizers && event.coOrganizers.some(co => co.id === user.id)) ||
-           isSuperAdmin(user.systemRole);
-  }
-  if (event.scope === "OFFICIAL") {
-    // APPROVER role in same ministry required
-    return canApproveMinutes(user.systemRole) && user.ministryId === event.ministryId;
-  }
-  return false;
+  // Organizer, co-organizer, or super-admin can publish minutes directly
+  return event.organizerId === user.id ||
+         (event.coOrganizers && event.coOrganizers.some(co => co.id === user.id)) ||
+         isSuperAdmin(user.systemRole);
 }
 
 export function canViewMinutes(
