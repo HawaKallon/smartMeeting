@@ -22,7 +22,7 @@ interface Props {
   eventId: string;
   items: Item[];
   users: User[];
-  status: "DRAFT" | "SUBMITTED" | "PUBLISHED";
+  status: "DRAFT" | "PUBLISHED";
   canEdit: boolean;
 }
 
