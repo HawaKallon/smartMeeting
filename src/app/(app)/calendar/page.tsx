@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { canViewMinistrySchedule, canManageEvents, isMinistryAdminLevel, isSuperAdmin } from "@/lib/roles";
-import { getCategoryColor, getCategoryLabel } from "@/lib/public-event-categories";
+import { getCategoryColor } from "@/lib/public-event-categories";
 import { BackButton } from "@/components/BackButton";
 import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 import { CalendarViewToggle } from "./CalendarViewToggle";
