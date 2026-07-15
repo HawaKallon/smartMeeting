@@ -20,10 +20,15 @@ async function authorizeManageUser(userId: string) {
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, systemRole: true, ministryId: true, active: true },
+    select: { id: true, email: true, name: true, systemRole: true, ministryId: true, active: true, deletedAt: true },
   });
   if (!target) return { error: "User not found" };
   if (target.systemRole === "SUPER_ADMIN") return { error: "Super Admin accounts cannot be managed here" };
+
+  // Non-superadmins cannot manage soft-deleted users
+  if (target.deletedAt && user.systemRole !== "SUPER_ADMIN") {
+    return { error: "This user has been deleted and cannot be managed" };
+  }
 
   if (user.systemRole === "MINISTRY_ADMIN" && user.ministryId !== target.ministryId) {
     return { error: "You can only manage users from your own ministry" };
@@ -136,11 +141,16 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
 
     const userToDelete = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, ministryId: true, systemRole: true },
+      select: { id: true, email: true, name: true, ministryId: true, systemRole: true, deletedAt: true },
     });
 
     if (!userToDelete) {
       return { error: "User not found" };
+    }
+
+    // Cannot delete a user that's already soft-deleted (unless superadmin doing final cleanup)
+    if (userToDelete.deletedAt && !isSuperAdmin(user.systemRole)) {
+      return { error: "This user has already been deleted" };
     }
 
     // MINISTER role can only be deleted by SUPER_ADMIN
@@ -167,11 +177,21 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
       };
     }
 
-    // Deleting cascades/nulls the user's optional relations (attendances, action items,
-    // audit actor, notifications, bookings, sessions) per the schema's onDelete rules.
-    await prisma.user.delete({
-      where: { id: userId },
-    });
+    // Ministry admins soft-delete (mark deletedAt); superadmins hard-delete
+    if (isSuperAdmin(user.systemRole)) {
+      // Hard delete for superadmin
+      // Deleting cascades/nulls the user's optional relations (attendances, action items,
+      // audit actor, notifications, bookings, sessions) per the schema's onDelete rules.
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+    } else {
+      // Soft delete for ministry admin (mark as deleted but keep in DB)
+      await prisma.user.update({
+        where: { id: userId },
+        data: { deletedAt: new Date() },
+      });
+    }
 
     // Audit log
     await audit({
@@ -179,7 +199,11 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
       action: "DELETE_USER",
       entityType: "User",
       entityId: userId,
-      metadata: { email: userToDelete.email, name: userToDelete.name },
+      metadata: {
+        email: userToDelete.email,
+        name: userToDelete.name,
+        softDelete: !isSuperAdmin(user.systemRole),
+      },
       ministryId: user.ministryId,
     });
 
