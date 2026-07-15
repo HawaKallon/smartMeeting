@@ -27,6 +27,7 @@ export default async function MinutesPage({
       id: true,
       title: true,
       startAt: true,
+      endAt: true,
       scope: true,
       ministryId: true,
       organizerId: true,
@@ -99,7 +100,7 @@ export default async function MinutesPage({
 
   // Check if edit window is closed (unless user is admin-level)
   const canOverrideEditWindow = isMinistryAdminLevel(user.systemRole);
-  const editWindowClosed = isMinutesEditWindowClosed(event.startAt) && !canOverrideEditWindow;
+  const editWindowClosed = isMinutesEditWindowClosed(event.endAt) && !canOverrideEditWindow;
   // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
   const segments: Segment[] = [];
 
@@ -208,11 +209,6 @@ export default async function MinutesPage({
                 status={minutes.status as "DRAFT" | "PUBLISHED"}
                 editWindowClosed={editWindowClosed}
               />
-              {minutes.status === "DRAFT" && (
-                <div className="mt-4">
-                  <PublishButton minutesId={minutes.id} eventId={id} />
-                </div>
-              )}
             </>
           ) : (
             <div className="space-y-6">
@@ -258,6 +254,13 @@ export default async function MinutesPage({
           canEdit={isAdmin}
         />
       </div>
+
+      {/* Publish Button */}
+      {isAdmin && minutes.status === "DRAFT" && (
+        <div className="rounded-lg border border-border bg-card p-6">
+          <PublishButton minutesId={minutes.id} eventId={id} />
+        </div>
+      )}
 
       {/* Publication Status Summary */}
       {isAdmin && minutes.status === "PUBLISHED" && (
