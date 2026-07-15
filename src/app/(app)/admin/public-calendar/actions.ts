@@ -234,12 +234,12 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
         const invitedMinistryIds = updated.invitedMinistries.map((m) => m.id);
         const organizerMinistryName = updated.ministry?.name || "Government of Sierra Leone";
 
-        // Find leadership recipients at invited ministries
+        // Find ministry-level recipients at invited ministries
         const recipients = await prisma.user.findMany({
           where: {
             ministryId: { in: invitedMinistryIds },
             active: true,
-            systemRole: { in: ["MINISTRY_ADMIN", "MINISTER", "LEADERSHIP"] },
+            systemRole: { in: ["MINISTRY_ADMIN", "MINISTER"] },
           },
           select: { id: true, email: true, name: true, ministryId: true, emailNotifications: true },
         });
