@@ -21,6 +21,7 @@ const MINISTRY_USERS: {
   systemRole: SystemRole;
   jobTitle: string | null;
   ministryCode: string;
+
 }[] = [
   // MOH (@moh.gov.sl)
   {
