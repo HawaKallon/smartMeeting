@@ -164,6 +164,7 @@ model User {
   image         String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?    // soft delete timestamp (only set by ministry admins; superadmins hard-delete)
 
   // Preferences
   emailNotifications      Boolean @default(true)

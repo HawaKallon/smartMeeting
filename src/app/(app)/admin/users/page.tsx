@@ -32,6 +32,8 @@ export default async function AdminUsersPage({
   const where: Prisma.UserWhereInput = {
     ...ministryScope(user),
     systemRole: { not: "SUPER_ADMIN" },
+    // Ministry admins don't see soft-deleted users; superadmins see all
+    ...(superAdmin ? {} : { deletedAt: null }),
   };
   if (q) {
     where.OR = [
@@ -56,6 +58,7 @@ export default async function AdminUsersPage({
       jobTitle: true,
       active: true,
       createdAt: true,
+      deletedAt: true,
       ministryId: true,
       ministry: { select: { name: true } },
     },
@@ -123,16 +126,23 @@ export default async function AdminUsersPage({
                   </td>
                   <td className="px-6 py-3 text-muted-foreground">{u.jobTitle || "—"}</td>
                   <td className="px-6 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        u.active
-                          ? "bg-green-500/10 text-green-600"
-                          : "bg-red-500/10 text-red-600"
-                      }`}
-                    >
-                      {u.active ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                      {u.active ? "Active" : "Inactive"}
-                    </span>
+                    {u.deletedAt ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-500/10 px-2.5 py-1 text-xs font-medium text-gray-600">
+                        <X className="h-3 w-3" />
+                        Deleted
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                          u.active
+                            ? "bg-green-500/10 text-green-600"
+                            : "bg-red-500/10 text-red-600"
+                        }`}
+                      >
+                        {u.active ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        {u.active ? "Active" : "Inactive"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-3">
                     <UserRowActions
