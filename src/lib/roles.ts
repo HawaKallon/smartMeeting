@@ -6,7 +6,6 @@ export const SYSTEM_ROLES = [
   "SUPER_ADMIN",
   "MINISTER",
   "MINISTRY_ADMIN",
-  "LEADERSHIP",
   "STAFF",
 ] as const;
 
@@ -16,7 +15,6 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   SUPER_ADMIN: "Super Admin",
   MINISTER: "Minister",
   MINISTRY_ADMIN: "Ministry Admin",
-  LEADERSHIP: "Leadership",
   STAFF: "Staff",
 };
 
@@ -37,10 +35,6 @@ export function canManageEvents(role: SystemRole | undefined): boolean {
   );
 }
 
-/** Roles that can approve/publish minutes. */
-export function canApproveMinutes(role: SystemRole | undefined): boolean {
-  return role === "LEADERSHIP" || role === "MINISTER";
-}
 
 /** Every defined role can view ministry-wide schedule. */
 export function canViewMinistrySchedule(role: SystemRole | undefined): boolean {

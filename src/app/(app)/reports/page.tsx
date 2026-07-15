@@ -19,7 +19,6 @@ const ROLE_COLORS: Record<string, string> = {
   SUPER_ADMIN: "#000000",
   MINISTER: "#f59e0b",
   MINISTRY_ADMIN: "#06b6d4",
-  LEADERSHIP: "#8b5cf6",
   STAFF: "#94a3b8",
 };
 const ROLE_FALLBACK_COLOR = "#94a3b8";
