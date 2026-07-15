@@ -136,11 +136,16 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
 
     const userToDelete = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, ministryId: true },
+      select: { id: true, email: true, name: true, ministryId: true, systemRole: true },
     });
 
     if (!userToDelete) {
       return { error: "User not found" };
+    }
+
+    // MINISTER role can only be deleted by SUPER_ADMIN
+    if (userToDelete.systemRole === "MINISTER" && !isSuperAdmin(user.systemRole)) {
+      return { error: "Only a super admin can delete a Minister account" };
     }
 
     // Regular admins can only delete users from their own ministry
@@ -254,6 +259,11 @@ export async function setUserActive(
 
     if (user.id === userId) {
       return { error: "You cannot deactivate your own account" };
+    }
+
+    // MINISTER role can only be deactivated by SUPER_ADMIN
+    if (!active && target.systemRole === "MINISTER" && !isSuperAdmin(user.systemRole)) {
+      return { error: "Only a super admin can deactivate a Minister account" };
     }
 
     await prisma.user.update({ where: { id: userId }, data: { active } });
