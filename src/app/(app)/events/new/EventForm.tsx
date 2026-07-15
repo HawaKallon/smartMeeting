@@ -171,8 +171,7 @@ export function EventForm({
         </div>
         <div>
           <p className="text-xs text-muted-foreground mt-6">
-            <strong>Team:</strong> Minutes don't require formal approval. Organizer publishes directly.<br />
-            <strong>Official:</strong> Minutes require an approver's sign-off before publishing.
+            Meeting minutes are published directly by the organizer for all meeting types.
           </p>
         </div>
       </div>
