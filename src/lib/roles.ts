@@ -25,7 +25,7 @@ export function isMinistryAdminLevel(role: SystemRole | undefined): boolean {
 
 /**
  * Operational staff: create/manage events, letters, attendance, draft minutes.
- * Includes STAFF, LEADERSHIP, MINISTRY_ADMIN, and SUPER_ADMIN.
+ * Includes STAFF, MINISTRY_ADMIN, MINISTER, and SUPER_ADMIN.
  */
 export function canManageEvents(role: SystemRole | undefined): boolean {
   return (
