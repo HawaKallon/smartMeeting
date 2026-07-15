@@ -19,7 +19,6 @@ enum SystemRole {
   SUPER_ADMIN
   MINISTER
   MINISTRY_ADMIN
-  LEADERSHIP
   STAFF
 }
 
@@ -80,7 +79,6 @@ enum RecordingStatus {
 
 enum MinutesStatus {
   DRAFT
-  SUBMITTED
   PUBLISHED
 }
 
@@ -185,7 +183,6 @@ model User {
   actionItems       ActionItem[]    @relation("ActionItemOwner")
   assignedActionItems ActionItem[]  @relation("ActionItemAssignedBy")
   minutesDrafted    Minutes[]       @relation("MinutesDrafted")
-  minutesSubmitted  Minutes[]       @relation("MinutesSubmitted")
   minutesApproved   Minutes[]       @relation("MinutesApprover")
   auditLogs         AuditLog[]
   notifications     Notification[]
@@ -351,10 +348,6 @@ model Minutes {
   draftedById   String?
   drafted       User?         @relation("MinutesDrafted", fields: [draftedById], references: [id])
   draftedAt     DateTime?
-
-  submittedById String?
-  submitted     User?         @relation("MinutesSubmitted", fields: [submittedById], references: [id])
-  submittedAt   DateTime?
 
   approvedById  String?
   approver      User?         @relation("MinutesApprover", fields: [approvedById], references: [id])
