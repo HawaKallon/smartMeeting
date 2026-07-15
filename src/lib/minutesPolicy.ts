@@ -9,6 +9,6 @@ export function isMinutesArchived(eventStartAt: Date): boolean {
   return cutoff.getTime() < Date.now();
 }
 
-export function isMinutesEditWindowClosed(eventStartAt: Date): boolean {
-  return eventStartAt.getTime() + MINUTES_EDIT_WINDOW_DAYS * 24 * 60 * 60 * 1000 < Date.now();
+export function isMinutesEditWindowClosed(eventEndAt: Date): boolean {
+  return eventEndAt.getTime() + MINUTES_EDIT_WINDOW_DAYS * 24 * 60 * 60 * 1000 < Date.now();
 }

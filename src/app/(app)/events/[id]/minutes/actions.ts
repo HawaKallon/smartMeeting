@@ -154,16 +154,16 @@ export async function saveMinutesDraft(
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, startAt: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    select: { id: true, startAt: true, endAt: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
   });
   if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const existing = await prisma.minutes.findUnique({ where: { eventId } });
   if (existing?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
 
-  // Check edit-window: can only edit within 2 days of the meeting, unless admin-level
-  if (isMinutesEditWindowClosed(event.startAt) && !isMinistryAdminLevel(user.systemRole)) {
-    return { error: "Minutes can only be edited within 2 days of the meeting." };
+  // Check edit-window: can only edit within 2 days of the meeting end, unless admin-level
+  if (isMinutesEditWindowClosed(event.endAt) && !isMinistryAdminLevel(user.systemRole)) {
+    return { error: "Minutes can only be edited within 2 days of the meeting end." };
   }
 
   const minutes = await prisma.minutes.upsert({
@@ -206,7 +206,10 @@ export async function publishMinutes(
 
   const { eventId, minutesId } = parsed.data;
 
-  const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
+  const minutes = await prisma.minutes.findUnique({
+    where: { id: minutesId },
+    include: { actionItems: { orderBy: { createdAt: "asc" } } },
+  });
   if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -214,6 +217,7 @@ export async function publishMinutes(
       id: true,
       title: true,
       startAt: true,
+      endAt: true,
       ministryId: true,
       scope: true,
       organizerId: true,
@@ -256,6 +260,12 @@ export async function publishMinutes(
     weekday: "short", year: "numeric", month: "short", day: "numeric",
   });
 
+  const actionItems = minutes.actionItems.map(item => ({
+    title: item.title,
+    ownerName: item.ownerName,
+    dueDate: item.dueDate,
+  }));
+
   await Promise.allSettled(
     event.attendees.map((a) => {
       // Internal attendees: send full link and SMS (if they opted in)
@@ -269,6 +279,7 @@ export async function publishMinutes(
             eventDate,
             summary: minutes.summary,
             minutesUrl,
+            actionItems,
           }),
           sendMinutesSms({
             to: a.user!.email,
@@ -289,6 +300,7 @@ export async function publishMinutes(
             eventDate,
             summary: minutes.summary,
             minutesUrl: guestPortalUrl,
+            actionItems,
           }),
         ]);
       }
