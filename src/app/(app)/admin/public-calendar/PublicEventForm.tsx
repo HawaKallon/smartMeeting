@@ -7,10 +7,10 @@ import { Upload } from "lucide-react";
 import { createPublicEvent, updatePublicEvent, publishPublicEvent, unpublishPublicEvent, type ActionState } from "./actions";
 import { CATEGORY_LIST, CATEGORY_LABELS } from "@/lib/public-event-categories";
 import { MinistryMultiSelect } from "@/components/MinistryMultiSelect";
-import type { PublicEvent } from "@/generated/prisma/client";
+import type { Event } from "@/generated/prisma/client";
 
 interface PublicEventFormProps {
-  event?: PublicEvent & { invitedMinistries?: { id: string }[] };
+  event?: Event & { invitedMinistries?: { id: string }[] };
   isNew?: boolean;
   ministries?: { id: string; name: string; code: string }[];
   userMinistryId?: string | null;

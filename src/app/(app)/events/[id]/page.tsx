@@ -39,14 +39,14 @@ export default async function EventDetailPage({
   const coOrganizerIds = event.coOrganizers.map((c) => c.id);
   const eventPerm = {
     ministryId: event.ministryId,
-    organizerId: event.organizerId,
+    organizerId: event.organizerId ?? null,
     coOrganizerIds,
   };
   const canManage = canManageEvent(user, eventPerm);
   const canReassign = canReassignEvent(user, eventPerm);
   const canViewMinutes = canViewMinutesForEvent(user, {
     ministryId: event.ministryId,
-    organizerId: event.organizerId,
+    organizerId: event.organizerId ?? null,
     coOrganizers: event.coOrganizers,
   });
 
@@ -62,7 +62,7 @@ export default async function EventDetailPage({
           where: {
             ministryId: event.ministryId,
             systemRole: { not: "SUPER_ADMIN" },
-            id: { notIn: [event.organizerId, ...coOrganizerIds] },
+            id: { notIn: [event.organizerId || "", ...coOrganizerIds].filter(Boolean) },
           },
           select: { id: true, name: true, email: true },
           orderBy: [{ name: "asc" }, { email: "asc" }],
@@ -85,7 +85,7 @@ export default async function EventDetailPage({
           <p className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
             <span className="capitalize">{event.type.toLowerCase()}</span> •
             <span>
-              By {event.organizer.name ?? event.organizer.email}
+              By {event.organizer?.name ?? event.organizer?.email ?? "System"}
               {event.coOrganizers.length > 0 &&
                 ` + ${event.coOrganizers.map((c) => c.name ?? c.email).join(", ")}`}
             </span>
@@ -161,7 +161,7 @@ export default async function EventDetailPage({
             Organizer &amp; Assistants
           </h2>
           <p className="mb-4 text-sm text-foreground">
-            <span className="font-medium">{event.organizer.name ?? event.organizer.email}</span>
+            <span className="font-medium">{event.organizer?.name ?? event.organizer?.email ?? "System"}</span>
             <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               Organizer
             </span>

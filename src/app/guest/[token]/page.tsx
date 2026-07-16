@@ -103,7 +103,7 @@ export default async function GuestEventPage({
           )}
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Organized by {event.organizer.name}
+            Organized by {event.organizer?.name}
           </div>
         </div>
       </div>
