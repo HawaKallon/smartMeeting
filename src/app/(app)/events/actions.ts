@@ -11,7 +11,7 @@ import { sendInviteEmail } from "@/lib/email";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { generateOccurrences, describeRecurrence, MAX_OCCURRENCES } from "@/lib/recurrence";
 import { isSuperAdmin } from "@/lib/roles";
-import type { RecurrenceFrequency } from "@/generated/prisma/enums";
+import type { RecurrenceFrequency, PublicEventCategory } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
 const EventSchema = z
@@ -40,7 +40,7 @@ const EventSchema = z
     recurrenceCount: z.coerce.number().int().positive().max(MAX_OCCURRENCES).optional(),
     recurrenceUntil: z.coerce.date().optional(),
     // Public event fields
-    category: z.string().optional(),
+    category: z.enum(["CONFERENCE", "WORKSHOP", "TRAINING", "MEETING", "ANNOUNCEMENT", "PUBLIC_NOTICE", "OTHER"]).optional(),
     bannerImage: z.string().optional(),
     externalUrl: z.string().url().optional(),
     coOrganizerIds: z.string().optional(), // JSON string of array

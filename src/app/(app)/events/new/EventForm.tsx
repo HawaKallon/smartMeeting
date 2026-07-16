@@ -22,7 +22,7 @@ type Ministry = {
   compoundGeofenceRadius: number;
   compoundMaxGpsAccuracy: number;
 };
-type CoOrganizerCandidate = { id: string; name: string; email: string };
+type CoOrganizerCandidate = { id: string; name: string | null; email: string };
 
 export function EventForm({
   rooms,
@@ -228,7 +228,7 @@ export function EventForm({
                       className="w-4 h-4"
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{candidate.name}</p>
+                      <p className="text-sm font-medium text-foreground">{candidate.name || candidate.email}</p>
                       <p className="text-xs text-muted-foreground">{candidate.email}</p>
                     </div>
                   </label>
