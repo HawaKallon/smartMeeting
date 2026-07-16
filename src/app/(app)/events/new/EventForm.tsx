@@ -22,15 +22,18 @@ type Ministry = {
   compoundGeofenceRadius: number;
   compoundMaxGpsAccuracy: number;
 };
+type CoOrganizerCandidate = { id: string; name: string; email: string };
 
 export function EventForm({
   rooms,
   ministries,
+  coOrganizerCandidates = [],
   isSuperAdmin = false,
   initialDate,
 }: {
   rooms: Room[];
   ministries?: Ministry[];
+  coOrganizerCandidates?: CoOrganizerCandidate[];
   isSuperAdmin?: boolean;
   initialDate?: string;
 }) {
@@ -48,6 +51,7 @@ export function EventForm({
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [selectedMinistryId, setSelectedMinistryId] = useState("");
   const [selectedMinistries, setSelectedMinistries] = useState<string[]>([]);
+  const [selectedCoOrganizers, setSelectedCoOrganizers] = useState<string[]>([]);
   // Combined datetime strings (YYYY-MM-DDTHH:mm). Seed from a calendar-day
   // prefill at 09:00-10:00; the native inputs drive changes.
   const [startAt, setStartAt] = useState(initialDate ? `${initialDate}T09:00` : "");
@@ -115,6 +119,7 @@ export function EventForm({
 
       <input type="hidden" name="isPublic" value={isPublic ? "true" : "false"} />
       <input type="hidden" name="selectedMinistries" value={JSON.stringify(selectedMinistries)} />
+      <input type="hidden" name="coOrganizerIds" value={JSON.stringify(selectedCoOrganizers)} />
 
       {/* Activity Type Toggle */}
       <div>
@@ -198,24 +203,113 @@ export function EventForm({
               </p>
             </div>
           </div>
+
+          <div>
+            <label className={label}>Co-organizers *</label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Select at least one person to co-organize this activity.
+            </p>
+            {coOrganizerCandidates.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">No co-organizers available in your ministry.</p>
+            ) : (
+              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto border border-border rounded-md p-3 bg-muted/20">
+                {coOrganizerCandidates.map((candidate) => (
+                  <label key={candidate.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedCoOrganizers.includes(candidate.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedCoOrganizers([...selectedCoOrganizers, candidate.id]);
+                        } else {
+                          setSelectedCoOrganizers(selectedCoOrganizers.filter((id) => id !== candidate.id));
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">{candidate.name}</p>
+                      <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            {selectedCoOrganizers.length > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {selectedCoOrganizers.length} co-organizer{selectedCoOrganizers.length !== 1 ? "s" : ""} selected
+              </p>
+            )}
+          </div>
         </>
       )}
 
       {/* Public-only fields */}
       {isPublic && (
-        <div>
-          <label className={label}>Category</label>
-          <select name="category" className={field}>
-            <option value="">Select a category</option>
-            <option value="CONFERENCE">Conference</option>
-            <option value="WORKSHOP">Workshop</option>
-            <option value="TRAINING">Training</option>
-            <option value="MEETING">Meeting</option>
-            <option value="ANNOUNCEMENT">Announcement</option>
-            <option value="PUBLIC_NOTICE">Public Notice</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
+        <>
+          <div>
+            <label className={label}>Category</label>
+            <select name="category" className={field}>
+              <option value="">Select a category</option>
+              <option value="CONFERENCE">Conference</option>
+              <option value="WORKSHOP">Workshop</option>
+              <option value="TRAINING">Training</option>
+              <option value="MEETING">Meeting</option>
+              <option value="ANNOUNCEMENT">Announcement</option>
+              <option value="PUBLIC_NOTICE">Public Notice</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className={label}>Banner Image (optional)</label>
+            <input type="file" name="bannerImage" accept="image/*" className={field} />
+            <p className="mt-1 text-xs text-muted-foreground">Max 5MB, JPG/PNG recommended</p>
+          </div>
+
+          <div>
+            <label className={label}>External URL (optional)</label>
+            <input type="url" name="externalUrl" placeholder="https://example.com" className={field} />
+          </div>
+
+          <div>
+            <label className={label}>Invited Ministries (optional)</label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Select ministries that will receive an invitation to this activity.
+            </p>
+            {ministryOptions.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">No ministries available.</p>
+            ) : (
+              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto border border-border rounded-md p-3 bg-muted/20">
+                {ministryOptions.map((ministry) => (
+                  <label key={ministry.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedMinistries.includes(ministry.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedMinistries([...selectedMinistries, ministry.id]);
+                        } else {
+                          setSelectedMinistries(selectedMinistries.filter((id) => id !== ministry.id));
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{ministry.name}</p>
+                      <p className="text-xs text-muted-foreground">{ministry.code}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            {selectedMinistries.length > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {selectedMinistries.length} ministr{selectedMinistries.length === 1 ? "y" : "ies"} selected
+              </p>
+            )}
+          </div>
+        </>
       )}
 
       <div className="grid grid-cols-2 gap-4">
