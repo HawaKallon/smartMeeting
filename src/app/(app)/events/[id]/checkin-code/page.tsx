@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { canManageExistingEvent } from "@/lib/eventAccess";
 import { getActiveToken } from "@/lib/checkin";
+import { absoluteAppUrl } from "@/lib/appUrl";
 import { RefreshOnExpiry } from "./RefreshOnExpiry";
 
 export default async function CheckInCodePage({
@@ -30,11 +30,7 @@ export default async function CheckInCodePage({
   if (!canManageExistingEvent(user, event)) notFound();
 
   const { token, expiresAt } = await getActiveToken(event.id);
-
-  const hdrs = await headers();
-  const host = hdrs.get("host") ?? "localhost:3000";
-  const proto = hdrs.get("x-forwarded-proto") ?? "http";
-  const url = `${proto}://${host}/checkin/${token}`;
+  const url = absoluteAppUrl(`/checkin/${token}`);
 
   const dataUrl = await QRCode.toDataURL(url, { width: 360, margin: 2 });
   const secondsLeft = Math.max(
