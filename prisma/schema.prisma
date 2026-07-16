@@ -22,6 +22,7 @@ enum SystemRole {
   STAFF
 }
 
+/// Activity type for internal activities only (public activities use PublicEventCategory instead).
 enum EventType {
   MEETING
   CONFERENCE
@@ -145,8 +146,7 @@ model Ministry {
   roomBookings  RoomBooking[]
   auditLogs     AuditLog[]
   notifications Notification[]
-  publicEvents  PublicEvent[]
-  invitedPublicEvents PublicEvent[] @relation("PublicEventInvites")
+  invitedToEvents Event[] @relation("EventPublicInvites")
 }
 
 model User {
@@ -196,6 +196,7 @@ model Event {
   id             String         @id @default(cuid())
   title          String
   description    String?
+  isPublic       Boolean        @default(false) // false = internal activity, true = public activity
   type           EventType      @default(MEETING)
   scope          EventScope     @default(TEAM) // P4: governance vs. team scope
   startAt        DateTime
@@ -209,9 +210,9 @@ model Event {
   ministryId     String
   ministry       Ministry       @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   roomId         String?
-  organizerId    String
-  organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
-  coOrganizers   User[]         @relation("EventCoOrganizers") // helpers who can also manage the event
+  organizerId    String? // null for public activities (ministry-level ownership, no organizer)
+  organizer      User?          @relation("EventOrganizer", fields: [organizerId], references: [id])
+  coOrganizers   User[]         @relation("EventCoOrganizers") // helpers who can also manage the event; mandatory at creation for internal activities
   room           Room?          @relation("EventRoom", fields: [roomId], references: [id])
   reminderSentAt DateTime? // set once the 1h-before-start reminder has been emailed (idempotency)
   seriesId       String? // links recurring occurrences to their EventSeries
@@ -219,9 +220,20 @@ model Event {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
+  // Public-activity-only fields (category replaces `type` when isPublic)
+  category       PublicEventCategory?
+  bannerImage    String?
+  externalUrl    String?
+  status         PublicEventStatus @default(PUBLISHED) // internal activities are implicitly live; public activities use DRAFT/PUBLISHED
+  publishedAt    DateTime?
+  invitedMinistries Ministry[] @relation("EventPublicInvites")
+
+  // Contact details (both internal and public activities)
+  contactEmail   String?
+  contactPhone   String?
+
   attendees   EventAttendee[]
   attendances Attendance[]
-  letters     Letter[]
   recordings  Recording[]
   minutes     Minutes?
   qrTokens    QRToken[]
@@ -234,6 +246,7 @@ model Event {
   @@index([ministryId, startAt])
   @@index([ministryId, endAt])
   @@index([organizerId, startAt])
+  @@index([isPublic, status, startAt])
 }
 
 // PRD §6 — a recurring meeting series. Each occurrence is a full Event row
@@ -298,20 +311,6 @@ model Attendance {
   @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
-}
-
-model Letter {
-  id            String        @id @default(cuid())
-  eventId       String
-  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  colorCategory ColorCategory @default(GREEN)
-  title         String
-  body          String // rich-text / HTML
-  pdfUrl        String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@index([eventId])
 }
 
 model Recording {
@@ -518,27 +517,3 @@ model VerificationToken {
 }
 
 /// Public calendar events — visible to all without login, managed by admins.
-model PublicEvent {
-  id           String            @id @default(cuid())
-  title        String
-  description  String?
-  category     PublicEventCategory?
-  startAt      DateTime
-  endAt        DateTime
-  venueName    String?
-  bannerImage  String? // Cloudinary secure URL or legacy "/public-uploads/<name>" path
-  externalUrl  String?
-  contactEmail String?
-  contactPhone String?
-  status       PublicEventStatus @default(DRAFT)
-  publishedAt  DateTime?
-  ministryId   String?
-  ministry     Ministry?         @relation(fields: [ministryId], references: [id], onDelete: SetNull)
-  createdById  String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  invitedMinistries Ministry[]   @relation("PublicEventInvites")
-
-  @@index([status, startAt])
-  @@index([ministryId])
-}
