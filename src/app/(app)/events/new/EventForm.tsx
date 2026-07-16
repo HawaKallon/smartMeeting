@@ -39,6 +39,7 @@ export function EventForm({
     undefined,
   );
 
+  const [isPublic, setIsPublic] = useState(false);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -46,6 +47,7 @@ export function EventForm({
 
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [selectedMinistryId, setSelectedMinistryId] = useState("");
+  const [selectedMinistries, setSelectedMinistries] = useState<string[]>([]);
   // Combined datetime strings (YYYY-MM-DDTHH:mm). Seed from a calendar-day
   // prefill at 09:00-10:00; the native inputs drive changes.
   const [startAt, setStartAt] = useState(initialDate ? `${initialDate}T09:00` : "");
@@ -111,6 +113,24 @@ export function EventForm({
         </p>
       )}
 
+      <input type="hidden" name="isPublic" value={isPublic ? "true" : "false"} />
+      <input type="hidden" name="selectedMinistries" value={JSON.stringify(selectedMinistries)} />
+
+      {/* Activity Type Toggle */}
+      <div>
+        <label className={label}>Activity Type</label>
+        <div className="mt-2 flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" checked={!isPublic} onChange={() => setIsPublic(false)} className="w-4 h-4" />
+            <span className="text-sm">Internal Activity</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="radio" checked={isPublic} onChange={() => setIsPublic(true)} className="w-4 h-4" />
+            <span className="text-sm">Public Activity</span>
+          </label>
+        </div>
+      </div>
+
       <div>
         <label className={label}>Title</label>
         <input name="title" required className={field} />
@@ -143,38 +163,60 @@ export function EventForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={label}>Activity Type</label>
-          <select name="type" defaultValue="MEETING" className={field}>
-            <option value="MEETING">Meeting</option>
-            <option value="CONFERENCE">Conference</option>
-            <option value="APPOINTMENT">Appointment</option>
-          </select>
-        </div>
-        <div>
-          <label className={label}>Event Scope</label>
-          <select name="scope" defaultValue="TEAM" className={field}>
-            <option value="TEAM">Team / Informal</option>
-            <option value="OFFICIAL">Official / Formal</option>
-          </select>
-        </div>
-      </div>
+      {/* Internal-only fields */}
+      {!isPublic && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={label}>Activity Type</label>
+              <select name="type" defaultValue="MEETING" className={field}>
+                <option value="MEETING">Meeting</option>
+                <option value="CONFERENCE">Conference</option>
+                <option value="APPOINTMENT">Appointment</option>
+              </select>
+            </div>
+            <div>
+              <label className={label}>Event Scope</label>
+              <select name="scope" defaultValue="TEAM" className={field}>
+                <option value="TEAM">Team / Informal</option>
+                <option value="OFFICIAL">Official / Formal</option>
+              </select>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={label}>Classification</label>
+              <select name="classification" defaultValue="PUBLIC" className={field}>
+                <option value="PUBLIC">Public / Internal</option>
+                <option value="RESTRICTED">Restricted / Secret</option>
+              </select>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mt-6">
+                Meeting minutes are published directly by the organizer for all meeting types.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Public-only fields */}
+      {isPublic && (
         <div>
-          <label className={label}>Classification</label>
-          <select name="classification" defaultValue="PUBLIC" className={field}>
-            <option value="PUBLIC">Public / Internal</option>
-            <option value="RESTRICTED">Restricted / Secret</option>
+          <label className={label}>Category</label>
+          <select name="category" className={field}>
+            <option value="">Select a category</option>
+            <option value="CONFERENCE">Conference</option>
+            <option value="WORKSHOP">Workshop</option>
+            <option value="TRAINING">Training</option>
+            <option value="MEETING">Meeting</option>
+            <option value="ANNOUNCEMENT">Announcement</option>
+            <option value="PUBLIC_NOTICE">Public Notice</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground mt-6">
-            Meeting minutes are published directly by the organizer for all meeting types.
-          </p>
-        </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>
