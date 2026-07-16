@@ -92,6 +92,7 @@ export async function materializeOccurrences(
     seriesId: string | null;
     base: Record<string, unknown>;
     invitees: ResolvedInvitee[];
+    coOrganizerIds?: string[];
   },
 ): Promise<string> {
   let firstId = "";
@@ -126,6 +127,16 @@ export async function materializeOccurrences(
               },
         ),
         skipDuplicates: true,
+      });
+    }
+    if (opts.coOrganizerIds && opts.coOrganizerIds.length > 0) {
+      await tx.event.update({
+        where: { id: ev.id },
+        data: {
+          coOrganizers: {
+            connect: opts.coOrganizerIds.map((id) => ({ id })),
+          },
+        },
       });
     }
   }

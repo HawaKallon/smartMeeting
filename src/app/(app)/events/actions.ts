@@ -297,6 +297,15 @@ export async function createEvent(
     );
   }
 
+  let coOrganizerIds: string[] = [];
+  if (data.coOrganizerIds) {
+    try {
+      coOrganizerIds = JSON.parse(data.coOrganizerIds);
+    } catch {
+      return { error: "Invalid co-organizers format" };
+    }
+  }
+
   const base = {
     title: data.title,
     description: data.description,
@@ -331,7 +340,7 @@ export async function createEvent(
       });
       seriesId = series.id;
     }
-    return materializeOccurrences(tx, { slots, seriesId, base, invitees: resolved });
+    return materializeOccurrences(tx, { slots, seriesId, base, invitees: resolved, coOrganizerIds });
   });
 
   await audit({
