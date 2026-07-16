@@ -50,8 +50,9 @@ export default async function PublicCalendarPage({
     : today.getMonth();
   const { start, end } = monthBounds(year, month);
 
-  const events = await prisma.publicEvent.findMany({
-    where: { status: "PUBLISHED", startAt: { gte: start, lt: end } },
+  const events = await prisma.event.findMany({
+    where: { isPublic: true,
+        status: "PUBLISHED", startAt: { gte: start, lt: end } },
     orderBy: { startAt: "asc" },
     select: {
       id: true,

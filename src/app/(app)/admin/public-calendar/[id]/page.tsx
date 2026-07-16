@@ -15,7 +15,7 @@ export default async function PublicEventDetailPage({
   const { id } = await params;
   const user = await requireUser();
 
-  const event = await prisma.publicEvent.findUnique({
+  const event = await prisma.event.findUnique({
     where: { id },
     include: { ministry: { select: { name: true } } },
   });

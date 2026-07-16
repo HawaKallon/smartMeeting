@@ -7,7 +7,7 @@ import { Plus, Edit2, Trash2, Globe, Lock } from "lucide-react";
 export default async function AdminPublicCalendarPage() {
   const user = await requireAdminRole();
 
-  const events = await prisma.publicEvent.findMany({
+  const events = await prisma.event.findMany({
     where: ministryScope(user),
     orderBy: { startAt: "desc" },
     include: { ministry: { select: { name: true } } },
