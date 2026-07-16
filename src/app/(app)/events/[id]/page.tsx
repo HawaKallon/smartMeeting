@@ -7,6 +7,7 @@ import { canViewMinutesForEvent } from "@/lib/eventAccess";
 import { isMinutesArchived } from "@/lib/minutesPolicy";
 import { isSuperAdmin } from "@/lib/roles";
 import { ManageCoOrganizers } from "./ManageCoOrganizers";
+import { PublishButton } from "./PublishButton";
 // import { Uploader } from "./recordings/Uploader";
 // import { MeetingRecorder } from "./recordings/MeetingRecorder";
 import { RsvpButtons } from "./RsvpButtons";
@@ -97,7 +98,7 @@ export default async function EventDetailPage({
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {canManage && (
             <Link
               href={`/administrative/events/${id}/edit`}
@@ -109,6 +110,9 @@ export default async function EventDetailPage({
           )}
           {canManage && (
             <CancelEventButton eventId={id} isSeries={!!event.seriesId} />
+          )}
+          {event.isPublic && canManage && (
+            <PublishButton eventId={id} isPublic={event.isPublic} status={event.status || "DRAFT"} />
           )}
           <button className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
             <Download className="h-4 w-4" />
