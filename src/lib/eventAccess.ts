@@ -9,7 +9,7 @@ type EventAccessUser = {
 
 type EventAccessRecord = {
   ministryId: string;
-  organizerId: string;
+  organizerId: string | null;
   coOrganizers: Array<{ id: string }>;
 };
 
