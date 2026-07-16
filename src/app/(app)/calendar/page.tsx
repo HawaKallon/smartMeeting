@@ -47,8 +47,9 @@ export default async function CalendarPage({
           room: { select: { name: true } },
         },
       })
-    : prisma.publicEvent.findMany({
+    : prisma.event.findMany({
         where: {
+          isPublic: true,
           status: "PUBLISHED",
           startAt: { gte: start, lt: end },
         },
@@ -58,6 +59,7 @@ export default async function CalendarPage({
           title: true,
           category: true,
           startAt: true,
+          endAt: true,
           venueName: true,
         },
       }));

@@ -42,7 +42,7 @@ export default async function CalendarDayPage({
           _count: { select: { attendees: true, attendances: true } },
         },
       })
-    : prisma.publicEvent.findMany({
+    : prisma.event.findMany({
         where: {
           status: "PUBLISHED",
           startAt: { gte: startOfDay, lt: endOfDay },

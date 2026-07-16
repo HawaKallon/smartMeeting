@@ -12,7 +12,7 @@ export default async function EditPublicEventPage({
   const user = await requireAdminRole();
   const p = await params;
 
-  const event = await prisma.publicEvent.findUnique({
+  const event = await prisma.event.findUnique({
     where: { id: p.id },
     include: { invitedMinistries: { select: { id: true } } },
   });
