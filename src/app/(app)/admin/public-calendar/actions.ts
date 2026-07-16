@@ -84,8 +84,7 @@ export async function createPublicEvent(
         externalUrl: data.externalUrl || null,
         contactEmail: data.contactEmail || null,
         contactPhone: data.contactPhone || null,
-        ministryId: user.ministryId,
-        createdById: user.id,
+        ministryId: user.ministryId!,
         status: "DRAFT",
         invitedMinistries: {
           connect: invitedMinistryIds.map((id) => ({ id })),
@@ -100,7 +99,7 @@ export async function createPublicEvent(
       action: "CREATE_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: event.id,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: event.title, invitedMinistryCount: invitedMinistryIds.length },
     });
   } catch (err) {
@@ -180,7 +179,7 @@ export async function updatePublicEvent(
       action: "UPDATE_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: updated.title, invitedMinistryCount: invitedMinistryIds.length },
     });
 
@@ -222,7 +221,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
       action: "PUBLISH_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: updated.title },
     });
 
@@ -336,7 +335,7 @@ export async function unpublishPublicEvent(eventId: string): Promise<ActionState
       action: "UNPUBLISH_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: updated.title },
     });
 
@@ -373,7 +372,7 @@ export async function deletePublicEvent(eventId: string): Promise<ActionState> {
       action: "DELETE_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: event.title },
     });
   } catch (err) {
