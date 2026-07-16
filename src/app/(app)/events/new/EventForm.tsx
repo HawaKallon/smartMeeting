@@ -146,6 +146,22 @@ export function EventForm({
         <textarea name="description" rows={3} className={field} />
       </div>
 
+      <div>
+        <label className={label}>Venue Name (optional)</label>
+        <input type="text" name="venueName" placeholder="e.g., Conference Hall, Room 201" className={field} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={label}>Contact Email (optional)</label>
+          <input type="email" name="contactEmail" placeholder="contact@example.com" className={field} />
+        </div>
+        <div>
+          <label className={label}>Contact Phone (optional)</label>
+          <input type="tel" name="contactPhone" placeholder="+232 76 123 456" className={field} />
+        </div>
+      </div>
+
       {isSuperAdminCreate && (
         <div>
           <label className={label}>Ministry</label>
