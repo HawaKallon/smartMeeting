@@ -225,11 +225,6 @@ export default async function EventDetailPage({
                   icon={<Zap className="h-4 w-4" />}
                   label="Check-in QR"
                 />
-                <ActionButton
-                  href={`/administrative/events/${id}/attendance`}
-                  icon={<Users className="h-4 w-4" />}
-                  label="Attendance"
-                />
               </>
             ) : null}
             {canViewMinutes ? (
