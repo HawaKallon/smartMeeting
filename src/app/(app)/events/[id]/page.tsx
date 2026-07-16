@@ -221,11 +221,6 @@ export default async function EventDetailPage({
                   label="Attendees"
                 />
                 <ActionButton
-                  href={`/administrative/events/${id}/letters`}
-                  icon={<FileText className="h-4 w-4" />}
-                  label="Letters"
-                />
-                <ActionButton
                   href={`/administrative/events/${id}/checkin-code`}
                   icon={<Zap className="h-4 w-4" />}
                   label="Check-in QR"
@@ -234,11 +229,6 @@ export default async function EventDetailPage({
                   href={`/administrative/events/${id}/attendance`}
                   icon={<Users className="h-4 w-4" />}
                   label="Attendance"
-                />
-                <ActionButton
-                  href={`/administrative/events/${id}/report`}
-                  icon={<FileText className="h-4 w-4" />}
-                  label="Write Report"
                 />
               </>
             ) : null}

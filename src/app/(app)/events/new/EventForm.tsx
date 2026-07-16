@@ -252,16 +252,6 @@ export function EventForm({
         />
       )}
 
-      <div>
-        <label className={label}>Letter color category</label>
-        <select name="colorCategory" defaultValue="" className={field}>
-          <option value="">None</option>
-          <option value="RED">Red — urgent / cabinet</option>
-          <option value="AMBER">Amber — internal</option>
-          <option value="GREEN">Green — routine</option>
-        </select>
-      </div>
-
       {/* ── Invite attendees ── */}
       <div>
         <label className={label}>Invite attendees</label>
