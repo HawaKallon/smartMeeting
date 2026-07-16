@@ -81,7 +81,7 @@ export async function GET(
         startAt: e.startAt,
         endAt: e.endAt,
         type: "event" as const,
-        organizer: e.organizer.name || "Unknown",
+        organizer: e.organizer?.name || "Unknown",
       })),
       ...bookings.map((b) => ({
         id: b.id,
