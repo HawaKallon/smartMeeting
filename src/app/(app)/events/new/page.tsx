@@ -7,14 +7,15 @@ import { isSuperAdmin } from "@/lib/roles";
 export default async function NewEventPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; view?: string }>;
 }) {
   const user = await requireUser();
   const superAdmin = isSuperAdmin(user.systemRole);
 
-  const { date } = await searchParams;
+  const { date, view } = await searchParams;
   // Only accept a well-formed YYYY-MM-DD prefill (e.g. from the calendar).
   const initialDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined;
+  const initialIsPublic = view === "public";
 
   const [rooms, ministries, coOrganizerCandidates] = await Promise.all([
     prisma.room.findMany({
@@ -77,6 +78,7 @@ export default async function NewEventPage({
           coOrganizerCandidates={coOrganizerCandidates}
           isSuperAdmin={superAdmin}
           initialDate={initialDate}
+          initialIsPublic={initialIsPublic}
         />
       </div>
     </div>
