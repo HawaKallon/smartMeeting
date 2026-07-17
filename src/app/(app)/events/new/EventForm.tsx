@@ -623,7 +623,8 @@ export function EventForm({
         />
       )}
 
-      {/* ── Invite attendees ── */}
+      {/* ── Invite attendees ── (internal events only) */}
+      {!isPublic && (
       <div>
         <label className={label}>Invite attendees</label>
         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -693,6 +694,7 @@ export function EventForm({
           </div>
         </div>
       </div>
+      )}
 
       <button
         type="submit"
