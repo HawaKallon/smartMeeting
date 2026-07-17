@@ -150,6 +150,7 @@ export function PublicEventForm({ event, ministries = [], userMinistryId }: Publ
           <label htmlFor="bannerImage" className="block text-sm font-medium text-foreground mb-2">
             Banner Image
           </label>
+          <p className="text-xs text-muted-foreground mb-2">Optional - Max 5MB, JPG/PNG recommended</p>
           {preview && (
             <div className="relative w-full h-40 mb-3 rounded-lg overflow-hidden">
               <Image src={preview} alt="Preview" fill className="object-cover" />

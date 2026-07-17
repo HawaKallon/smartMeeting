@@ -94,8 +94,7 @@ enum PublicEventCategory {
   WORKSHOP
   TRAINING
   MEETING
-  ANNOUNCEMENT
-  PUBLIC_NOTICE
+  LAUNCH
   OTHER
 }
 
