@@ -4,6 +4,7 @@ import { canManageEvent } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
 import { EditEventForm } from "./EditEventForm";
+import { PublicEventForm } from "@/components/PublicEventForm";
 
 export default async function EditEventPage({
   params,
@@ -15,23 +16,11 @@ export default async function EditEventPage({
 
   const event = await prisma.event.findUnique({
     where: { id },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      type: true,
-      scope: true,
-      classification: true,
-      roomId: true,
-      geofenceRadius: true,
-      startAt: true,
-      endAt: true,
-      colorCategory: true,
-      seriesId: true,
-      ministryId: true,
-      organizerId: true,
+    include: {
+      organizer: { select: { name: true, email: true } },
       coOrganizers: { select: { id: true } },
       series: { select: { frequency: true, interval: true, endType: true, count: true, until: true } },
+      invitedMinistries: { select: { id: true, name: true } },
     },
   });
 
@@ -48,10 +37,17 @@ export default async function EditEventPage({
     redirect("/administrative/forbidden");
   }
 
-  const rooms = await prisma.room.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, location: true, capacity: true },
-  });
+  const [rooms, ministries] = await Promise.all([
+    prisma.room.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, location: true, capacity: true },
+    }),
+    prisma.ministry.findMany({
+      where: { active: true },
+      select: { id: true, name: true, code: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -62,7 +58,11 @@ export default async function EditEventPage({
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
-        <EditEventForm event={event} rooms={rooms} />
+        {event.isPublic ? (
+          <PublicEventForm event={event} ministries={ministries} userMinistryId={event.ministryId} />
+        ) : (
+          <EditEventForm event={event} rooms={rooms} />
+        )}
       </div>
     </div>
   );
