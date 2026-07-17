@@ -247,7 +247,7 @@ export default async function CalendarDayPage({
               return (
                 <Link
                   key={event.id}
-                  href={`/administrative/admin/public-calendar/${event.id}`}
+                  href={`/administrative/events/${event.id}`}
                   className={`block rounded-lg border p-6 hover:bg-opacity-75 transition-colors group ${colorClass}`}
                 >
                   <div>
