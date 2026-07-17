@@ -54,6 +54,15 @@ export function EventForm({
   const [selectedMinistryId, setSelectedMinistryId] = useState("");
   const [selectedMinistries, setSelectedMinistries] = useState<string[]>([]);
   const [selectedCoOrganizers, setSelectedCoOrganizers] = useState<string[]>([]);
+  const [categoryInput, setCategoryInput] = useState("");
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  const defaultCategories = ["CONFERENCE", "WORKSHOP", "TRAINING", "MEETING", "LAUNCH", "OTHER"];
+  const filteredCategories = defaultCategories.filter((cat) =>
+    cat.toLowerCase().includes(categoryInput.toLowerCase())
+  );
+  const showCustomOption = categoryInput && !defaultCategories.some((cat) => cat.toLowerCase() === categoryInput.toLowerCase());
   // Combined datetime strings (YYYY-MM-DDTHH:mm). Seed from a calendar-day
   // prefill at 09:00-10:00; the native inputs drive changes.
   const [startAt, setStartAt] = useState(initialDate ? `${initialDate}T09:00` : "");
@@ -264,16 +273,61 @@ export function EventForm({
         <>
           <div>
             <label className={label}>Category</label>
-            <select name="category" className={field}>
-              <option value="">Select a category</option>
-              <option value="CONFERENCE">Conference</option>
-              <option value="WORKSHOP">Workshop</option>
-              <option value="TRAINING">Training</option>
-              <option value="MEETING">Meeting</option>
-              <option value="LAUNCH">Launch</option>
-              <option value="OTHER">Other</option>
-            </select>
-            <p className="mt-0.5 text-xs text-muted-foreground">Can't find what you need? Type to add a custom category.</p>
+            <input type="hidden" name="category" value={selectedCategory} />
+            <div className="relative">
+              <input
+                type="text"
+                value={categoryInput}
+                onChange={(e) => {
+                  setCategoryInput(e.target.value);
+                  setCategoryOpen(true);
+                }}
+                onFocus={() => setCategoryOpen(true)}
+                onBlur={() => setTimeout(() => setCategoryOpen(false), 150)}
+                placeholder="Select or type a category"
+                className={field}
+              />
+              {categoryOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg z-10">
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredCategories.length > 0 && (
+                      <>
+                        {filteredCategories.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(cat);
+                              setCategoryInput(cat === "CONFERENCE" ? "Conference" : cat === "WORKSHOP" ? "Workshop" : cat === "TRAINING" ? "Training" : cat === "MEETING" ? "Meeting" : cat === "LAUNCH" ? "Launch" : "Other");
+                              setCategoryOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
+                          >
+                            {cat === "CONFERENCE" ? "Conference" : cat === "WORKSHOP" ? "Workshop" : cat === "TRAINING" ? "Training" : cat === "MEETING" ? "Meeting" : cat === "LAUNCH" ? "Launch" : "Other"}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {showCustomOption && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(categoryInput.toUpperCase());
+                          setCategoryOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors border-t border-border text-sm text-muted-foreground"
+                      >
+                        + Add "{categoryInput}" as custom category
+                      </button>
+                    )}
+                    {filteredCategories.length === 0 && !showCustomOption && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">No categories match</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">Start typing to search or create a custom category</p>
           </div>
 
           <div>
