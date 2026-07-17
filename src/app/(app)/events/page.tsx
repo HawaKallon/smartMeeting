@@ -95,7 +95,14 @@ export default async function AllEventsPage({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Event register</p>
-          <h1 className="mt-2 text-2xl font-bold text-foreground">All Events</h1>
+          <div className="flex items-center gap-2 mt-2 mb-1">
+            <h1 className="text-2xl font-bold text-foreground">
+              {isPublicView ? "Public Events" : "Internal Events"}
+            </h1>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary text-foreground/80">
+              {isPublicView ? "Public" : "Internal"}
+            </span>
+          </div>
           <p className="mt-0.5 text-sm text-muted-foreground">View all events across past, present, and future</p>
         </div>
         <EventsViewToggle view={isPublicView ? "public" : "internal"} />
