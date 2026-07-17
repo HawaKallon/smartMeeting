@@ -90,7 +90,12 @@ export default async function CalendarDayPage({
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{dateLabel}</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold text-foreground">{dateLabel}</h1>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary text-foreground/80">
+              {view === "public" ? "Public Calendar" : "Internal Calendar"}
+            </span>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {events.length} event{events.length !== 1 ? "s" : ""} scheduled
           </p>

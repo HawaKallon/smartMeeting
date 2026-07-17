@@ -91,29 +91,22 @@ export default async function CalendarPage({
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {view === "public" ? "Public Calendar" : "Internal Calendar"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             View all upcoming events • <span className="text-blue-400">Click any date to see day view</span>
           </p>
         </div>
         <div className="flex items-center gap-4">
           <CalendarViewToggle view={view} year={year} month={month} />
-          {view === "internal" && canManageEvents(user.systemRole) && (
+          {(view === "internal" ? canManageEvents(user.systemRole) : (isMinistryAdminLevel(user.systemRole) || isSuperAdmin(user.systemRole))) && (
             <Link
               href="/administrative/events/new"
               className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
               Schedule Activity
-            </Link>
-          )}
-          {view === "public" && (isMinistryAdminLevel(user.systemRole) || isSuperAdmin(user.systemRole)) && (
-            <Link
-              href="/administrative/events?view=public"
-              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Manage Public Events
             </Link>
           )}
         </div>
