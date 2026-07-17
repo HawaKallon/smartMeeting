@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useState, KeyboardEvent } from "react";
-import { createEvent, type ActionState } from "../actions";
+import { useActionState, useState, useCallback, KeyboardEvent } from "react";
+import { createEvent, createRoomInline, type ActionState } from "../actions";
 import { RoomSchedulePreview } from "./RoomSchedulePreview";
 import { RecurrenceFields } from "@/components/RecurrenceFields";
-import { X } from "lucide-react";
+import { X, Plus, Upload } from "lucide-react";
 
 const field = "mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const publicCalendarField = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]";
@@ -58,6 +58,18 @@ export function EventForm({
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
 
+  // Banner image preview
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+
+  // Inline room creation
+  const [extraRooms, setExtraRooms] = useState<Room[]>([]);
+  const [showAddRoom, setShowAddRoom] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomLocation, setNewRoomLocation] = useState("");
+  const [newRoomCapacity, setNewRoomCapacity] = useState("");
+  const [addRoomPending, setAddRoomPending] = useState(false);
+  const [addRoomError, setAddRoomError] = useState("");
+
   const defaultCategories = ["CONFERENCE", "WORKSHOP", "TRAINING", "MEETING", "LAUNCH", "OTHER"];
   const filteredCategories = defaultCategories.filter((cat) =>
     cat.toLowerCase().includes(categoryInput.toLowerCase())
@@ -69,12 +81,22 @@ export function EventForm({
   const [endAt, setEndAt] = useState(initialDate ? `${initialDate}T10:00` : "");
   const ministryOptions = ministries ?? [];
   const isSuperAdminCreate = isSuperAdmin;
-  const availableRooms = isSuperAdminCreate
-    ? rooms.filter((room) => room.ministryId === selectedMinistryId)
-    : rooms;
+  const availableRooms = (isSuperAdminCreate
+    ? [...rooms, ...extraRooms].filter((room) => room.ministryId === selectedMinistryId)
+    : [...rooms, ...extraRooms]);
   const selectedMinistry = isSuperAdminCreate
     ? ministryOptions.find((ministry) => ministry.id === selectedMinistryId)
     : ministryOptions[0];
+
+  const handleBannerImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setBannerPreview(evt.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }, []);
   const selectedRoom = availableRooms.find((room) => room.id === selectedRoomId);
   const selectedMinistryHasCompound =
     selectedMinistry?.compoundLat != null && selectedMinistry?.compoundLng != null;
@@ -129,7 +151,6 @@ export function EventForm({
       )}
 
       <input type="hidden" name="isPublic" value={isPublic ? "true" : "false"} />
-      <input type="hidden" name="selectedMinistries" value={JSON.stringify(selectedMinistries)} />
       <input type="hidden" name="coOrganizerIds" value={JSON.stringify(selectedCoOrganizers)} />
 
       {/* Activity Type Toggle */}
@@ -165,11 +186,11 @@ export function EventForm({
         </div>
       )}
 
-      {/* For internal events: Room selection or custom venue */}
+      {/* For internal events: Room selection with inline creation */}
       {!isPublic && (
         <div>
           <label className={label}>Location</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-3">
             <select
               name="roomId"
               value={selectedRoomId}
@@ -186,10 +207,117 @@ export function EventForm({
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              onClick={() => setShowAddRoom(!showAddRoom)}
+              disabled={isSuperAdminCreate && !selectedMinistryId}
+              className="flex-shrink-0 rounded-md border border-border bg-muted/50 px-3 py-2 text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Add a new room"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Or enter a custom venue:</p>
-          <input type="text" name="venueName" placeholder="e.g., Conference Hall, External Location" className={field} />
-          <p className="mt-0.5 text-xs text-muted-foreground">If you add a room here regularly, contact IT to add it to the system.</p>
+
+          {/* Inline room creation panel */}
+          {showAddRoom && (
+            <div className="mb-3 rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+              <h3 className="text-sm font-medium text-foreground">Create New Room</h3>
+
+              {addRoomError && (
+                <div className="rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-400">
+                  {addRoomError}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-medium text-foreground/80">Room Name *</label>
+                <input
+                  type="text"
+                  value={newRoomName}
+                  onChange={(e) => setNewRoomName(e.target.value)}
+                  placeholder="e.g., Conference Room A"
+                  className={field}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground/80">Location *</label>
+                <input
+                  type="text"
+                  value={newRoomLocation}
+                  onChange={(e) => setNewRoomLocation(e.target.value)}
+                  placeholder="e.g., Floor 3"
+                  className={field}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground/80">Capacity *</label>
+                <input
+                  type="number"
+                  value={newRoomCapacity}
+                  onChange={(e) => setNewRoomCapacity(e.target.value)}
+                  placeholder="Maximum people"
+                  min="1"
+                  className={field}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setAddRoomError("");
+                    setAddRoomPending(true);
+                    try {
+                      const formData = new FormData();
+                      formData.append("name", newRoomName);
+                      formData.append("location", newRoomLocation);
+                      formData.append("capacity", newRoomCapacity);
+                      if (isSuperAdminCreate && selectedMinistryId) {
+                        formData.append("ministryId", selectedMinistryId);
+                      }
+
+                      const result = await createRoomInline(formData);
+
+                      if (result.error) {
+                        setAddRoomError(result.error);
+                      } else if (result.room) {
+                        setExtraRooms([...extraRooms, result.room]);
+                        setSelectedRoomId(result.room.id);
+                        setNewRoomName("");
+                        setNewRoomLocation("");
+                        setNewRoomCapacity("");
+                        setShowAddRoom(false);
+                      }
+                    } catch (err) {
+                      setAddRoomError("Failed to create room");
+                      console.error(err);
+                    } finally {
+                      setAddRoomPending(false);
+                    }
+                  }}
+                  disabled={addRoomPending || !newRoomName || !newRoomLocation || !newRoomCapacity}
+                  className="rounded-md bg-foreground px-3 py-2 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+                >
+                  {addRoomPending ? "Creating..." : "Create Room"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddRoom(false);
+                    setNewRoomName("");
+                    setNewRoomLocation("");
+                    setNewRoomCapacity("");
+                    setAddRoomError("");
+                  }}
+                  className="rounded-md border border-border bg-muted/50 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -358,7 +486,26 @@ export function EventForm({
 
           <div>
             <label className={label}>Banner Image</label>
-            <input type="file" name="bannerImage" accept="image/*" className={field} />
+            {bannerPreview && (
+              <div className="relative w-full h-40 mb-3 rounded-lg overflow-hidden border border-border">
+                <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <input
+              type="file"
+              id="bannerImage"
+              name="bannerImage"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleBannerImageChange}
+              className="sr-only"
+            />
+            <label
+              htmlFor="bannerImage"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors font-medium text-sm"
+            >
+              <Upload className="h-4 w-4" />
+              Choose Image
+            </label>
             <p className="mt-1 text-xs text-muted-foreground">Max 5MB, JPG/PNG recommended</p>
           </div>
 
@@ -369,30 +516,56 @@ export function EventForm({
 
           <div>
             <label className={label}>Invited Ministries</label>
+            <input type="hidden" name="invitedMinistryIds" value={JSON.stringify(selectedMinistries)} />
+
+            {/* Selected ministries chips */}
+            {selectedMinistries.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {selectedMinistries.map((id) => {
+                  const ministry = ministryOptions.find((m) => m.id === id);
+                  return ministry ? (
+                    <div
+                      key={id}
+                      className="flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-sm text-green-600"
+                    >
+                      <span>{ministry.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMinistries(selectedMinistries.filter((mid) => mid !== id))}
+                        className="ml-1 text-green-400 hover:text-green-700 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            )}
+
+            {/* Dropdown for selecting ministries */}
             <select
-              multiple
-              value={selectedMinistries}
+              value=""
               onChange={(e) => {
-                const options = Array.from(e.target.selectedOptions);
-                setSelectedMinistries(options.map((opt) => opt.value));
+                const id = e.target.value;
+                if (id && !selectedMinistries.includes(id)) {
+                  setSelectedMinistries([...selectedMinistries, id]);
+                }
+                e.target.value = "";
               }}
               className={field}
             >
-              <option value="">Select ministries</option>
-              {ministryOptions.map((ministry) => (
-                <option key={ministry.id} value={ministry.id}>
-                  {ministry.name} ({ministry.code})
-                </option>
-              ))}
+              <option value="">+ Add ministry</option>
+              {ministryOptions
+                .filter((m) => !selectedMinistries.includes(m.id))
+                .map((ministry) => (
+                  <option key={ministry.id} value={ministry.id}>
+                    {ministry.name} ({ministry.code})
+                  </option>
+                ))}
             </select>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Select ministries that will receive an invitation to this activity. (Hold Ctrl/Cmd to select multiple)
+              Select ministries that will receive an invitation to this activity.
             </p>
-            {selectedMinistries.length > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {selectedMinistries.length} ministr{selectedMinistries.length === 1 ? "y" : "ies"} selected
-              </p>
-            )}
           </div>
         </>
       )}
