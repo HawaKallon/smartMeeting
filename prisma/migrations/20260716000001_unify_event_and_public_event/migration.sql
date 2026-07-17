@@ -3,10 +3,10 @@
 
 -- Add isPublic flag and public event fields to Event
 ALTER TABLE "Event" ADD COLUMN "isPublic" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "Event" ADD COLUMN "category" VARCHAR(255); -- PublicEventCategory enum
+ALTER TABLE "Event" ADD COLUMN "category" "PublicEventCategory"; -- PublicEventCategory enum
 ALTER TABLE "Event" ADD COLUMN "bannerImage" TEXT;
 ALTER TABLE "Event" ADD COLUMN "externalUrl" TEXT;
-ALTER TABLE "Event" ADD COLUMN "status" VARCHAR(255) NOT NULL DEFAULT 'PUBLISHED'; -- PublicEventStatus enum
+ALTER TABLE "Event" ADD COLUMN "status" "PublicEventStatus" NOT NULL DEFAULT 'PUBLISHED'; -- PublicEventStatus enum
 ALTER TABLE "Event" ADD COLUMN "publishedAt" TIMESTAMP(3);
 ALTER TABLE "Event" ADD COLUMN "contactEmail" TEXT;
 ALTER TABLE "Event" ADD COLUMN "contactPhone" TEXT;
