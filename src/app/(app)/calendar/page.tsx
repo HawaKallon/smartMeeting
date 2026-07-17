@@ -109,7 +109,7 @@ export default async function CalendarPage({
           )}
           {view === "public" && (isMinistryAdminLevel(user.systemRole) || isSuperAdmin(user.systemRole)) && (
             <Link
-              href="/administrative/admin/public-calendar"
+              href="/administrative/events?view=public"
               className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -253,7 +253,7 @@ export default async function CalendarPage({
                             return (
                               <Link
                                 key={e.id}
-                                href={`/administrative/admin/public-calendar/${e.id}`}
+                                href={`/administrative/events/${e.id}`}
                                 className={`block truncate rounded px-2 py-1.5 text-xs font-medium transition-all hover:shadow-md group border ${colorClass}`}
                                 title={e.title}
                               >
