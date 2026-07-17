@@ -80,16 +80,6 @@ export function CreateRoomForm({
         </div>
       </div>
 
-      <div>
-        <label className={label}>Amenities (comma-separated)</label>
-        <input
-          type="text"
-          name="amenities"
-          className={field}
-          placeholder="e.g., Projector, Whiteboard, Video Conference"
-        />
-      </div>
-
       <button
         type="submit"
         disabled={isPending}

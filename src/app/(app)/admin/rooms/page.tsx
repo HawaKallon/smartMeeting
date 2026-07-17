@@ -40,7 +40,6 @@ export default async function AdminRoomsPage({
       name: true,
       capacity: true,
       location: true,
-      amenities: true,
       ministryId: true,
       ministry: { select: { name: true } },
       _count: { select: { bookings: true } },
@@ -89,9 +88,6 @@ export default async function AdminRoomsPage({
                   </th>
                 )}
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Amenities
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Bookings
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -125,22 +121,6 @@ export default async function AdminRoomsPage({
                       {room.ministry?.name ?? "—"}
                     </td>
                   )}
-                  <td className="px-6 py-3">
-                    {room.amenities && room.amenities.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {(room.amenities as string[]).map((amenity) => (
-                          <span
-                            key={amenity}
-                            className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600"
-                          >
-                            {amenity}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground/60">—</span>
-                    )}
-                  </td>
                   <td className="px-6 py-3 text-muted-foreground">{room._count.bookings}</td>
                   <td className="px-6 py-3">
                     <RoomRowActions roomId={room.id} roomName={room.name} />
