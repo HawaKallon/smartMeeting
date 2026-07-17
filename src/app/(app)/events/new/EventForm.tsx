@@ -230,7 +230,7 @@ export function EventForm({
       {!isPublic && (
         <>
           <div>
-            <label className={label}>Activity Type</label>
+            <label className={label}>Session Type</label>
             <select name="type" defaultValue="MEETING" className={field}>
               <option value="MEETING">Meeting</option>
               <option value="CONFERENCE">Conference</option>
