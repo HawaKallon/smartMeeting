@@ -234,7 +234,7 @@ export function EventForm({
             <select name="type" defaultValue="MEETING" className={field}>
               <option value="MEETING">Meeting</option>
               <option value="CONFERENCE">Conference</option>
-              <option value="APPOINTMENT">Appointment</option>
+              <option value="APPOINTMENT">External Appointment</option>
             </select>
           </div>
 
