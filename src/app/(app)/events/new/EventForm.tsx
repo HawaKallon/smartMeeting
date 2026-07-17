@@ -148,10 +148,41 @@ export function EventForm({
         <textarea name="description" rows={3} className={field} />
       </div>
 
-      <div>
-        <label className={label}>Venue Name (optional)</label>
-        <input type="text" name="venueName" placeholder="e.g., Conference Hall, Room 201" className={field} />
-      </div>
+      {/* For public events: Location field */}
+      {isPublic && (
+        <div>
+          <label className={label}>Location</label>
+          <input type="text" name="venueName" placeholder="e.g., Main Conference Hall, National Stadium" className={field} />
+        </div>
+      )}
+
+      {/* For internal events: Room selection or custom venue */}
+      {!isPublic && (
+        <div>
+          <label className={label}>Room / Venue</label>
+          <div className="flex gap-2">
+            <select
+              name="roomId"
+              value={selectedRoomId}
+              onChange={(e) => setSelectedRoomId(e.target.value)}
+              disabled={isSuperAdminCreate && !selectedMinistryId}
+              className={`${field} flex-1`}
+            >
+              <option value="">
+                {isSuperAdminCreate && !selectedMinistryId ? "Select a ministry first" : "Select a room"}
+              </option>
+              {availableRooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name} ({room.capacity} people) - {room.location}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Or enter a custom venue:</p>
+          <input type="text" name="venueName" placeholder="e.g., Conference Hall, External Location" className={field} />
+          <p className="mt-0.5 text-xs text-muted-foreground">If you add a room here regularly, contact IT to add it to the system.</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -189,70 +220,36 @@ export function EventForm({
       {/* Internal-only fields */}
       {!isPublic && (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={label}>Activity Type</label>
-              <select name="type" defaultValue="MEETING" className={field}>
-                <option value="MEETING">Meeting</option>
-                <option value="CONFERENCE">Conference</option>
-                <option value="APPOINTMENT">Appointment</option>
-              </select>
-            </div>
-            <div>
-              <label className={label}>Event Scope</label>
-              <select name="scope" defaultValue="TEAM" className={field}>
-                <option value="TEAM">Team / Informal</option>
-                <option value="OFFICIAL">Official / Formal</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={label}>Classification</label>
-              <select name="classification" defaultValue="PUBLIC" className={field}>
-                <option value="PUBLIC">Public / Internal</option>
-                <option value="RESTRICTED">Restricted / Secret</option>
-              </select>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mt-6">
-                Meeting minutes are published directly by the organizer for all meeting types.
-              </p>
-            </div>
+          <div>
+            <label className={label}>Activity Type</label>
+            <select name="type" defaultValue="MEETING" className={field}>
+              <option value="MEETING">Meeting</option>
+              <option value="CONFERENCE">Conference</option>
+              <option value="APPOINTMENT">Appointment</option>
+            </select>
           </div>
 
           <div>
             <label className={label}>Co-organizers *</label>
+            <select
+              multiple
+              value={selectedCoOrganizers}
+              onChange={(e) => {
+                const options = Array.from(e.target.selectedOptions);
+                setSelectedCoOrganizers(options.map((opt) => opt.value));
+              }}
+              className={field}
+            >
+              <option value="">Select co-organizers</option>
+              {coOrganizerCandidates.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name || candidate.email}
+                </option>
+              ))}
+            </select>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Select at least one person to co-organize this activity.
+              Select at least one person to co-organize this activity. (Hold Ctrl/Cmd to select multiple)
             </p>
-            {coOrganizerCandidates.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">No co-organizers available in your ministry.</p>
-            ) : (
-              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto border border-border rounded-md p-3 bg-muted/20">
-                {coOrganizerCandidates.map((candidate) => (
-                  <label key={candidate.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedCoOrganizers.includes(candidate.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedCoOrganizers([...selectedCoOrganizers, candidate.id]);
-                        } else {
-                          setSelectedCoOrganizers(selectedCoOrganizers.filter((id) => id !== candidate.id));
-                        }
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{candidate.name || candidate.email}</p>
-                      <p className="text-xs text-muted-foreground">{candidate.email}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
             {selectedCoOrganizers.length > 0 && (
               <p className="mt-2 text-xs text-muted-foreground">
                 {selectedCoOrganizers.length} co-organizer{selectedCoOrganizers.length !== 1 ? "s" : ""} selected
@@ -273,14 +270,14 @@ export function EventForm({
               <option value="WORKSHOP">Workshop</option>
               <option value="TRAINING">Training</option>
               <option value="MEETING">Meeting</option>
-              <option value="ANNOUNCEMENT">Announcement</option>
-              <option value="PUBLIC_NOTICE">Public Notice</option>
+              <option value="LAUNCH">Launch</option>
               <option value="OTHER">Other</option>
             </select>
+            <p className="mt-0.5 text-xs text-muted-foreground">Can't find what you need? Type to add a custom category.</p>
           </div>
 
           <div>
-            <label className={label}>Banner Image (optional)</label>
+            <label className={label}>Banner Image</label>
             <input type="file" name="bannerImage" accept="image/*" className={field} />
             <p className="mt-1 text-xs text-muted-foreground">Max 5MB, JPG/PNG recommended</p>
           </div>
@@ -291,36 +288,26 @@ export function EventForm({
           </div>
 
           <div>
-            <label className={label}>Invited Ministries (optional)</label>
+            <label className={label}>Invited Ministries</label>
+            <select
+              multiple
+              value={selectedMinistries}
+              onChange={(e) => {
+                const options = Array.from(e.target.selectedOptions);
+                setSelectedMinistries(options.map((opt) => opt.value));
+              }}
+              className={field}
+            >
+              <option value="">Select ministries</option>
+              {ministryOptions.map((ministry) => (
+                <option key={ministry.id} value={ministry.id}>
+                  {ministry.name} ({ministry.code})
+                </option>
+              ))}
+            </select>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Select ministries that will receive an invitation to this activity.
+              Select ministries that will receive an invitation to this activity. (Hold Ctrl/Cmd to select multiple)
             </p>
-            {ministryOptions.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">No ministries available.</p>
-            ) : (
-              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto border border-border rounded-md p-3 bg-muted/20">
-                {ministryOptions.map((ministry) => (
-                  <label key={ministry.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedMinistries.includes(ministry.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedMinistries([...selectedMinistries, ministry.id]);
-                        } else {
-                          setSelectedMinistries(selectedMinistries.filter((id) => id !== ministry.id));
-                        }
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{ministry.name}</p>
-                      <p className="text-xs text-muted-foreground">{ministry.code}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
             {selectedMinistries.length > 0 && (
               <p className="mt-2 text-xs text-muted-foreground">
                 {selectedMinistries.length} ministr{selectedMinistries.length === 1 ? "y" : "ies"} selected
@@ -367,37 +354,14 @@ export function EventForm({
       {/* Hidden geofence fields */}
       <input type="hidden" name="geofenceRadius" value="100" />
 
-      {/* Room Selection */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={label}>Room (optional)</label>
-          <select
-            name="roomId"
-            value={selectedRoomId}
-            onChange={(e) => setSelectedRoomId(e.target.value)}
-            disabled={isSuperAdminCreate && !selectedMinistryId}
-            className={field}
-          >
-            <option value="">
-              {isSuperAdminCreate && !selectedMinistryId ? "Select a ministry first" : "Select a room"}
-            </option>
-            {availableRooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.name} ({room.capacity} people) - {room.location}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {selectedRoom && selectedMinistry && !selectedMinistryHasCompound && (
+      {/* Room Schedule Preview - internal events only */}
+      {!isPublic && selectedRoom && selectedMinistry && !selectedMinistryHasCompound && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {selectedMinistry.name} has no compound coordinates yet. This room-based meeting can be created, but QR check-in will not enforce on-site location until the ministry compound is configured.
         </p>
       )}
 
-      {/* Room Schedule Preview */}
-      {selectedRoomId && startAt && endAt && (
+      {!isPublic && selectedRoomId && startAt && endAt && (
         <RoomSchedulePreview
           roomId={selectedRoomId}
           startAt={startAt}
