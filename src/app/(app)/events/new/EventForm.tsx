@@ -4,7 +4,7 @@ import { useActionState, useState, useCallback, KeyboardEvent } from "react";
 import { createEvent, createRoomInline, type ActionState } from "../actions";
 import { RoomSchedulePreview } from "./RoomSchedulePreview";
 import { RecurrenceFields } from "@/components/RecurrenceFields";
-import { X, Plus, Upload } from "lucide-react";
+import { X, Plus, Upload, Building2, Globe } from "lucide-react";
 
 const field = "mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const publicCalendarField = "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]";
@@ -156,15 +156,31 @@ export function EventForm({
       {/* Activity Type Toggle */}
       <div>
         <label className={label}>Activity Type</label>
-        <div className="mt-2 flex gap-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" checked={!isPublic} onChange={() => setIsPublic(false)} className="w-4 h-4" />
-            <span className="text-sm">Internal Activity</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" checked={isPublic} onChange={() => setIsPublic(true)} className="w-4 h-4" />
-            <span className="text-sm">Public Activity</span>
-          </label>
+        <div className="mt-3 rounded-xl border border-border bg-muted/30 p-1 flex gap-1">
+          <button
+            type="button"
+            onClick={() => setIsPublic(false)}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+              !isPublic
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-secondary/50"
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            <span>Internal Activity</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsPublic(true)}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+              isPublic
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-secondary/50"
+            }`}
+          >
+            <Globe className="h-4 w-4" />
+            <span>Public Activity</span>
+          </button>
         </div>
       </div>
 
