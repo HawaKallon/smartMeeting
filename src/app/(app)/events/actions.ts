@@ -469,3 +469,78 @@ export async function checkRoomAvailability(
     return { ok: false, error: "Failed to check room availability" };
   }
 }
+
+export async function createRoomInline(
+  formData: FormData,
+): Promise<{ room?: { id: string; name: string; location: string; capacity: number; ministryId: string }; error?: string }> {
+  try {
+    const user = await requireUser();
+
+    const name = formData.get("name") as string;
+    const location = formData.get("location") as string;
+    const capacity = parseInt(formData.get("capacity") as string);
+
+    if (!name || !location || !capacity || isNaN(capacity)) {
+      return { error: "All fields are required" };
+    }
+
+    if (capacity < 1) {
+      return { error: "Capacity must be at least 1" };
+    }
+
+    let ministryId: string;
+    if (isSuperAdmin(user.systemRole)) {
+      ministryId = formData.get("ministryId") as string;
+      if (!ministryId) {
+        return { error: "Ministry is required" };
+      }
+      const ministry = await prisma.ministry.findUnique({ where: { id: ministryId } });
+      if (!ministry) {
+        return { error: "Invalid ministry" };
+      }
+    } else {
+      if (!user.ministryId) {
+        return { error: "Cannot create rooms without a ministry context" };
+      }
+      ministryId = user.ministryId;
+    }
+
+    try {
+      const room = await prisma.room.create({
+        data: {
+          ministryId,
+          name,
+          location,
+          capacity,
+        },
+      });
+
+      await audit({
+        actorId: user.id,
+        action: "CREATE_ROOM",
+        entityType: "Room",
+        entityId: room.id,
+        metadata: { name, location, capacity },
+        ministryId,
+      });
+
+      return {
+        room: {
+          id: room.id,
+          name: room.name,
+          location: room.location,
+          capacity: room.capacity,
+          ministryId: room.ministryId,
+        },
+      };
+    } catch (dbErr: any) {
+      if (dbErr.code === "P2002") {
+        return { error: "A room with that name already exists in your ministry" };
+      }
+      throw dbErr;
+    }
+  } catch (err) {
+    console.error("Failed to create room:", err);
+    return { error: "Failed to create room" };
+  }
+}
