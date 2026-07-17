@@ -40,7 +40,7 @@ const EventSchema = z
     recurrenceCount: z.coerce.number().int().positive().max(MAX_OCCURRENCES).optional(),
     recurrenceUntil: z.coerce.date().optional(),
     // Public event fields
-    category: z.enum(["CONFERENCE", "WORKSHOP", "TRAINING", "MEETING", "ANNOUNCEMENT", "PUBLIC_NOTICE", "OTHER"]).optional(),
+    category: z.enum(["CONFERENCE", "WORKSHOP", "TRAINING", "MEETING", "LAUNCH", "OTHER"]).optional(),
     bannerImage: z.string().optional(),
     externalUrl: z.string().url().optional(),
     coOrganizerIds: z.string().optional(), // JSON string of array
