@@ -199,11 +199,7 @@ async function main() {
 
   // Create super-admin users
   console.log("\n👑 Creating super-admin users...");
-  const superAdminPasswordHash = await bcrypt.hash("platform88pass", 10);
-  const keepEmails = SUPER_ADMIN_USERS.map((u) => u.email);
-  await prisma.user.deleteMany({
-    where: { email: { notIn: keepEmails } },
-  });
+  const superAdminPasswordHash = await bcrypt.hash("password123", 10);
   for (const u of SUPER_ADMIN_USERS) {
     await prisma.user.upsert({
       where: { email: u.email },
