@@ -3,8 +3,10 @@ import { requireStaffRole, ministryScope } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { COLOR_META } from "@/lib/colors";
-import { Calendar, Clock, MapPin } from "lucide-react";
-import type { ColorCategory } from "@/generated/prisma/enums";
+import { Calendar, Clock, MapPin, Globe, Lock } from "lucide-react";
+import { EventsViewToggle } from "./EventsViewToggle";
+import { getCategoryLabel } from "@/lib/public-event-categories";
+import type { ColorCategory, PublicEventCategory } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
 type EventListItem = Prisma.EventGetPayload<{
@@ -16,15 +18,25 @@ type EventListItem = Prisma.EventGetPayload<{
     description: true;
     type: true;
     colorCategory: true;
+    isPublic: true;
+    category: true;
+    status: true;
     room: { select: { name: true; location: true } };
     venueName: true;
     organizer: { select: { name: true } };
+    ministry: { select: { name: true } };
     _count: { select: { attendances: true; attendees: true } };
   };
 }>;
 
-export default async function AllEventsPage() {
+export default async function AllEventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const user = await requireStaffRole();
+  const { view = "internal" } = await searchParams;
+  const isPublicView = view === "public";
 
   const now = new Date();
 
@@ -36,22 +48,31 @@ export default async function AllEventsPage() {
     description: true,
     type: true,
     colorCategory: true,
+    isPublic: true,
+    category: true,
+    status: true,
     room: { select: { name: true, location: true } },
     venueName: true,
     organizer: { select: { name: true } },
+    ministry: { select: { name: true } },
     _count: { select: { attendances: true, attendees: true } },
+  };
+
+  const baseWhere = {
+    ...ministryScope(user),
+    isPublic: isPublicView,
   };
 
   const [upcoming, present, past] = await Promise.all([
     prisma.event.findMany({
-      where: { ...ministryScope(user), startAt: { gt: now } },
+      where: { ...baseWhere, startAt: { gt: now } },
       orderBy: { startAt: "asc" },
       take: 20,
       select: selectBlock,
     }),
     prisma.event.findMany({
       where: {
-        ...ministryScope(user),
+        ...baseWhere,
         startAt: { lte: now },
         endAt: { gte: now },
       },
@@ -60,7 +81,7 @@ export default async function AllEventsPage() {
       select: selectBlock,
     }),
     prisma.event.findMany({
-      where: { ...ministryScope(user), endAt: { lt: now } },
+      where: { ...baseWhere, endAt: { lt: now } },
       orderBy: { startAt: "desc" },
       take: 20,
       select: selectBlock,
@@ -71,10 +92,13 @@ export default async function AllEventsPage() {
     <div className="space-y-6">
       <BackButton href="/administrative" label="Dashboard" />
 
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Event register</p>
-        <h1 className="mt-2 text-2xl font-bold text-foreground">All Events</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">View all events across past, present, and future</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Event register</p>
+          <h1 className="mt-2 text-2xl font-bold text-foreground">All Events</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">View all events across past, present, and future</p>
+        </div>
+        <EventsViewToggle view={isPublicView ? "public" : "internal"} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -142,7 +166,19 @@ function EventSection({
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  {event.colorCategory ? (
+                  {event.isPublic ? (
+                    event.status === "PUBLISHED" ? (
+                      <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#cfe5d7] bg-[#edf8f1] px-2 py-0.5 text-xs font-medium text-[#007236]">
+                        <Globe className="h-3 w-3" />
+                        Published
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#fde8a6] bg-[#fff7dd] px-2 py-0.5 text-xs font-medium text-[#946200]">
+                        <Lock className="h-3 w-3" />
+                        Draft
+                      </span>
+                    )
+                  ) : event.colorCategory ? (
                     <span className={`h-2 w-2 flex-shrink-0 rounded-full ${COLOR_META[event.colorCategory as ColorCategory].dot}`} />
                   ) : (
                     <span className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30" />
@@ -177,8 +213,20 @@ function EventSection({
                     </div>
                   ) : null}
 
-                  {event.organizer && (
-                    <div>by {event.organizer.name}</div>
+                  {event.isPublic ? (
+                    event.ministry && (
+                      <div>by {event.ministry.name}</div>
+                    )
+                  ) : (
+                    event.organizer && (
+                      <div>by {event.organizer.name}</div>
+                    )
+                  )}
+
+                  {event.isPublic && event.category && (
+                    <div className="text-xs font-medium text-foreground">
+                      {getCategoryLabel(event.category as PublicEventCategory)}
+                    </div>
                   )}
                 </div>
               </div>
