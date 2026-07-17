@@ -30,19 +30,21 @@ export function EventForm({
   coOrganizerCandidates = [],
   isSuperAdmin = false,
   initialDate,
+  initialIsPublic = false,
 }: {
   rooms: Room[];
   ministries?: Ministry[];
   coOrganizerCandidates?: CoOrganizerCandidate[];
   isSuperAdmin?: boolean;
   initialDate?: string;
+  initialIsPublic?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     createEvent,
     undefined,
   );
 
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
