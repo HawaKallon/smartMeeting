@@ -168,7 +168,7 @@ export function EventForm({
       {/* For internal events: Room selection or custom venue */}
       {!isPublic && (
         <div>
-          <label className={label}>Room / Venue</label>
+          <label className={label}>Location</label>
           <div className="flex gap-2">
             <select
               name="roomId"
@@ -240,30 +240,56 @@ export function EventForm({
 
           <div>
             <label className={label}>Co-organizers *</label>
+            <input type="hidden" name="coOrganizerIds" value={JSON.stringify(selectedCoOrganizers)} />
+
+            {/* Selected co-organizers chips */}
+            {selectedCoOrganizers.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {selectedCoOrganizers.map((id) => {
+                  const candidate = coOrganizerCandidates.find((c) => c.id === id);
+                  return candidate ? (
+                    <div
+                      key={id}
+                      className="flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-sm text-blue-600"
+                    >
+                      <span>{candidate.name || candidate.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCoOrganizers(selectedCoOrganizers.filter((cid) => cid !== id))}
+                        className="ml-1 text-blue-400 hover:text-blue-700 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            )}
+
+            {/* Dropdown for selecting co-organizers */}
             <select
-              multiple
-              value={selectedCoOrganizers}
+              value=""
               onChange={(e) => {
-                const options = Array.from(e.target.selectedOptions);
-                setSelectedCoOrganizers(options.map((opt) => opt.value));
+                const id = e.target.value;
+                if (id && !selectedCoOrganizers.includes(id)) {
+                  setSelectedCoOrganizers([...selectedCoOrganizers, id]);
+                }
+                e.target.value = "";
               }}
               className={field}
             >
-              <option value="">Select co-organizers</option>
-              {coOrganizerCandidates.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.name || candidate.email}
-                </option>
-              ))}
+              <option value="">+ Add co-organizer</option>
+              {coOrganizerCandidates
+                .filter((c) => !selectedCoOrganizers.includes(c.id))
+                .map((candidate) => (
+                  <option key={candidate.id} value={candidate.id}>
+                    {candidate.name || candidate.email} ({candidate.email})
+                  </option>
+                ))}
             </select>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Select at least one person to co-organize this activity. (Hold Ctrl/Cmd to select multiple)
+              Select at least one person to co-organize this activity.
             </p>
-            {selectedCoOrganizers.length > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {selectedCoOrganizers.length} co-organizer{selectedCoOrganizers.length !== 1 ? "s" : ""} selected
-              </p>
-            )}
           </div>
         </>
       )}
