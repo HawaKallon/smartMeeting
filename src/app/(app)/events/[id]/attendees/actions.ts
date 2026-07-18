@@ -437,6 +437,7 @@ const ManualCheckInSchema = z.object({
   eventId: z.string().min(1),
   attendeeId: z.string().optional(),
   externalName: z.string().optional(),
+  externalEmail: z.string().email().optional(),
 }).refine((d) => d.attendeeId || d.externalName, {
   message: "Select an invitee or enter a name",
 });
@@ -452,10 +453,11 @@ export async function manualCheckIn(
       eventId: formData.get("eventId"),
       attendeeId: formData.get("attendeeId") || undefined,
       externalName: formData.get("externalName") || undefined,
+      externalEmail: formData.get("externalEmail") || undefined,
     });
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-    const { eventId, attendeeId, externalName } = parsed.data;
+    const { eventId, attendeeId, externalName, externalEmail } = parsed.data;
 
     const event = await prisma.event.findFirst({
       where: { id: eventId } as Prisma.EventWhereInput,
@@ -477,7 +479,7 @@ export async function manualCheckIn(
 
     let userId: string | null = null;
     let guestName: string | null = externalName ?? null;
-    let guestEmail: string | null = null;
+    let guestEmail: string | null = externalEmail ?? null;
 
     if (attendeeId) {
       const invite = await prisma.eventAttendee.findFirst({
