@@ -22,7 +22,7 @@ export async function markRead(notificationId: string): Promise<{ ok?: boolean; 
       data: { read: true },
     });
 
-    revalidatePath("/notifications");
+    revalidatePath("/administrative/notifications");
     return { ok: true };
   } catch (err) {
     console.error("Failed to mark notification as read:", err);
@@ -30,7 +30,7 @@ export async function markRead(notificationId: string): Promise<{ ok?: boolean; 
   }
 }
 
-export async function markAllRead(): Promise<{ ok?: boolean; error?: string }> {
+export async function markAllRead(): Promise<void> {
   try {
     const user = await requireUser();
 
@@ -39,10 +39,23 @@ export async function markAllRead(): Promise<{ ok?: boolean; error?: string }> {
       data: { read: true },
     });
 
-    revalidatePath("/notifications");
-    return { ok: true };
+    revalidatePath("/administrative/notifications");
   } catch (err) {
     console.error("Failed to mark all notifications as read:", err);
-    return { error: "Failed to update notifications" };
+  }
+}
+
+export async function getRecentNotifications() {
+  try {
+    const user = await requireUser();
+
+    return await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+  } catch (err) {
+    console.error("Failed to fetch notifications:", err);
+    return [];
   }
 }

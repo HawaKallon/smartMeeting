@@ -1,17 +1,34 @@
 import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
-import { Calendar, MapPin, Users, Clock } from "lucide-react";
 import Link from "next/link";
 import { AvailabilityDatePicker } from "./AvailabilityDatePicker";
 import { RoomSelect } from "./RoomSelect";
+import type { Prisma } from "@/generated/prisma/client";
+
+type SelectedRoom = Prisma.RoomGetPayload<{
+  include: {
+    bookings: {
+      include: { user: { select: { name: true; email: true } } };
+    };
+    events: {
+      select: {
+        id: true;
+        title: true;
+        startAt: true;
+        endAt: true;
+        organizer: { select: { name: true } };
+      };
+    };
+  };
+}>;
 
 export default async function RoomAvailabilityPage({
   searchParams,
 }: {
   searchParams: Promise<{ roomId?: string; date?: string }>;
 }) {
-  const user = await requireUser();
+  await requireUser();
   const sp = await searchParams;
 
   const rooms = await prisma.room.findMany({
@@ -19,33 +36,12 @@ export default async function RoomAvailabilityPage({
     select: { id: true, name: true, location: true, capacity: true },
   });
 
-  let selectedRoom = null;
+  let selectedRoom: SelectedRoom | null = null;
   let selectedDate = new Date();
-  let dayBookings: any[] = [];
-  let dayEvents: any[] = [];
+  let dayBookings: SelectedRoom["bookings"] = [];
+  let dayEvents: SelectedRoom["events"] = [];
 
   if (sp.roomId) {
-    selectedRoom = await prisma.room.findUnique({
-      where: { id: sp.roomId },
-      include: {
-        bookings: {
-          where: { status: "CONFIRMED" },
-          orderBy: { startTime: "asc" },
-          include: { user: { select: { name: true, email: true } } },
-        },
-        events: {
-          orderBy: { startAt: "asc" },
-          select: {
-            id: true,
-            title: true,
-            startAt: true,
-            endAt: true,
-            organizer: { select: { name: true } },
-          },
-        },
-      },
-    });
-
     if (sp.date) {
       const [year, month, day] = sp.date.split("-").map(Number);
       selectedDate = new Date(year, month - 1, day);
@@ -58,13 +54,38 @@ export default async function RoomAvailabilityPage({
     );
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
+    selectedRoom = await prisma.room.findUnique({
+      where: { id: sp.roomId },
+      include: {
+        bookings: {
+          where: {
+            status: "CONFIRMED",
+            startTime: { gte: startOfDay },
+            endTime: { lte: endOfDay },
+          },
+          orderBy: { startTime: "asc" },
+          include: { user: { select: { name: true, email: true } } },
+        },
+        events: {
+          where: {
+            startAt: { gte: startOfDay },
+            endAt: { lte: endOfDay },
+          },
+          orderBy: { startAt: "asc" },
+          select: {
+            id: true,
+            title: true,
+            startAt: true,
+            endAt: true,
+            organizer: { select: { name: true } },
+          },
+        },
+      },
+    });
+
     if (selectedRoom) {
-      dayBookings = selectedRoom.bookings.filter(
-        (b) => b.startTime >= startOfDay && b.startTime < endOfDay
-      );
-      dayEvents = selectedRoom.events.filter(
-        (e) => e.startAt >= startOfDay && e.startAt < endOfDay
-      );
+      dayBookings = selectedRoom.bookings;
+      dayEvents = selectedRoom.events;
     }
   }
 
@@ -88,7 +109,7 @@ export default async function RoomAvailabilityPage({
       title: e.title,
       startTime: e.startAt,
       endTime: e.endAt,
-      user: e.organizer.name,
+      user: e.organizer?.name ?? "System",
     })),
   ].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
@@ -120,7 +141,7 @@ export default async function RoomAvailabilityPage({
 
   return (
     <div className="space-y-6">
-      <BackButton href="/rooms" label="Rooms" />
+      <BackButton href="/administrative/rooms" label="Rooms" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Room Availability</h1>
@@ -271,12 +292,12 @@ export default async function RoomAvailabilityPage({
             </div>
           )}
 
-          {/* Create Event Button */}
+          {/* Schedule Activity Button */}
           <Link
-            href={`/events/new`}
+            href={`/administrative/events/new`}
             className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
           >
-            Create Event with This Room
+            Schedule Activity in This Room
           </Link>
         </>
       )}

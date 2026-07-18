@@ -5,19 +5,31 @@ import { Calendar, MapPin, Users, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 export default async function RoomDetailPage({ params }: { params: { id: string } }) {
-  const user = await requireUser();
+  await requireUser();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in90Days = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
 
   const room = await prisma.room.findUnique({
     where: { id: params.id },
     include: {
       bookings: {
-        where: { status: "CONFIRMED" },
+        where: {
+          status: "CONFIRMED",
+          endTime: { gte: today },
+          startTime: { lte: in90Days },
+        },
         orderBy: { startTime: "asc" },
         include: {
           user: { select: { id: true, name: true, email: true } },
         },
       },
       events: {
+        where: {
+          endAt: { gte: today },
+          startAt: { lte: in90Days },
+        },
         orderBy: { startAt: "asc" },
         select: {
           id: true,
@@ -33,7 +45,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
   if (!room) {
     return (
       <div className="space-y-6">
-        <BackButton href="/rooms" label="Rooms" />
+        <BackButton href="/administrative/rooms" label="Rooms" />
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
           <p className="text-red-400">Room not found</p>
         </div>
@@ -41,15 +53,12 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const upcomingBookings = room.bookings.filter((b) => b.endTime > today);
-  const upcomingEvents = room.events.filter((e) => e.endAt > today);
+  const upcomingBookings = room.bookings;
+  const upcomingEvents = room.events;
 
   return (
     <div className="space-y-6">
-      <BackButton href="/rooms" label="Rooms" />
+      <BackButton href="/administrative/rooms" label="Rooms" />
 
       {/* Room Header */}
       <div className="space-y-4">
@@ -68,7 +77,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
             </div>
           </div>
           <Link
-            href="/rooms/book"
+            href="/administrative/rooms/book"
             className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
           >
             Book Room
@@ -145,7 +154,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
                     </div>
                   )}
                   {booking.notes && (
-                    <p className="mt-2 text-xs text-muted-foreground italic">"{booking.notes}"</p>
+                    <p className="mt-2 text-xs text-muted-foreground italic">&quot;{booking.notes}&quot;</p>
                   )}
                 </div>
               ))
@@ -171,7 +180,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
               upcomingEvents.map((event) => (
                 <Link
                   key={event.id}
-                  href={`/events/${event.id}`}
+                  href={`/administrative/events/${event.id}`}
                   className="block px-6 py-4 hover:bg-muted/20 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -180,7 +189,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
                         {event.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {event.organizer.name || event.organizer.email}
+                        {(event.organizer?.name || event.organizer?.email) ?? "System"}
                       </p>
                     </div>
                     <div className="whitespace-nowrap text-right text-xs text-muted-foreground">
@@ -212,7 +221,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
           <div>
             <p className="text-sm font-medium text-amber-400">Booking & Event Overlap</p>
             <p className="text-xs text-amber-400/80 mt-1">
-              This room has both bookings and scheduled events. Make sure times don't conflict.
+              This room has both bookings and scheduled events. Make sure times don&apos;t conflict.
             </p>
           </div>
         </div>

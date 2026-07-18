@@ -13,20 +13,25 @@ datasource db {
 // ── Enums ───────────────────────────────────────────────────────────────────
 
 /// Ministry role hierarchy (PRD §7 RBAC).
-enum MinistryRole {
+
+/// System role: what a user can do (access level), independent of job title.
+enum SystemRole {
+  SUPER_ADMIN
   MINISTER
-  PERMANENT_SECRETARY
-  DEPUTY_MINISTER
-  DEPUTY_SECRETARY
-  ADMIN_STAFF
-  ADMIN
-  SUPER_ADMIN // platform super-admin, across all ministries
+  MINISTRY_ADMIN
+  STAFF
 }
 
+/// Activity type for internal activities only (public activities use PublicEventCategory instead).
 enum EventType {
   MEETING
   CONFERENCE
   APPOINTMENT
+}
+
+enum EventScope {
+  OFFICIAL  // Ministry business, approver required
+  TEAM      // Team/personal meeting, no approver required
 }
 
 enum RecurrenceFrequency {
@@ -78,10 +83,30 @@ enum MinutesStatus {
   PUBLISHED
 }
 
+/// Public calendar event status — separate from internal smart-meeting events.
+enum PublicEventStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum PublicEventCategory {
+  CONFERENCE
+  WORKSHOP
+  TRAINING
+  MEETING
+  LAUNCH
+  OTHER
+}
+
 enum ActionItemStatus {
   TODO
   IN_PROGRESS
   DONE
+}
+
+enum ActionItemPoint {
+  ACTION_POINT
+  AGREED
 }
 
 enum RoomBookingPurpose {
@@ -98,11 +123,6 @@ enum RoomBookingStatus {
   CANCELLED
 }
 
-enum PublicEventStatus {
-  DRAFT
-  PUBLISHED
-}
-
 // ── Core models ─────────────────────────────────────────────────────────────
 
 model Ministry {
@@ -111,6 +131,7 @@ model Ministry {
   code        String   @unique // short slug, e.g. "MOH"
   emailDomain String?  @unique // gov.sl subdomain that maps logins to this ministry, e.g. "mocti.gov.sl"
   active      Boolean  @default(true)
+  compoundMaxGpsAccuracy Int @default(75)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -121,7 +142,7 @@ model Ministry {
   roomBookings  RoomBooking[]
   auditLogs     AuditLog[]
   notifications Notification[]
-  publicEvents  PublicEvent[]
+  invitedToEvents Event[] @relation("EventPublicInvites")
 }
 
 model User {
@@ -129,7 +150,8 @@ model User {
   email         String       @unique
   name          String?
   passwordHash  String? // for credential/OTP fallback
-  role          MinistryRole @default(DEPUTY_SECRETARY)
+  systemRole    SystemRole @default(STAFF) // what the user can do (access level)
+  jobTitle      String? // P2: who the user is (org title, e.g. "Minister", "Director")
   ministryId    String? // null for SUPER_ADMIN users
   ministry      Ministry?    @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   active        Boolean      @default(true) // deactivated users cannot log in
@@ -138,36 +160,44 @@ model User {
   image         String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?    // soft delete timestamp (only set by ministry admins; superadmins hard-delete)
 
   // Preferences
-  emailNotifications        Boolean @default(true)
-  meetingReminders          Boolean @default(true)
-  actionItemNotifications   Boolean @default(true)
-  theme                     String  @default("dark") // dark, light, auto
-  compactMode               Boolean @default(false)
-  sessionTimeout            Int     @default(30) // minutes
-  autoDeleteRecordings      Boolean @default(false)
+  emailNotifications      Boolean @default(true)
+  minutesNotifications    Boolean @default(true)      // P6: minutes publication notifications
+  meetingReminders        Boolean @default(true)
+  actionItemNotifications Boolean @default(true)
+  theme                   String  @default("dark") // dark, light, auto
+  compactMode             Boolean @default(false)
+  sessionTimeout          Int     @default(30) // minutes
+  autoDeleteRecordings    Boolean @default(false)
 
-  organizedEvents     Event[]         @relation("EventOrganizer")
-  coOrganizedEvents   Event[]         @relation("EventCoOrganizers")
-  eventSeries         EventSeries[]   @relation("SeriesOrganizer")
-  attendeeOf          EventAttendee[]
-  attendances         Attendance[]
-  actionItems         ActionItem[]    @relation("ActionItemOwner")
-  minutesApproved     Minutes[]       @relation("MinutesApprover")
-  auditLogs           AuditLog[]
-  notifications       Notification[]
-  publicEventsCreated PublicEvent[]   @relation("PublicEventCreator")
-  roomBookings        RoomBooking[]   @relation("RoomBookings")
-  accounts            Account[]
-  sessions            Session[]
+  organizedEvents   Event[]         @relation("EventOrganizer")
+  coOrganizedEvents Event[]         @relation("EventCoOrganizers")
+  eventSeries       EventSeries[]   @relation("SeriesOrganizer")
+  attendeeOf        EventAttendee[]
+  attendances       Attendance[]
+  actionItems       ActionItem[]    @relation("ActionItemOwner")
+  assignedActionItems ActionItem[]  @relation("ActionItemAssignedBy")
+  minutesDrafted    Minutes[]       @relation("MinutesDrafted")
+  minutesApproved   Minutes[]       @relation("MinutesApprover")
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  roomBookings      RoomBooking[]   @relation("RoomBookings")
+  accounts          Account[]
+  sessions          Session[]
+
+  @@index([ministryId])
+  @@index([ministryId, systemRole])
 }
 
 model Event {
   id             String         @id @default(cuid())
   title          String
   description    String?
+  isPublic       Boolean        @default(false) // false = internal activity, true = public activity
   type           EventType      @default(MEETING)
+  scope          EventScope     @default(TEAM) // P4: governance vs. team scope
   startAt        DateTime
   endAt          DateTime
   venueName      String?
@@ -179,9 +209,9 @@ model Event {
   ministryId     String
   ministry       Ministry       @relation(fields: [ministryId], references: [id], onDelete: Cascade)
   roomId         String?
-  organizerId    String
-  organizer      User           @relation("EventOrganizer", fields: [organizerId], references: [id])
-  coOrganizers   User[]         @relation("EventCoOrganizers") // helpers who can also manage the event
+  organizerId    String? // null for public activities (ministry-level ownership, no organizer)
+  organizer      User?          @relation("EventOrganizer", fields: [organizerId], references: [id])
+  coOrganizers   User[]         @relation("EventCoOrganizers") // helpers who can also manage the event; mandatory at creation for internal activities
   room           Room?          @relation("EventRoom", fields: [roomId], references: [id])
   reminderSentAt DateTime? // set once the 1h-before-start reminder has been emailed (idempotency)
   seriesId       String? // links recurring occurrences to their EventSeries
@@ -189,9 +219,20 @@ model Event {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
+  // Public-activity-only fields (category replaces `type` when isPublic)
+  category       PublicEventCategory?
+  bannerImage    String?
+  externalUrl    String?
+  status         PublicEventStatus @default(PUBLISHED) // internal activities are implicitly live; public activities use DRAFT/PUBLISHED
+  publishedAt    DateTime?
+  invitedMinistries Ministry[] @relation("EventPublicInvites")
+
+  // Contact details (both internal and public activities)
+  contactEmail   String?
+  contactPhone   String?
+
   attendees   EventAttendee[]
   attendances Attendance[]
-  letters     Letter[]
   recordings  Recording[]
   minutes     Minutes?
   qrTokens    QRToken[]
@@ -200,31 +241,11 @@ model Event {
   @@index([organizerId])
   @@index([seriesId])
   @@index([ministryId])
-}
-
-model PublicEvent {
-  id           String            @id @default(cuid())
-  title        String
-  description  String?
-  category     String? // free tag, e.g. "Conference", "Public Notice", "Holiday"
-  startAt      DateTime
-  endAt        DateTime
-  venueName    String?
-  bannerImage  String? // "/public-uploads/<name>" path
-  externalUrl  String?
-  contactEmail String?
-  contactPhone String?
-  status       PublicEventStatus @default(DRAFT)
-  publishedAt  DateTime?
-  ministryId   String
-  ministry     Ministry          @relation(fields: [ministryId], references: [id], onDelete: Restrict)
-  createdById  String?
-  createdBy    User?             @relation("PublicEventCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  @@index([status, startAt])
-  @@index([ministryId])
+  @@index([roomId])
+  @@index([ministryId, startAt])
+  @@index([ministryId, endAt])
+  @@index([organizerId, startAt])
+  @@index([isPublic, status, startAt])
 }
 
 // PRD §6 — a recurring meeting series. Each occurrence is a full Event row
@@ -256,10 +277,14 @@ model EventAttendee {
   externalName  String? // external guest without an account
   externalEmail String?
   status        InviteStatus @default(INVITED)
+  rsvpTokenHash String? // SHA-256 only; the bearer token is sent by email and never persisted
+  respondedAt   DateTime?
   createdAt     DateTime     @default(now())
 
   @@unique([eventId, userId])
   @@index([eventId])
+  @@index([rsvpTokenHash])
+  @@index([userId, status])
 }
 
 model Attendance {
@@ -270,6 +295,8 @@ model Attendance {
   user             User?         @relation(fields: [userId], references: [id])
   externalName     String?
   externalEmail    String? // external guest's email — disambiguates same-named guests
+  signedName       String? // name typed by the attendee at check-in
+  signature        String? // base64 PNG data URL of the drawn signature
   checkInAt        DateTime      @default(now())
   method           CheckInMethod @default(QR)
   lat              Float?
@@ -280,22 +307,11 @@ model Attendance {
   ipAddress        String?
   createdAt        DateTime      @default(now())
 
+  // One attendance per logged-in user per event (PRD §6.6). userId is nullable and
+  // Postgres treats NULLs as distinct, so external guests keep their app-level dedupe.
+  @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
-}
-
-model Letter {
-  id            String        @id @default(cuid())
-  eventId       String
-  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  colorCategory ColorCategory @default(GREEN)
-  title         String
-  body          String // rich-text / HTML
-  pdfUrl        String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@index([eventId])
 }
 
 model Recording {
@@ -323,17 +339,23 @@ model Transcript {
 }
 
 model Minutes {
-  id           String        @id @default(cuid())
-  eventId      String        @unique
-  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  body         String        @default("")
-  summary      String?
-  status       MinutesStatus @default(DRAFT)
-  approvedById String?
-  approver     User?         @relation("MinutesApprover", fields: [approvedById], references: [id])
-  publishedAt  DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  eventId       String        @unique
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  body          String        @default("")
+  summary       String?
+  status        MinutesStatus @default(DRAFT)
+
+  draftedById   String?
+  drafted       User?         @relation("MinutesDrafted", fields: [draftedById], references: [id])
+  draftedAt     DateTime?
+
+  approvedById  String?
+  approver      User?         @relation("MinutesApprover", fields: [approvedById], references: [id])
+  publishedAt   DateTime?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   actionItems ActionItem[]
 }
@@ -345,46 +367,54 @@ model ActionItem {
   title     String
   ownerId   String?
   owner     User?            @relation("ActionItemOwner", fields: [ownerId], references: [id])
+  ownerName String?
+  assignedById String?
+  assignedBy   User?         @relation("ActionItemAssignedBy", fields: [assignedById], references: [id])
   dueDate   DateTime?
+  reminderSentAt DateTime?
+  point     ActionItemPoint  @default(ACTION_POINT)
   status    ActionItemStatus @default(TODO)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
   @@index([minutesId])
   @@index([ownerId])
+  @@index([assignedById])
+  @@index([reminderSentAt])
 }
 
 /// Append-only audit trail (PRD §7).
 model AuditLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   ministryId String?
   ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: SetNull)
   actorId    String?
-  actor      User?    @relation(fields: [actorId], references: [id])
+  actor      User?     @relation(fields: [actorId], references: [id])
   action     String // e.g. "CHECK_IN", "PUBLISH_MINUTES"
   entityType String
   entityId   String?
   metadata   Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([entityType, entityId])
   @@index([createdAt])
   @@index([ministryId])
+  @@index([ministryId, createdAt])
 }
 
 /// In-app notifications for events (invites, minutes, action items).
 model Notification {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   ministryId String?
   ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: SetNull)
   type       String // e.g. "INVITE", "MINUTES_PUBLISHED", "ACTION_ITEM_ASSIGNED", "RSVP"
   title      String
   body       String
   link       String? // in-app URL (e.g. /events/123)
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  read       Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 
   @@index([userId, read])
   @@index([userId, createdAt])
@@ -406,20 +436,20 @@ model QRToken {
 // ── Room Booking models ─────────────────────────────────────────────────────
 
 model Room {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   ministryId String
-  ministry  Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
-  name      String
-  location  String
-  capacity  Int
-  amenities String[] // e.g., ["Projector", "Whiteboard"]
-  latitude  Float?
-  longitude Float?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  ministry   Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  name       String
+  location   String
+  capacity   Int
+  amenities  String[] // e.g., ["Projector", "Whiteboard"]
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   bookings RoomBooking[]
-  events   Event[]      @relation("EventRoom")
+  events   Event[]       @relation("EventRoom")
 
   @@unique([ministryId, name])
   @@index([location])
@@ -427,19 +457,19 @@ model Room {
 }
 
 model RoomBooking {
-  id           String               @id @default(cuid())
-  ministryId   String
-  ministry     Ministry             @relation(fields: [ministryId], references: [id], onDelete: Cascade)
-  roomId       String
-  userId       String
-  startTime    DateTime
-  endTime      DateTime
-  purpose      RoomBookingPurpose
+  id            String             @id @default(cuid())
+  ministryId    String
+  ministry      Ministry           @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  roomId        String
+  userId        String
+  startTime     DateTime
+  endTime       DateTime
+  purpose       RoomBookingPurpose
   attendeeCount Int?
-  notes        String?
-  status       RoomBookingStatus    @default(CONFIRMED)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  notes         String?
+  status        RoomBookingStatus  @default(CONFIRMED)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User @relation("RoomBookings", fields: [userId], references: [id], onDelete: Cascade)
@@ -486,3 +516,5 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+/// Public calendar events — visible to all without login, managed by admins.

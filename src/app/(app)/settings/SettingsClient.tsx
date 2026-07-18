@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { Bell, Lock, Palette, Database } from "lucide-react";
+import { Bell, Lock, Monitor, Database } from "lucide-react";
 import { updateAllSettings } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 import type { User } from "@/generated/prisma/client";
 
 interface SettingsClientProps {
@@ -35,22 +36,24 @@ function ToggleSwitch({
 
 export function SettingsClient({ user }: SettingsClientProps) {
   const [state, formAction, isPending] = useActionState(updateAllSettings, undefined);
+  const messageVisible = useActionMessage(state);
 
   return (
     <form action={formAction} className="space-y-6">
-      {state?.error && (
-        <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">{state.error}</div>
+      {messageVisible && state?.error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</div>
       )}
-      {state?.ok && (
-        <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
+      {messageVisible && state?.ok && !state?.error && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           All settings updated successfully!
         </div>
       )}
 
-      {/* Notification Settings */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Bell className="h-6 w-6 text-white" />
+      <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-[0_20px_60px_rgba(0,53,128,0.08)]">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+            <Bell className="h-5 w-5" />
+          </span>
           <h2 className="text-lg font-semibold text-foreground">Notifications</h2>
         </div>
         <div className="space-y-4">
@@ -96,25 +99,19 @@ export function SettingsClient({ user }: SettingsClientProps) {
         </div>
       </div>
 
-      {/* Appearance Settings */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Palette className="h-6 w-6 text-white" />
-          <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
+      <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-[0_20px_60px_rgba(0,53,128,0.08)]">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+            <Monitor className="h-5 w-5" />
+          </span>
+          <h2 className="text-lg font-semibold text-foreground">Display</h2>
         </div>
         <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-foreground mb-3">Theme</p>
-            <select
-              name="theme"
-              defaultValue={user.theme || "dark"}
-              disabled={isPending}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-sm hover:bg-muted/70 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-              <option value="auto">Auto</option>
-            </select>
+          <div className="rounded-2xl border border-[#dfe8f2] bg-[#f9fbfe] px-4 py-3">
+            <p className="text-sm font-medium text-foreground">Theme</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The ministry workspace now uses the standard light interface across all sections.
+            </p>
           </div>
 
           <div className="flex items-center justify-between">
@@ -131,10 +128,11 @@ export function SettingsClient({ user }: SettingsClientProps) {
         </div>
       </div>
 
-      {/* Privacy & Security */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Lock className="h-6 w-6 text-white" />
+      <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-[0_20px_60px_rgba(0,53,128,0.08)]">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+            <Lock className="h-5 w-5" />
+          </span>
           <h2 className="text-lg font-semibold text-foreground">Privacy & Security</h2>
         </div>
         <div className="space-y-4">
@@ -172,10 +170,11 @@ export function SettingsClient({ user }: SettingsClientProps) {
         </div>
       </div>
 
-      {/* Data & Storage */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Database className="h-6 w-6 text-white" />
+      <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-[0_20px_60px_rgba(0,53,128,0.08)]">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+            <Database className="h-5 w-5" />
+          </span>
           <h2 className="text-lg font-semibold text-foreground">Data & Storage</h2>
         </div>
         <div className="space-y-4">
@@ -206,7 +205,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(0,53,128,0.18)] transition hover:bg-[#002c6b] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? "Saving..." : "Save All Settings"}
         </button>

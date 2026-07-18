@@ -1,13 +1,15 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackButton } from "@/components/BackButton";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canManageEvents, canApproveMinutes } from "@/lib/roles";
+import { canManageExistingEvent, canViewMinutesForEvent } from "@/lib/eventAccess";
 import { MinutesEditor } from "./MinutesEditor";
 import { ActionItemsPanel } from "./ActionItemsPanel";
 import { PublishButton } from "./PublishButton";
-import { FileText, CheckCircle, Clock, Mic } from "lucide-react";
+import { FileText, CheckCircle, Clock } from "lucide-react";
+import { isMinutesArchived, isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
+import { isSuperAdmin } from "@/lib/roles";
+import { isMinistryAdminLevel } from "@/lib/roles";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
 
@@ -24,6 +26,12 @@ export default async function MinutesPage({
     select: {
       id: true,
       title: true,
+      startAt: true,
+      endAt: true,
+      scope: true,
+      ministryId: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       recordings: {
         where: { status: "TRANSCRIBED" },
         orderBy: { createdAt: "desc" },
@@ -33,11 +41,14 @@ export default async function MinutesPage({
     },
   });
   if (!event) notFound();
+  if (!canViewMinutesForEvent(user, event)) notFound();
 
   // Lazy-init minutes from transcript text if no record yet.
-  let minutes = await prisma.minutes.findUnique({
+  const minutesFromDb = await prisma.minutes.findUnique({
     where: { eventId: id },
     include: {
+      drafted: { select: { name: true, email: true } },
+      approver: { select: { name: true, email: true } },
       actionItems: {
         include: { owner: { select: { id: true, name: true, email: true } } },
         orderBy: { createdAt: "asc" },
@@ -45,49 +56,85 @@ export default async function MinutesPage({
     },
   });
 
-  if (!minutes) {
+  const attendees = await prisma.eventAttendee.findMany({
+    where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  let minutes: typeof minutesFromDb;
+  if (!minutesFromDb) {
     const segs = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
     const body = segs.map((s) => `${s.speaker}: ${s.text}`).join("\n");
-    minutes = await prisma.minutes.create({
-      data: { eventId: id, body },
+    minutes = await prisma.minutes.upsert({
+      where: { eventId: id },
+      update: {},
+      create: { eventId: id, body, draftedById: user.id, draftedAt: new Date() },
       include: {
+        drafted: { select: { name: true, email: true } },
+        approver: { select: { name: true, email: true } },
         actionItems: {
           include: { owner: { select: { id: true, name: true, email: true } } },
           orderBy: { createdAt: "asc" },
         },
       },
     });
+  } else {
+    minutes = minutesFromDb;
   }
+  const users = attendees
+    .map((a) => ({
+      id: a.user?.id ?? a.id,
+      name: a.user?.name ?? a.externalName ?? null,
+      email: a.user?.email ?? a.externalEmail ?? "",
+    }))
+    .filter((p) => p.name || p.email);
 
-  const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true },
-    orderBy: [{ name: "asc" }, { email: "asc" }],
-  });
-
-  const isAdmin = canManageEvents(user.role);
-  const isApprover = canApproveMinutes(user.role);
+  const isAdmin = canManageExistingEvent(user, event);
   const isPublished = minutes.status === "PUBLISHED";
 
+  // Check if minutes are archived (6+ months old)
+  const archived = isMinutesArchived(event.startAt);
+  const canViewArchived = isSuperAdmin(user.systemRole);
+
+
+  // Check if edit window is closed (unless user is admin-level)
+  const canOverrideEditWindow = isMinistryAdminLevel(user.systemRole);
+  const editWindowClosed = isMinutesEditWindowClosed(event.endAt) && !canOverrideEditWindow;
   // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
-  const segments: any[] = [];
+  const segments: Segment[] = [];
 
   // Serialize dates for client components.
   const itemsForClient = minutes.actionItems.map((item) => ({
     id: item.id,
     title: item.title,
     status: item.status as "TODO" | "IN_PROGRESS" | "DONE",
-    dueDate: item.dueDate ? item.dueDate.toISOString().slice(0, 10) : null,
+    point: item.point as "ACTION_POINT" | "AGREED",
+    dueDate: item.dueDate ? item.dueDate.toISOString() : null,
+    ownerName: item.ownerName,
     owner: item.owner,
   }));
+
+  // Handle archived minutes
+  if (archived && !canViewArchived) {
+    return (
+      <div className="space-y-6">
+        <BackButton href={`/administrative/events/${id}`} label={event.title} />
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
+          <p className="text-red-400">This record has been archived and is no longer accessible.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <BackButton href={`/events/${id}`} label={event.title} />
+          <BackButton href={`/administrative/events/${id}`} label={event.title} />
           <h1 className="mt-4 text-3xl font-bold text-foreground flex items-center gap-3">
             <FileText className="h-8 w-8 text-sidebar-primary" />
-            Meeting Minutes
+            {event.scope === "TEAM" ? "Meeting Notes" : "Official Minutes"}
           </h1>
         </div>
         <span
@@ -146,12 +193,23 @@ export default async function MinutesPage({
             Minutes & Summary
           </h2>
           {isAdmin ? (
-            <MinutesEditor
-              eventId={id}
-              body={minutes.body}
-              summary={minutes.summary ?? null}
-              published={isPublished}
-            />
+            <>
+              {minutes.status === "DRAFT" && !editWindowClosed && (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 mb-4">
+                  <p className="flex items-center gap-2 text-sm text-amber-400">
+                    <Clock className="h-4 w-4" />
+                    Minutes can only be edited within 2 days of the meeting. After that they lock automatically for everyone except admins.
+                  </p>
+                </div>
+              )}
+              <MinutesEditor
+                eventId={id}
+                body={minutes.body}
+                summary={minutes.summary ?? null}
+                status={minutes.status as "DRAFT" | "PUBLISHED"}
+                editWindowClosed={editWindowClosed}
+              />
+            </>
           ) : (
             <div className="space-y-6">
               <div>
@@ -192,37 +250,35 @@ export default async function MinutesPage({
           eventId={id}
           items={itemsForClient}
           users={users}
-          published={isPublished}
+          status={minutes.status as "DRAFT" | "PUBLISHED"}
           canEdit={isAdmin}
         />
       </div>
 
-      {/* Approval Section */}
-      {isApprover ? (
+      {/* Publish Button */}
+      {isAdmin && minutes.status === "DRAFT" && (
+        <div className="rounded-lg border border-border bg-card p-6">
+          <PublishButton minutesId={minutes.id} eventId={id} />
+        </div>
+      )}
+
+      {/* Publication Status Summary */}
+      {isAdmin && minutes.status === "PUBLISHED" && (
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Publication Status
           </h2>
-          {isPublished ? (
-            <div className="space-y-3 rounded-lg bg-green-500/10 p-4">
-              <p className="flex items-center gap-2 text-sm text-green-400">
-                <CheckCircle className="h-4 w-4" />
-                Published on {minutes.publishedAt?.toLocaleString() ?? "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Minutes are locked. Contact an admin to make corrections.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Review the minutes and action items above, then publish to lock and distribute to all attendees.
-              </p>
-              <PublishButton minutesId={minutes.id} eventId={id} />
-            </div>
-          )}
+          <div className="space-y-3 rounded-lg bg-green-500/10 p-4">
+            <p className="flex items-center gap-2 text-sm text-green-400">
+              <CheckCircle className="h-4 w-4" />
+              Published on {minutes.publishedAt?.toLocaleString() ?? "—"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Minutes are locked for editing.
+            </p>
+          </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

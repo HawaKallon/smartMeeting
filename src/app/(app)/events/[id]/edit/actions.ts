@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, ministryScope } from "@/lib/guard";
@@ -7,6 +8,7 @@ import { canManageEvent, canReassignEvent } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
+import type { SystemRole } from "@/generated/prisma/enums";
 import { generateOccurrences, MAX_OCCURRENCES } from "@/lib/recurrence";
 import type { Prisma } from "@/generated/prisma/client";
 import type {
@@ -14,10 +16,27 @@ import type {
   Classification,
   RecurrenceFrequency,
   RecurrenceEndType,
-  MinistryRole,
 } from "@/generated/prisma/enums";
 
 type Scope = "THIS" | "FUTURE" | "ALL";
+
+// Validate the core event fields at the action boundary — mirrors the create path
+// (events/actions.ts EventSchema) so invalid enum strings or Invalid Dates can never be
+// cast straight into the DB columns. `description`/`roomId` keep their existing raw
+// handling below to preserve current clear-on-empty behavior.
+const UpdateEventSchema = z
+  .object({
+    title: z.string().min(2, "Title is required"),
+    type: z.enum(["MEETING", "CONFERENCE", "APPOINTMENT"]),
+    eventScope: z.enum(["OFFICIAL", "TEAM"]).default("TEAM"),
+    classification: z.enum(["PUBLIC", "RESTRICTED"]).default("PUBLIC"),
+    startAt: z.coerce.date(),
+    endAt: z.coerce.date(),
+  })
+  .refine((d) => d.endAt > d.startAt, {
+    message: "End time must be after start time",
+    path: ["endAt"],
+  });
 
 function fmt(d: Date) {
   return d.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
@@ -29,18 +48,25 @@ export async function updateEvent(
 ): Promise<{ ok?: boolean; error?: string }> {
   const user = await requireUser();
   const eventId = formData.get("eventId") as string;
-  const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const startAt = new Date(formData.get("startAt") as string);
-  const endAt = new Date(formData.get("endAt") as string);
   const roomId = (formData.get("roomId") as string) || null;
-  const type = formData.get("type") as string;
-  const classification = formData.get("classification") as string;
   const scope = ((formData.get("editScope") as string) || "THIS") as Scope;
   const editPattern = formData.get("editPattern") === "true";
 
-  if (!eventId || !title) return { error: "Event ID and title are required" };
-  if (endAt <= startAt) return { error: "End time must be after start time" };
+  if (!eventId) return { error: "Event ID is required" };
+
+  const parsed = UpdateEventSchema.safeParse({
+    title: formData.get("title"),
+    type: formData.get("type"),
+    eventScope: formData.get("eventScope") || "TEAM",
+    classification: formData.get("classification") || "PUBLIC",
+    startAt: formData.get("startAt"),
+    endAt: formData.get("endAt"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { title, type, eventScope, classification, startAt, endAt } = parsed.data;
 
   const anchor = await prisma.event.findFirst({
     where: {
@@ -59,6 +85,11 @@ export async function updateEvent(
       geofenceRadius: true,
       colorCategory: true,
       ministryId: true,
+      ministry: {
+        select: {
+          compoundMaxGpsAccuracy: true,
+        },
+      },
     },
   });
   if (
@@ -97,18 +128,18 @@ export async function updateEvent(
       until,
     });
     if (slots.length === 0) return { error: "This repeat produces no dates — check the end condition." };
-    if (slots.length >= MAX_OCCURRENCES) {
+    if (slots.length > MAX_OCCURRENCES) {
       return { error: `Too many occurrences (max ${MAX_OCCURRENCES}). Use a nearer end date or fewer repeats.` };
     }
 
-    let room = null;
+    let room: { id: string } | null = null;
     if (roomId) {
       room = await prisma.room.findFirst({
-        where: { id: roomId, ...ministryScope(user) },
-        select: { latitude: true, longitude: true },
+        where: { id: roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
+        select: { id: true },
       });
+      if (!room) return { error: "Room not found or you don't have access" };
     }
-
     // Block on any room clash (siblings in this series don't count).
     for (const s of slots) {
       const reason = await findSlotConflict({
@@ -124,12 +155,22 @@ export async function updateEvent(
     // Carry the current invitee list onto every regenerated occurrence.
     const attendees = await prisma.eventAttendee.findMany({
       where: { eventId: anchor.id },
-      select: { userId: true, externalEmail: true, externalName: true },
+      select: {
+        userId: true,
+        externalEmail: true,
+        externalName: true,
+        status: true,
+        rsvpTokenHash: true,
+        respondedAt: true,
+      },
     });
     const invitees = attendees.map((a) => ({
       email: a.externalEmail ?? "",
       name: a.externalName ?? "",
       userId: a.userId,
+      status: a.status,
+      rsvpTokenHash: a.rsvpTokenHash,
+      respondedAt: a.respondedAt,
     }));
 
     const base = {
@@ -139,8 +180,8 @@ export async function updateEvent(
       classification: classification as Classification,
       roomId,
       venueName: anchor.venueName,
-      venueLat: room?.latitude ?? anchor.venueLat,
-      venueLng: room?.longitude ?? anchor.venueLng,
+      venueLat: anchor.venueLat,
+      venueLng: anchor.venueLng,
       geofenceRadius: anchor.geofenceRadius,
       colorCategory: anchor.colorCategory,
       organizerId: anchor.organizerId,
@@ -176,9 +217,9 @@ export async function updateEvent(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/calendar");
-    revalidatePath("/");
-    redirect(`/events/${firstId}`);
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/administrative");
+    redirect(`/administrative/events/${firstId}`);
   }
 
   const event = anchor;
@@ -204,14 +245,14 @@ export async function updateEvent(
     const preserveDates = scope !== "THIS";
     const durationMs = endAt.getTime() - startAt.getTime();
 
-    let room = null;
+    let room: { id: string } | null = null;
     if (roomId) {
       room = await prisma.room.findFirst({
-        where: { id: roomId, ...ministryScope(user) },
-        select: { latitude: true, longitude: true },
+        where: { id: roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
+        select: { id: true },
       });
+      if (!room) return { error: "Room not found or you don't have access" };
     }
-
     // Compute new times per target and block on any room clash.
     const updates: { id: string; startAt: Date; endAt: Date; reschedule: boolean }[] = [];
     for (const t of targets) {
@@ -241,13 +282,11 @@ export async function updateEvent(
             title,
             description,
             type: type as EventType,
+            scope: eventScope as "OFFICIAL" | "TEAM",
             classification: classification as Classification,
             roomId,
             startAt: u.startAt,
             endAt: u.endAt,
-            ...(room?.latitude != null && room?.longitude != null
-              ? { venueLat: room.latitude, venueLng: room.longitude }
-              : {}),
             // Re-arm the 1h-before reminder for any rescheduled occurrence.
             ...(u.reschedule ? { reminderSentAt: null } : {}),
           },
@@ -264,8 +303,8 @@ export async function updateEvent(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/calendar");
-    revalidatePath("/");
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/administrative");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update event:", err);
@@ -310,9 +349,18 @@ export async function deleteEvent(
       ...(event.seriesId && (scope === "FUTURE" || scope === "ALL")
         ? { seriesId: event.seriesId, ...(scope === "FUTURE" ? { startAt: { gte: event.startAt } } : {}) }
         : { id: eventId }),
-    };
+    } as Prisma.EventWhereInput;
 
     const res = await prisma.event.deleteMany({ where });
+
+    // Clean up the parent series if this delete emptied it (Event.seriesId is
+    // SetNull on delete, so an emptied EventSeries would otherwise be orphaned).
+    if (event.seriesId) {
+      const remaining = await prisma.event.count({ where: { seriesId: event.seriesId } });
+      if (remaining === 0) {
+        await prisma.eventSeries.delete({ where: { id: event.seriesId } }).catch(() => {});
+      }
+    }
 
     await audit({
       actorId: user.id,
@@ -323,8 +371,8 @@ export async function deleteEvent(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/calendar");
-    revalidatePath("/");
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/administrative");
     return { ok: true };
   } catch (err) {
     console.error("Failed to cancel event:", err);
@@ -336,7 +384,7 @@ export async function deleteEvent(
 
 /** Load an event (ministry-scoped) with the fields needed for reassign checks. */
 async function loadEventForReassign(
-  user: { role: MinistryRole; ministryId: string | null },
+  user: { systemRole: SystemRole; ministryId: string | null },
   eventId: string,
 ) {
   return prisma.event.findFirst({
@@ -370,9 +418,9 @@ export async function addCoOrganizer(
     // Assignee must be a (non-super-admin) member of the same ministry.
     const target = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, role: true, ministryId: true },
+      select: { id: true, name: true, email: true, systemRole: true, ministryId: true },
     });
-    if (!target || target.role === "SUPER_ADMIN" || target.ministryId !== event.ministryId) {
+    if (!target || target.systemRole === "SUPER_ADMIN" || target.ministryId !== event.ministryId) {
       return { error: "Pick a user from this ministry" };
     }
 
@@ -390,8 +438,8 @@ export async function addCoOrganizer(
       ministryId: event.ministryId,
     });
 
-    revalidatePath(`/events/${eventId}`);
-    revalidatePath("/calendar");
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
     return { ok: true };
   } catch (err) {
     console.error("Failed to add co-organizer:", err);
@@ -427,11 +475,107 @@ export async function removeCoOrganizer(
       ministryId: event.ministryId,
     });
 
-    revalidatePath(`/events/${eventId}`);
-    revalidatePath("/calendar");
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
     return { ok: true };
   } catch (err) {
     console.error("Failed to remove co-organizer:", err);
     return { error: "Failed to remove co-organizer" };
+  }
+}
+
+export async function publishEvent(eventId: string): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { isPublic: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    });
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    if (!event.isPublic) {
+      return { error: "Only public events can be published" };
+    }
+
+    const coOrganizerIds = event.coOrganizers.map((c) => c.id);
+    if (!canManageEvent(user, { ministryId: event.ministryId, organizerId: event.organizerId, coOrganizerIds })) {
+      return { error: "You do not have permission to publish this event" };
+    }
+
+    const updated = await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+      },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "PUBLISH_EVENT",
+      entityType: "Event",
+      entityId: eventId,
+      metadata: { title: updated.title },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/public-calendar");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to publish event:", err);
+    return { error: "Failed to publish event" };
+  }
+}
+
+export async function unpublishEvent(eventId: string): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { isPublic: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    });
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    if (!event.isPublic) {
+      return { error: "Only public events can be unpublished" };
+    }
+
+    const coOrganizerIds = event.coOrganizers.map((c) => c.id);
+    if (!canManageEvent(user, { ministryId: event.ministryId, organizerId: event.organizerId, coOrganizerIds })) {
+      return { error: "You do not have permission to unpublish this event" };
+    }
+
+    const updated = await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        status: "DRAFT",
+        publishedAt: null,
+      },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "UNPUBLISH_EVENT",
+      entityType: "Event",
+      entityId: eventId,
+      metadata: { title: updated.title },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/public-calendar");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to unpublish event:", err);
+    return { error: "Failed to unpublish event" };
   }
 }

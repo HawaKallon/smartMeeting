@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isSuperAdmin, ROLE_LABELS } from "@/lib/roles";
+import { isSuperAdmin } from "@/lib/roles";
 import { toCsv, type CsvColumn } from "@/lib/csv";
+import type { SystemRole } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
+import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
 
 const NO_MINISTRY = "__none__";
 
@@ -20,15 +22,15 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 
-  const { role, ministryId } = session.user;
-  const superAdmin = isSuperAdmin(role);
+  const { systemRole, ministryId } = session.user;
+  const superAdmin = isSuperAdmin(systemRole);
   // Re-derive scope from the session — never trust a query param for tenancy.
   const scopeId = superAdmin ? undefined : ministryId ?? NO_MINISTRY;
 
   const dataset = req.nextUrl.searchParams.get("dataset") ?? "events";
 
   if (dataset === "events") {
-    const where: Prisma.EventWhereInput = scopeId ? { ministryId: scopeId } : {};
+    const where: Prisma.EventWhereInput = { scope: "OFFICIAL", ...(scopeId ? { ministryId: scopeId } : {}) };
     const rows = await prisma.event.findMany({
       where,
       orderBy: { startAt: "desc" },
@@ -48,7 +50,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (dataset === "attendance") {
-    const where: Prisma.AttendanceWhereInput = scopeId ? { event: { ministryId: scopeId } } : {};
+    const where: Prisma.AttendanceWhereInput = { event: { scope: "OFFICIAL", ...(scopeId ? { ministryId: scopeId } : {}) } };
     const rows = await prisma.attendance.findMany({
       where,
       orderBy: { checkInAt: "desc" },
@@ -69,7 +71,7 @@ export async function GET(req: NextRequest) {
 
   if (dataset === "users") {
     const where: Prisma.UserWhereInput = {
-      role: { not: "SUPER_ADMIN" },
+      systemRole: { not: "SUPER_ADMIN" },
       ...(scopeId ? { ministryId: scopeId } : {}),
     };
     const rows = await prisma.user.findMany({
@@ -80,7 +82,7 @@ export async function GET(req: NextRequest) {
     const cols: CsvColumn<(typeof rows)[number]>[] = [
       { header: "Name", value: (r) => r.name },
       { header: "Email", value: (r) => r.email },
-      { header: "Role", value: (r) => ROLE_LABELS[r.role] },
+      { header: "Role", value: (r) => SYSTEM_ROLE_LABELS[r.systemRole as SystemRole] || "Unknown" },
       { header: "Ministry", value: (r) => r.ministry?.name },
       { header: "Active", value: (r) => r.active },
       { header: "Created", value: (r) => r.createdAt },

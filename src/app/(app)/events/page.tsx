@@ -3,58 +3,123 @@ import { requireStaffRole, ministryScope } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { COLOR_META } from "@/lib/colors";
-import { Calendar, Clock, MapPin, Users, Search } from "lucide-react";
-import type { ColorCategory } from "@/generated/prisma/enums";
+import { Calendar, Clock, MapPin, Globe, Lock } from "lucide-react";
+import { EventsViewToggle } from "./EventsViewToggle";
+import { getCategoryLabel } from "@/lib/public-event-categories";
+import type { ColorCategory, PublicEventCategory } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 
-export default async function AllEventsPage() {
+type EventListItem = Prisma.EventGetPayload<{
+  select: {
+    id: true;
+    title: true;
+    startAt: true;
+    endAt: true;
+    description: true;
+    type: true;
+    colorCategory: true;
+    isPublic: true;
+    category: true;
+    status: true;
+    room: { select: { name: true; location: true } };
+    venueName: true;
+    organizer: { select: { name: true } };
+    ministry: { select: { name: true } };
+    _count: { select: { attendances: true; attendees: true } };
+  };
+}>;
+
+export default async function AllEventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const user = await requireStaffRole();
+  const { view = "internal" } = await searchParams;
+  const isPublicView = view === "public";
 
   const now = new Date();
 
-  const events = await prisma.event.findMany({
-    where: ministryScope(user),
-    orderBy: { startAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      startAt: true,
-      endAt: true,
-      description: true,
-      type: true,
-      colorCategory: true,
-      room: { select: { name: true, location: true } },
-      venueName: true,
-      organizer: { select: { name: true } },
-      _count: { select: { attendances: true, attendees: true } },
-    },
-  });
+  const selectBlock = {
+    id: true,
+    title: true,
+    startAt: true,
+    endAt: true,
+    description: true,
+    type: true,
+    colorCategory: true,
+    isPublic: true,
+    category: true,
+    status: true,
+    room: { select: { name: true, location: true } },
+    venueName: true,
+    organizer: { select: { name: true } },
+    ministry: { select: { name: true } },
+    _count: { select: { attendances: true, attendees: true } },
+  };
 
-  const past = events.filter((e) => e.endAt < now);
-  const present = events.filter((e) => e.startAt <= now && e.endAt >= now);
-  const upcoming = events.filter((e) => e.startAt > now);
+  const baseWhere = {
+    ...ministryScope(user),
+    isPublic: isPublicView,
+  };
+
+  const [upcoming, present, past] = await Promise.all([
+    prisma.event.findMany({
+      where: { ...baseWhere, startAt: { gt: now } },
+      orderBy: { startAt: "asc" },
+      take: 20,
+      select: selectBlock,
+    }),
+    prisma.event.findMany({
+      where: {
+        ...baseWhere,
+        startAt: { lte: now },
+        endAt: { gte: now },
+      },
+      orderBy: { startAt: "asc" },
+      take: 20,
+      select: selectBlock,
+    }),
+    prisma.event.findMany({
+      where: { ...baseWhere, endAt: { lt: now } },
+      orderBy: { startAt: "desc" },
+      take: 20,
+      select: selectBlock,
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">All Events</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">View all events across past, present, and future</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Event register</p>
+          <div className="flex items-center gap-2 mt-2 mb-1">
+            <h1 className="text-2xl font-bold text-foreground">
+              {isPublicView ? "Public Events" : "Internal Events"}
+            </h1>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary text-foreground/80">
+              {isPublicView ? "Public" : "Internal"}
+            </span>
+          </div>
+          <p className="mt-0.5 text-sm text-muted-foreground">View all events across past, present, and future</p>
+        </div>
+        <EventsViewToggle view={isPublicView ? "public" : "internal"} />
       </div>
 
-      {/* Summary stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 hover:bg-muted/30 transition-colors">
-          <p className="text-2xl font-bold text-foreground">{upcoming.length}</p>
-          <p className="text-xs text-muted-foreground">Upcoming Events</p>
+        <div className="rounded-[1.6rem] border border-[#d3e0f0] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] px-5 py-4 shadow-[0_14px_35px_rgba(15,35,63,0.07)]">
+          <p className="text-3xl font-semibold text-[#003580]">{upcoming.length}</p>
+          <p className="mt-1 text-xs font-medium text-[#4e678f]">Upcoming Events</p>
         </div>
-        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 hover:bg-muted/30 transition-colors">
-          <p className="text-2xl font-bold text-orange-400">{present.length}</p>
-          <p className="text-xs text-muted-foreground">Happening Now</p>
+        <div className="rounded-[1.6rem] border border-[#f0dfaa] bg-[linear-gradient(180deg,#fffef8_0%,#fff5d9_100%)] px-5 py-4 shadow-[0_14px_35px_rgba(15,35,63,0.07)]">
+          <p className="text-3xl font-semibold text-[#946200]">{present.length}</p>
+          <p className="mt-1 text-xs font-medium text-[#8d6a17]">Happening Now</p>
         </div>
-        <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 hover:bg-muted/30 transition-colors">
-          <p className="text-2xl font-bold text-muted-foreground">{past.length}</p>
-          <p className="text-xs text-muted-foreground">Past Events</p>
+        <div className="rounded-[1.6rem] border border-[#d6dfec] bg-[linear-gradient(180deg,#fbfdff_0%,#f1f5fb_100%)] px-5 py-4 shadow-[0_14px_35px_rgba(15,35,63,0.07)]">
+          <p className="text-3xl font-semibold text-[#1f3d67]">{past.length}</p>
+          <p className="mt-1 text-xs font-medium text-[#60728d]">Past Events</p>
         </div>
       </div>
 
@@ -73,9 +138,9 @@ export default async function AllEventsPage() {
         <EventSection title="Past Events" events={past} />
       )}
 
-      {events.length === 0 && (
-        <div className="rounded-lg border border-border bg-muted/20 px-6 py-12 text-center">
-          <Calendar className="mx-auto h-8 w-8 text-muted-foreground/30" />
+      {upcoming.length === 0 && present.length === 0 && past.length === 0 && (
+        <div className="rounded-[1.75rem] border border-border bg-card px-6 py-12 text-center shadow-[0_16px_40px_rgba(15,35,63,0.07)]">
+          <Calendar className="mx-auto h-8 w-8 text-primary/25" />
           <p className="mt-3 text-sm text-muted-foreground">No events found</p>
         </div>
       )}
@@ -89,12 +154,12 @@ function EventSection({
   highlight = false,
 }: {
   title: string;
-  events: any[];
+  events: EventListItem[];
   highlight?: boolean;
 }) {
   return (
-    <div className={`rounded-lg border ${highlight ? "border-orange-500/30 bg-orange-500/5" : "border-border bg-card"}`}>
-      <div className={`border-b ${highlight ? "border-orange-500/20" : "border-border"} px-5 py-3.5`}>
+    <div className={`overflow-hidden rounded-[1.75rem] border shadow-[0_18px_45px_rgba(15,35,63,0.08)] ${highlight ? "border-[#f0dfaa] bg-[linear-gradient(180deg,#fffdfa_0%,#fff8e7_100%)]" : "border-border bg-card"}`}>
+      <div className={`border-b px-5 py-4 ${highlight ? "border-[#f0dfaa] bg-[#fff3cf]" : "border-border bg-secondary/50"}`}>
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>
 
@@ -102,13 +167,25 @@ function EventSection({
         {events.map((event) => (
           <Link
             key={event.id}
-            href={`/events/${event.id}`}
-            className="block px-5 py-4 transition-colors hover:bg-muted/50"
+            href={`/administrative/events/${event.id}`}
+            className="block px-5 py-4 transition-colors hover:bg-secondary/30"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  {event.colorCategory ? (
+                  {event.isPublic ? (
+                    event.status === "PUBLISHED" ? (
+                      <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#cfe5d7] bg-[#edf8f1] px-2 py-0.5 text-xs font-medium text-[#007236]">
+                        <Globe className="h-3 w-3" />
+                        Published
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#fde8a6] bg-[#fff7dd] px-2 py-0.5 text-xs font-medium text-[#946200]">
+                        <Lock className="h-3 w-3" />
+                        Draft
+                      </span>
+                    )
+                  ) : event.colorCategory ? (
                     <span className={`h-2 w-2 flex-shrink-0 rounded-full ${COLOR_META[event.colorCategory as ColorCategory].dot}`} />
                   ) : (
                     <span className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30" />
@@ -143,8 +220,20 @@ function EventSection({
                     </div>
                   ) : null}
 
-                  {event.organizer && (
-                    <div>by {event.organizer.name}</div>
+                  {event.isPublic ? (
+                    event.ministry && (
+                      <div>by {event.ministry.name}</div>
+                    )
+                  ) : (
+                    event.organizer && (
+                      <div>by {event.organizer.name}</div>
+                    )
+                  )}
+
+                  {event.isPublic && event.category && (
+                    <div className="text-xs font-medium text-foreground">
+                      {getCategoryLabel(event.category as PublicEventCategory)}
+                    </div>
                   )}
                 </div>
               </div>

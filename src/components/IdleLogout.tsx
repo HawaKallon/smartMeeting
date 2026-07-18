@@ -4,18 +4,16 @@ import { useEffect, useRef } from "react";
 import { signOut } from "next-auth/react";
 
 interface IdleLogoutProps {
-  timeoutMinutes: number; // -1 = never, any other number = minutes of inactivity
+  timeoutMinutes: number;
 }
 
 export function IdleLogout({ timeoutMinutes }: IdleLogoutProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // -1 means never timeout
-  if (timeoutMinutes === -1) {
-    return null;
-  }
-
   useEffect(() => {
+    // -1 means never timeout
+    if (timeoutMinutes === -1) return;
+
     const timeoutMs = timeoutMinutes * 60 * 1000;
 
     const resetTimeout = () => {
@@ -24,7 +22,7 @@ export function IdleLogout({ timeoutMinutes }: IdleLogoutProps) {
       }
 
       timeoutRef.current = setTimeout(() => {
-        signOut({ redirect: "/login" });
+        signOut({ redirectTo: "/administrative/login" });
       }, timeoutMs);
     };
 

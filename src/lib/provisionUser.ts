@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { sendWelcomeEmail } from "@/lib/email";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import { queueWelcomeEmail } from "@/lib/email-queue";
+import { absoluteAppUrl } from "@/lib/appUrl";
+import type { SystemRole } from "@/generated/prisma/enums";
 import type { User } from "@/generated/prisma/client";
 
 // Generates a readable temporary password for first-time login (PRD §6.1).
@@ -20,26 +21,33 @@ export function generateTempPassword(): string {
 export async function provisionUser({
   name,
   email,
-  role,
+  systemRole,
   ministryId,
+  jobTitle,
 }: {
   name: string;
   email: string;
-  role: MinistryRole;
+  systemRole: SystemRole;
   ministryId: string | null;
+  jobTitle?: string | null;
 }): Promise<{ user: User; emailSent: boolean }> {
   const tempPassword = generateTempPassword();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
   const user = await prisma.user.create({
-    data: { name, email, role, ministryId, passwordHash },
+    data: { name, email, systemRole, ministryId, jobTitle: jobTitle ?? null, passwordHash },
   });
 
-  // Send welcome email (with temp password) via the shared, verified-domain sender.
-  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login`;
-  const emailSent = await sendWelcomeEmail({ to: email, toName: name, loginUrl, tempPassword });
-
-  return { user, emailSent };
+  // Queue welcome email (with temp password) via the shared, verified-domain sender.
+  // Non-blocking - user creation completes immediately
+  const loginUrl = absoluteAppUrl("/administrative/login");
+  try {
+    await queueWelcomeEmail({ to: email, toName: name, loginUrl, tempPassword });
+    return { user, emailSent: true };
+  } catch (err) {
+    console.error(`[email-queue] failed to queue welcome email to ${email}:`, err);
+    return { user, emailSent: false };
+  }
 }
 
 /**
@@ -58,13 +66,17 @@ export async function regenerateTempPassword(
     data: { passwordHash },
   });
 
-  const loginUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login`;
-  const emailSent = await sendWelcomeEmail({
-    to: user.email,
-    toName: user.name ?? user.email,
-    loginUrl,
-    tempPassword,
-  });
-
-  return { user, emailSent };
+  const loginUrl = absoluteAppUrl("/administrative/login");
+  try {
+    await queueWelcomeEmail({
+      to: user.email,
+      toName: user.name ?? user.email,
+      loginUrl,
+      tempPassword,
+    });
+    return { user, emailSent: true };
+  } catch (err) {
+    console.error(`[email-queue] failed to queue welcome email to ${user.email}:`, err);
+    return { user, emailSent: false };
+  }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertCircle } from "lucide-react";
 
 type Room = { id: string; name: string; location: string; capacity: number };
@@ -17,29 +17,29 @@ export function RoomSchedulePreview({
   rooms: Room[];
 }) {
   const [hasConflict, setHasConflict] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const selectedRoom = rooms.find((r) => r.id === roomId);
+  const scheduleUrl = useMemo(() => {
+    if (!roomId || !startAt || !endAt) return null;
+    return `/api/rooms/${roomId}/schedule?startAt=${startAt}&endAt=${endAt}`;
+  }, [roomId, startAt, endAt]);
 
   useEffect(() => {
-    if (!roomId || !startAt || !endAt) {
-      setHasConflict(false);
-      return;
-    }
+    if (!scheduleUrl) return;
 
-    setLoading(true);
-    fetch(
-      `/api/rooms/${roomId}/schedule?startAt=${startAt}&endAt=${endAt}`
-    )
+    let ignore = false;
+    fetch(scheduleUrl)
       .then((res) => res.json())
       .then((data) => {
+        if (ignore) return;
         setHasConflict(data.hasConflict || false);
-        setLoading(false);
       })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, [roomId, startAt, endAt]);
+      .catch(() => undefined);
+
+    return () => {
+      ignore = true;
+    };
+  }, [scheduleUrl]);
 
   if (!roomId || !selectedRoom) return null;
 

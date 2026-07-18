@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/BackButton";
-import { Bell, Lock, Palette, Database } from "lucide-react";
 import { SettingsClient } from "./SettingsClient";
 
 export default async function SettingsPage() {
@@ -14,7 +13,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>

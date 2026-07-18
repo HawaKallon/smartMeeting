@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { createUser } from "./actions";
+import { SYSTEM_ROLE_LABELS, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
+import { useActionMessage } from "@/hooks/useActionMessage";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
@@ -17,17 +20,18 @@ export function CreateUserForm({
 }) {
   const [state, formAction, isPending] = useActionState(createUser, undefined);
   const [ministryId, setMinistryId] = useState("");
+  const messageVisible = useActionMessage(state);
   const selectedDomain = ministries.find((m) => m.id === ministryId)?.emailDomain ?? null;
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
           {state.error}
         </div>
       )}
 
-      {state?.ok && (
+      {messageVisible && state?.ok && !state?.error && (
         state.emailSent ? (
           <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
             User created and invitation email sent
@@ -89,17 +93,26 @@ export function CreateUserForm({
           </div>
         )}
         <div>
-          <label className={label}>Role *</label>
+          <label className={label}>System Role *</label>
           <select name="role" required className={field}>
             <option value="">Select a role</option>
-            <option value="ADMIN_STAFF">Admin Staff</option>
-            <option value="PERMANENT_SECRETARY">Permanent Secretary</option>
-            <option value="DEPUTY_SECRETARY">Deputy Secretary</option>
-            <option value="DEPUTY_MINISTER">Deputy Minister</option>
-            <option value="MINISTER">Minister</option>
-            <option value="ADMIN">Admin</option>
+            {ASSIGNABLE_SYSTEM_ROLES.filter((r) => isSuperAdmin || r !== "MINISTER").map((r) => (
+              <option key={r} value={r}>
+                {SYSTEM_ROLE_LABELS[r as SystemRole]}
+              </option>
+            ))}
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className={label}>Job Title (optional)</label>
+        <input
+          type="text"
+          name="jobTitle"
+          className={field}
+          placeholder="e.g. Director, Permanent Secretary"
+        />
       </div>
 
       <button

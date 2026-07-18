@@ -5,11 +5,38 @@ import { updateEvent } from "./actions";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { RecurrenceFields } from "@/components/RecurrenceFields";
 import { describeRecurrence } from "@/lib/recurrence";
+import { useActionMessage } from "@/hooks/useActionMessage";
+import type {
+  Classification,
+  EventType,
+  EventScope,
+  RecurrenceEndType,
+  RecurrenceFrequency,
+} from "@/generated/prisma/enums";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
 
 type Room = { id: string; name: string; location: string; capacity: number };
+type EditableEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: Date;
+  endAt: Date;
+  roomId: string | null;
+  type: EventType;
+  scope: EventScope;
+  classification: Classification;
+  seriesId: string | null;
+  series: {
+    frequency: RecurrenceFrequency;
+    interval: number;
+    endType: RecurrenceEndType;
+    count: number | null;
+    until: Date | null;
+  } | null;
+};
 
 function toDateInput(d: Date | string | null | undefined): string {
   if (!d) return "";
@@ -17,21 +44,22 @@ function toDateInput(d: Date | string | null | undefined): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function EditEventForm({ event, rooms }: { event: any; rooms: Room[] }) {
+export function EditEventForm({ event, rooms }: { event: EditableEvent; rooms: Room[] }) {
   const [state, formAction, isPending] = useActionState(updateEvent, undefined);
   const [changePattern, setChangePattern] = useState(false);
+  const messageVisible = useActionMessage(state);
 
   return (
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="eventId" value={event.id} />
 
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
           {state.error}
         </div>
       )}
 
-      {state?.ok && (
+      {messageVisible && state?.ok && !state?.error && (
         <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
           Event updated successfully
         </div>
@@ -157,11 +185,26 @@ export function EditEventForm({ event, rooms }: { event: any; rooms: Room[] }) {
           </select>
         </div>
         <div>
+          <label className={label}>Event Scope</label>
+          <select name="eventScope" defaultValue={event.scope} className={field}>
+            <option value="TEAM">Team / Informal</option>
+            <option value="OFFICIAL">Official / Formal</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <label className={label}>Classification</label>
           <select name="classification" defaultValue={event.classification} className={field}>
             <option value="PUBLIC">Public</option>
             <option value="RESTRICTED">Restricted</option>
           </select>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground mt-6">
+            Meeting minutes are published directly by the organizer for all meeting types.
+          </p>
         </div>
       </div>
 

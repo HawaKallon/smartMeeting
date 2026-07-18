@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser, assertSameMinistry } from "@/lib/guard";
+import { requireUser, assertSameMinistry, assertAdminRole } from "@/lib/guard";
 import { isSuperAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
@@ -12,29 +12,21 @@ export async function createRoom(
 ): Promise<{ ok?: boolean; error?: string }> {
   try {
     const user = await requireUser();
-
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "Forbidden" };
-    }
+    await assertAdminRole();
 
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
     const capacity = parseInt(formData.get("capacity") as string);
-    const amenitiesStr = formData.get("amenities") as string;
 
     if (!name || !location || !capacity) {
       return { error: "All required fields must be filled" };
     }
 
-    const amenities = amenitiesStr
-      ? amenitiesStr.split(",").map((a) => a.trim())
-      : [];
-
     const latitude = formData.get("latitude") as string;
     const longitude = formData.get("longitude") as string;
 
     let ministryId: string;
-    if (isSuperAdmin(user.role)) {
+    if (isSuperAdmin(user.systemRole)) {
       ministryId = formData.get("ministryId") as string;
       if (!ministryId) {
         return { error: "Ministry is required" };
@@ -56,7 +48,6 @@ export async function createRoom(
         name,
         location,
         capacity,
-        amenities,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
       },
@@ -71,8 +62,8 @@ export async function createRoom(
       ministryId,
     });
 
-    revalidatePath("/rooms");
-    revalidatePath("/admin/rooms");
+    revalidatePath("/administrative/rooms");
+    revalidatePath("/administrative/admin/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to create room:", err);
@@ -87,10 +78,7 @@ export async function updateRoom(
 ): Promise<{ ok?: boolean; error?: string }> {
   try {
     const user = await requireUser();
-
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "Forbidden" };
-    }
+    await assertAdminRole();
 
     const room = await prisma.room.findUnique({
       where: { id: roomId },
@@ -106,26 +94,20 @@ export async function updateRoom(
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
     const capacity = parseInt(formData.get("capacity") as string);
-    const amenitiesStr = formData.get("amenities") as string;
 
     if (!name || !location || !capacity) {
       return { error: "All required fields must be filled" };
     }
 
-    const amenities = amenitiesStr
-      ? amenitiesStr.split(",").map((a) => a.trim())
-      : [];
-
     const latitude = formData.get("latitude") as string;
     const longitude = formData.get("longitude") as string;
 
-    const updated = await prisma.room.update({
+    await prisma.room.update({
       where: { id: roomId },
       data: {
         name,
         location,
         capacity,
-        amenities,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
       },
@@ -140,8 +122,8 @@ export async function updateRoom(
       ministryId: room.ministryId,
     });
 
-    revalidatePath("/rooms");
-    revalidatePath("/admin/rooms");
+    revalidatePath("/administrative/rooms");
+    revalidatePath("/administrative/admin/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update room:", err);
@@ -152,10 +134,7 @@ export async function updateRoom(
 export async function deleteRoom(roomId: string): Promise<{ ok?: boolean; error?: string }> {
   try {
     const user = await requireUser();
-
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "Forbidden" };
-    }
+    await assertAdminRole();
 
     const room = await prisma.room.findUnique({
       where: { id: roomId },
@@ -178,8 +157,8 @@ export async function deleteRoom(roomId: string): Promise<{ ok?: boolean; error?
       ministryId: room.ministryId,
     });
 
-    revalidatePath("/rooms");
-    revalidatePath("/admin/rooms");
+    revalidatePath("/administrative/rooms");
+    revalidatePath("/administrative/admin/rooms");
     return { ok: true };
   } catch (err) {
     console.error("Failed to delete room:", err);

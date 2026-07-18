@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { SystemRole } from "@/generated/prisma/enums";
 import { useActionState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, CalendarRange, ClipboardList, ShieldCheck, BellRing } from "lucide-react";
 import { updateProfile } from "./actions";
+import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
 import type { User } from "@/generated/prisma/client";
 
-const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
+const field = "mt-1 w-full rounded-xl border border-border bg-secondary/55 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
 
 interface ProfileViewProps {
@@ -55,21 +57,23 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
     return (
       <form action={formAction} className="space-y-6">
         {state?.error && (
-          <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">{state.error}</div>
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</div>
         )}
 
         {/* Profile Section */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground mb-4">Edit Profile</h2>
 
           <div className="space-y-4">
             <div>
               <label className={label}>Profile Picture</label>
               <div className="mt-2 flex gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-foreground text-2xl font-bold text-background flex-shrink-0 overflow-hidden">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white flex-shrink-0 overflow-hidden">
                   {previewImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={previewImage} alt="Preview" className="h-full w-full object-cover" />
                   ) : user.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.image} alt={user.name || "Avatar"} className="h-full w-full object-cover" />
                   ) : (
                     (user.name ?? user.email).charAt(0).toUpperCase()
@@ -87,7 +91,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition-colors"
+                    className="rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#002a68]"
                   >
                     Upload Image
                   </button>
@@ -122,7 +126,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
         </div>
 
         {/* Preferences Section */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-foreground mb-4">Preferences</h3>
 
           <div className="space-y-4">
@@ -131,7 +135,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <input
                   type="checkbox"
                   name="emailNotifications"
-                  defaultChecked={true}
+                  defaultChecked={user.emailNotifications}
                   className="h-4 w-4 rounded border-border bg-muted accent-foreground"
                 />
                 <span className="text-sm text-foreground">Receive email notifications for invitations</span>
@@ -143,7 +147,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <input
                   type="checkbox"
                   name="minutesNotifications"
-                  defaultChecked={true}
+                  defaultChecked={user.minutesNotifications}
                   className="h-4 w-4 rounded border-border bg-muted accent-foreground"
                 />
                 <span className="text-sm text-foreground">Receive email when minutes are published</span>
@@ -155,7 +159,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
                 <input
                   type="checkbox"
                   name="actionItemNotifications"
-                  defaultChecked={true}
+                  defaultChecked={user.actionItemNotifications}
                   className="h-4 w-4 rounded border-border bg-muted accent-foreground"
                 />
                 <span className="text-sm text-foreground">Receive notifications for assigned action items</span>
@@ -165,7 +169,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
         </div>
 
         {/* Security Section */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-foreground mb-4">Security</h3>
 
           <div className="space-y-4">
@@ -209,7 +213,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
             type="button"
             onClick={handleCancel}
             disabled={isPending}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-muted/30 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/60 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
           >
             <X className="h-4 w-4" />
             Cancel
@@ -217,7 +221,7 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
           <button
             type="submit"
             disabled={isPending}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#002a68] disabled:opacity-50"
           >
             <Check className="h-4 w-4" />
             {isPending ? "Saving..." : "Save Changes"}
@@ -229,98 +233,180 @@ export function ProfileView({ user, isEditing, setIsEditing, stats }: ProfileVie
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-foreground text-xl font-bold text-background flex-shrink-0 overflow-hidden">
-            {user.image ? (
-              <img src={user.image} alt={user.name || "Avatar"} className="h-full w-full object-cover" />
-            ) : (
-              (user.name ?? user.email).charAt(0).toUpperCase()
-            )}
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="overflow-hidden rounded-[1.9rem] border border-[#cfe0f3] bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+          <div className="bg-[linear-gradient(135deg,#003580_0%,#0a4aa7_55%,#1c63cb_100%)] px-7 py-7 text-white">
+            <div className="flex items-start gap-5">
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/25 bg-white/15 text-2xl font-bold text-white backdrop-blur flex-shrink-0">
+                {user.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.image} alt={user.name || "Avatar"} className="h-full w-full object-cover" />
+                ) : (
+                  (user.name ?? user.email).charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">Official profile</p>
+                <h2 className="mt-2 text-3xl font-bold">{user.name || "No name set"}</h2>
+                <p className="mt-2 text-sm text-white/80">{user.email}</p>
+                <div className="mt-5 flex flex-wrap gap-2 items-center">
+                  {user.jobTitle && (
+                    <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white">
+                      {user.jobTitle}
+                    </div>
+                  )}
+                  <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/80">
+                    {SYSTEM_ROLE_LABELS[user.systemRole as SystemRole] || "Staff"}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-foreground">{user.name || "No name set"}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
-          </div>
-        </div>
-      </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Account Information</h3>
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Email</p>
-            <p className="mt-0.5 text-sm font-medium text-foreground">{user.email}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Member Since</p>
-            <p className="mt-0.5 text-sm font-medium text-foreground">
-              {user.createdAt.toLocaleDateString("en-GB", {
+          <div className="grid gap-4 p-7 sm:grid-cols-2">
+            <InfoBlock label="Phone number" value={user.phone || "Not added"} />
+            <InfoBlock
+              label="Member since"
+              value={user.createdAt.toLocaleDateString("en-GB", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
               })}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Activity Statistics */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Events Organized</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">{stats.organizedEvents}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Events Attended</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">{stats.attendedEvents}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Action Items</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">{stats.actionItems}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Upcoming Events</p>
-          <p className="mt-2 text-2xl font-bold text-foreground">{stats.upcomingEvents}</p>
-        </div>
-      </div>
-
-      {/* Quick Info */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Quick Info</h3>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-lg bg-muted/30 p-4">
-            <p className="text-sm font-medium text-foreground mb-1">Account Status</p>
-            <p className="text-sm text-green-400 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-green-400"></span>
-              Active
-            </p>
-          </div>
-          <div className="rounded-lg bg-muted/30 p-4">
-            <p className="text-sm font-medium text-foreground mb-1">Role</p>
-            <p className="text-sm text-foreground capitalize">{user.role.replace(/_/g, " ").toLowerCase()}</p>
-          </div>
-          <div className="rounded-lg bg-muted/30 p-4">
-            <p className="text-sm font-medium text-foreground mb-1">Profile Completeness</p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500" style={{ width: user.image ? "100%" : "75%" }}></div>
-              </div>
-              <span className="text-xs text-muted-foreground">{user.image ? "100%" : "75%"}</span>
-            </div>
-          </div>
-          <div className="rounded-lg bg-muted/30 p-4">
-            <p className="text-sm font-medium text-foreground mb-1">Last Updated</p>
-            <p className="text-sm text-muted-foreground">
-              {user.updatedAt.toLocaleDateString("en-GB", {
+            />
+            <InfoBlock
+              label="Last updated"
+              value={user.updatedAt.toLocaleDateString("en-GB", {
                 year: "numeric",
                 month: "short",
                 day: "numeric",
               })}
-            </p>
+            />
+            <InfoBlock label="Account status" value="Active" />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Account overview</p>
+            <div className="mt-5 space-y-4">
+              <StatusRow
+                icon={ShieldCheck}
+                title="Secure access"
+                description="Profile and password changes are managed from this account."
+                accent="blue"
+              />
+              <StatusRow
+                icon={BellRing}
+                title="Meeting notifications"
+                description="Invitation, minutes, and task update alerts remain enabled for this account."
+                accent="green"
+              />
+              <StatusRow
+                icon={CalendarRange}
+                title="Participation"
+                description="Upcoming meetings and attendance activity are reflected in your statistics below."
+                accent="gold"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#003580]">Quick summary</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <SummaryPill label="Organized" value={stats.organizedEvents} />
+              <SummaryPill label="Attended" value={stats.attendedEvents} />
+              <SummaryPill label="Tasks" value={stats.actionItems} />
+              <SummaryPill label="Upcoming" value={stats.upcomingEvents} />
+            </div>
           </div>
         </div>
       </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatMiniCard label="Events Organized" value={stats.organizedEvents} tone="blue" icon={CalendarRange} />
+        <StatMiniCard label="Events Attended" value={stats.attendedEvents} tone="slate" icon={Check} />
+        <StatMiniCard label="Action Items" value={stats.actionItems} tone="green" icon={ClipboardList} />
+        <StatMiniCard label="Upcoming Events" value={stats.upcomingEvents} tone="gold" icon={BellRing} />
+      </div>
+    </div>
+  );
+}
+
+function InfoBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.15rem] border border-border bg-secondary/40 p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function StatusRow({
+  icon: Icon,
+  title,
+  description,
+  accent,
+}: {
+  icon: typeof ShieldCheck;
+  title: string;
+  description: string;
+  accent: "blue" | "green" | "gold";
+}) {
+  const tone = {
+    blue: "bg-[#e7f0ff] text-[#003580]",
+    green: "bg-[#e6f6ec] text-[#007236]",
+    gold: "bg-[#fff4d6] text-[#946200]",
+  }[accent];
+
+  return (
+    <div className="flex gap-4 rounded-[1.3rem] border border-border bg-secondary/35 p-4">
+      <span className={`flex h-11 w-11 items-center justify-center rounded-[1rem] ${tone}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div>
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function SummaryPill({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-[1.15rem] border border-border bg-secondary/35 px-4 py-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-[#003580]">{value}</p>
+    </div>
+  );
+}
+
+function StatMiniCard({
+  label,
+  value,
+  tone,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  tone: "blue" | "slate" | "green" | "gold";
+  icon: typeof CalendarRange;
+}) {
+  const styles = {
+    blue: "border-[#d3e0f0] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] text-[#003580]",
+    slate: "border-[#d6dfec] bg-[linear-gradient(180deg,#fbfdff_0%,#f1f5fb_100%)] text-[#1f3d67]",
+    green: "border-[#c7e2d0] bg-[linear-gradient(180deg,#f8fffb_0%,#edf8f1_100%)] text-[#007236]",
+    gold: "border-[#f0dfaa] bg-[linear-gradient(180deg,#fffef8_0%,#fff5d9_100%)] text-[#946200]",
+  }[tone];
+
+  return (
+    <div className={`rounded-[1.55rem] border p-5 shadow-[0_14px_35px_rgba(15,35,63,0.07)] ${styles}`}>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+        <span className="flex h-10 w-10 items-center justify-center rounded-[0.95rem] bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+          <Icon className="h-4.5 w-4.5" />
+        </span>
+      </div>
+      <p className="mt-5 text-3xl font-semibold">{value}</p>
     </div>
   );
 }
