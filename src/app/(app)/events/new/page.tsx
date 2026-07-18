@@ -68,7 +68,7 @@ export default async function NewEventPage({
       <div className="rounded-lg border border-border bg-card p-6">
         <EventForm
           rooms={rooms}
-          ministries={ministries as any}
+          ministries={ministries}
           coOrganizerCandidates={coOrganizerCandidates}
           isSuperAdmin={superAdmin}
           initialDate={initialDate}
