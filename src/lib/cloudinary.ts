@@ -16,7 +16,7 @@ if (isConfigured) {
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp"];
 
-export async function savePublicImage(file: File): Promise<string> {
+async function uploadToCloudinary(file: File, folder: string): Promise<string> {
   if (!isConfigured) {
     throw new Error("Image upload not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in .env");
   }
@@ -34,7 +34,7 @@ export async function savePublicImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "public-events",
+        folder,
         resource_type: "auto",
       },
       (err, result) => {
@@ -50,4 +50,12 @@ export async function savePublicImage(file: File): Promise<string> {
 
     uploadStream.end(buffer);
   });
+}
+
+export async function savePublicImage(file: File): Promise<string> {
+  return uploadToCloudinary(file, "public-events");
+}
+
+export async function saveImage(file: File, folder: string = "images"): Promise<string> {
+  return uploadToCloudinary(file, folder);
 }
