@@ -17,7 +17,7 @@ interface Props {
   eventId: string;
   body: string;
   summary: string | null;
-  status: "DRAFT" | "SUBMITTED" | "PUBLISHED";
+  status: "DRAFT" | "PUBLISHED";
   editWindowClosed?: boolean;
 }
 
@@ -66,7 +66,7 @@ export function MinutesEditor({ eventId, body, summary, status, editWindowClosed
         <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 p-3">
           <div className="h-2 w-2 rounded-full bg-blue-500" />
           <p className="text-xs text-blue-400">
-            {status === "PUBLISHED" ? "Published — locked for editing." : "Submitted — pending approval."}
+            Published — locked for editing.
           </p>
         </div>
       </div>

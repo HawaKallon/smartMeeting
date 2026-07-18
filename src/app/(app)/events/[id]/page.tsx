@@ -7,13 +7,15 @@ import { canViewMinutesForEvent } from "@/lib/eventAccess";
 import { isMinutesArchived } from "@/lib/minutesPolicy";
 import { isSuperAdmin } from "@/lib/roles";
 import { ManageCoOrganizers } from "./ManageCoOrganizers";
+import { PublishButton } from "./PublishButton";
 // import { Uploader } from "./recordings/Uploader";
 // import { MeetingRecorder } from "./recordings/MeetingRecorder";
 import { RsvpButtons } from "./RsvpButtons";
 import { BackButton } from "@/components/BackButton";
 // import { AudioPlayer } from "@/components/AudioPlayer";
-import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Repeat } from "lucide-react";
+import { Calendar, MapPin, Users, Download, Edit, FileText, Zap, Repeat, Globe, Lock } from "lucide-react";
 import { describeRecurrence } from "@/lib/recurrence";
+import { getCategoryLabel } from "@/lib/public-event-categories";
 import { CancelEventButton } from "./CancelEventButton";
 
 export default async function EventDetailPage({
@@ -31,6 +33,7 @@ export default async function EventDetailPage({
       coOrganizers: { select: { id: true, name: true, email: true } },
       room: { select: { id: true, name: true, location: true, capacity: true } },
       series: true,
+      invitedMinistries: { select: { id: true, name: true } },
       _count: { select: { attendees: true, attendances: true } },
     },
   });
@@ -39,14 +42,14 @@ export default async function EventDetailPage({
   const coOrganizerIds = event.coOrganizers.map((c) => c.id);
   const eventPerm = {
     ministryId: event.ministryId,
-    organizerId: event.organizerId,
+    organizerId: event.organizerId ?? null,
     coOrganizerIds,
   };
   const canManage = canManageEvent(user, eventPerm);
   const canReassign = canReassignEvent(user, eventPerm);
   const canViewMinutes = canViewMinutesForEvent(user, {
     ministryId: event.ministryId,
-    organizerId: event.organizerId,
+    organizerId: event.organizerId ?? null,
     coOrganizers: event.coOrganizers,
   });
 
@@ -62,7 +65,7 @@ export default async function EventDetailPage({
           where: {
             ministryId: event.ministryId,
             systemRole: { not: "SUPER_ADMIN" },
-            id: { notIn: [event.organizerId, ...coOrganizerIds] },
+            id: { notIn: [event.organizerId || "", ...coOrganizerIds].filter(Boolean) },
           },
           select: { id: true, name: true, email: true },
           orderBy: [{ name: "asc" }, { email: "asc" }],
@@ -85,7 +88,7 @@ export default async function EventDetailPage({
           <p className="mt-2 flex flex-wrap items-center gap-2 text-muted-foreground">
             <span className="capitalize">{event.type.toLowerCase()}</span> •
             <span>
-              By {event.organizer.name ?? event.organizer.email}
+              By {event.organizer?.name ?? event.organizer?.email ?? "System"}
               {event.coOrganizers.length > 0 &&
                 ` + ${event.coOrganizers.map((c) => c.name ?? c.email).join(", ")}`}
             </span>
@@ -97,7 +100,7 @@ export default async function EventDetailPage({
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {canManage && (
             <Link
               href={`/administrative/events/${id}/edit`}
@@ -109,6 +112,9 @@ export default async function EventDetailPage({
           )}
           {canManage && (
             <CancelEventButton eventId={id} isSeries={!!event.seriesId} />
+          )}
+          {event.isPublic && canManage && (
+            <PublishButton eventId={id} isPublic={event.isPublic} status={event.status || "DRAFT"} />
           )}
           <button className="flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
             <Download className="h-4 w-4" />
@@ -143,25 +149,134 @@ export default async function EventDetailPage({
         />
         <InfoCard
           icon={<MapPin className="h-5 w-5" />}
-          label="Room"
-          value={event.room ? `${event.room.name} (${event.room.location})` : "Not assigned"}
+          label={event.isPublic ? "Venue" : "Room"}
+          value={event.isPublic ? (event.venueName || "Not specified") : (event.room ? `${event.room.name} (${event.room.location})` : "Not assigned")}
         />
-        <InfoCard
-          icon={<Users className="h-5 w-5" />}
-          label="Attendance"
-          value={`${event._count.attendances}/${event._count.attendees} checked in`}
-        />
+        {!event.isPublic && (
+          <InfoCard
+            icon={<Users className="h-5 w-5" />}
+            label="Attendance"
+            value={`${event._count.attendances}/${event._count.attendees} checked in`}
+          />
+        )}
+        {event.isPublic && event.category && (
+          <InfoCard
+            icon={<Globe className="h-5 w-5" />}
+            label="Category"
+            value={getCategoryLabel(event.category)}
+          />
+        )}
       </div>
 
-      {/* Organizer / assistants */}
-      {(canReassign || event.coOrganizers.length > 0) && (
+      {/* Public event banner */}
+      {event.isPublic && event.bannerImage && (
+        <div className="rounded-xl overflow-hidden border border-border bg-card flex-shrink-0">
+          <img
+            src={event.bannerImage}
+            alt={event.title}
+            className="w-full h-auto max-h-80 object-cover"
+          />
+        </div>
+      )}
+
+      {/* Public event status */}
+      {event.isPublic && (
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-4">
+            {event.status === "PUBLISHED" ? (
+              <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#cfe5d7] bg-[#edf8f1] px-3 py-1.5 text-xs font-medium text-[#007236]">
+                <Globe className="h-4 w-4" />
+                Published
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[#fde8a6] bg-[#fff7dd] px-3 py-1.5 text-xs font-medium text-[#946200]">
+                <Lock className="h-4 w-4" />
+                Draft
+              </span>
+            )}
+          </div>
+          {event.publishedAt && (
+            <p className="text-xs text-muted-foreground">
+              Published {event.publishedAt.toLocaleString("en-GB")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Public event contact & external link */}
+      {event.isPublic && (event.contactEmail || event.contactPhone || event.externalUrl) && (
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
+            Contact & Details
+          </h2>
+          <div className="space-y-3 text-sm text-foreground">
+            {event.contactEmail && (
+              <div>
+                <span className="font-medium">Email:</span>{" "}
+                <a
+                  href={`mailto:${event.contactEmail}`}
+                  className="text-blue-500 hover:underline"
+                >
+                  {event.contactEmail}
+                </a>
+              </div>
+            )}
+            {event.contactPhone && (
+              <div>
+                <span className="font-medium">Phone:</span>{" "}
+                <a
+                  href={`tel:${event.contactPhone}`}
+                  className="text-blue-500 hover:underline"
+                >
+                  {event.contactPhone}
+                </a>
+              </div>
+            )}
+            {event.externalUrl && (
+              <div>
+                <span className="font-medium">External Link:</span>{" "}
+                <a
+                  href={event.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  {event.externalUrl}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Public event invited ministries */}
+      {event.isPublic && event.invitedMinistries && event.invitedMinistries.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
+            Invited Ministries
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {event.invitedMinistries.map((ministry) => (
+              <span
+                key={ministry.id}
+                className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground/80"
+              >
+                {ministry.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Organizer / assistants (internal events only) */}
+      {!event.isPublic && (canReassign || event.coOrganizers.length > 0) && (
         <div className="rounded-xl border border-border bg-card p-6 flex-shrink-0">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             <Users className="h-4 w-4" />
             Organizer &amp; Assistants
           </h2>
           <p className="mb-4 text-sm text-foreground">
-            <span className="font-medium">{event.organizer.name ?? event.organizer.email}</span>
+            <span className="font-medium">{event.organizer?.name ?? event.organizer?.email ?? "System"}</span>
             <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               Organizer
             </span>
@@ -221,24 +336,9 @@ export default async function EventDetailPage({
                   label="Attendees"
                 />
                 <ActionButton
-                  href={`/administrative/events/${id}/letters`}
-                  icon={<FileText className="h-4 w-4" />}
-                  label="Letters"
-                />
-                <ActionButton
                   href={`/administrative/events/${id}/checkin-code`}
                   icon={<Zap className="h-4 w-4" />}
                   label="Check-in QR"
-                />
-                <ActionButton
-                  href={`/administrative/events/${id}/attendance`}
-                  icon={<Users className="h-4 w-4" />}
-                  label="Attendance"
-                />
-                <ActionButton
-                  href={`/administrative/events/${id}/report`}
-                  icon={<FileText className="h-4 w-4" />}
-                  label="Write Report"
                 />
               </>
             ) : null}

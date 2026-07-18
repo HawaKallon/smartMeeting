@@ -72,7 +72,7 @@ export async function createPublicEvent(
       }
     }
 
-    const event = await prisma.publicEvent.create({
+    const event = await prisma.event.create({
       data: {
         title: data.title,
         description: data.description,
@@ -84,8 +84,7 @@ export async function createPublicEvent(
         externalUrl: data.externalUrl || null,
         contactEmail: data.contactEmail || null,
         contactPhone: data.contactPhone || null,
-        ministryId: user.ministryId,
-        createdById: user.id,
+        ministryId: user.ministryId!,
         status: "DRAFT",
         invitedMinistries: {
           connect: invitedMinistryIds.map((id) => ({ id })),
@@ -100,7 +99,7 @@ export async function createPublicEvent(
       action: "CREATE_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: event.id,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: event.title, invitedMinistryCount: invitedMinistryIds.length },
     });
   } catch (err) {
@@ -120,7 +119,7 @@ export async function updatePublicEvent(
 ): Promise<ActionState> {
   const user = await assertAdminRole();
 
-  const event = await prisma.publicEvent.findUnique({
+  const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: { ministryId: true },
   });
@@ -156,7 +155,7 @@ export async function updatePublicEvent(
       bannerImage = await savePublicImage(bannerFile);
     }
 
-    const updated = await prisma.publicEvent.update({
+    const updated = await prisma.event.update({
       where: { id: eventId },
       data: {
         title: data.title,
@@ -180,7 +179,7 @@ export async function updatePublicEvent(
       action: "UPDATE_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: updated.title, invitedMinistryCount: invitedMinistryIds.length },
     });
 
@@ -196,7 +195,7 @@ export async function updatePublicEvent(
 export async function publishPublicEvent(eventId: string): Promise<ActionState> {
   const user = await assertAdminRole();
 
-  const event = await prisma.publicEvent.findUnique({
+  const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: { ministryId: true, status: true, title: true, description: true, startAt: true, endAt: true, venueName: true },
   });
@@ -208,7 +207,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
   assertSameMinistry(user, event.ministryId);
 
   try {
-    const updated = await prisma.publicEvent.update({
+    const updated = await prisma.event.update({
       where: { id: eventId },
       data: {
         status: "PUBLISHED",
@@ -222,7 +221,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
       action: "PUBLISH_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: updated.title },
     });
 
@@ -234,12 +233,12 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
         const invitedMinistryIds = updated.invitedMinistries.map((m) => m.id);
         const organizerMinistryName = updated.ministry?.name || "Government of Sierra Leone";
 
-        // Find leadership recipients at invited ministries
+        // Find ministry-level recipients at invited ministries
         const recipients = await prisma.user.findMany({
           where: {
             ministryId: { in: invitedMinistryIds },
             active: true,
-            systemRole: { in: ["MINISTRY_ADMIN", "MINISTER", "LEADERSHIP"] },
+            systemRole: { in: ["MINISTRY_ADMIN", "MINISTER"] },
           },
           select: { id: true, email: true, name: true, ministryId: true, emailNotifications: true },
         });
@@ -311,7 +310,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
 export async function unpublishPublicEvent(eventId: string): Promise<ActionState> {
   const user = await assertAdminRole();
 
-  const event = await prisma.publicEvent.findUnique({
+  const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: { ministryId: true },
   });
@@ -323,7 +322,7 @@ export async function unpublishPublicEvent(eventId: string): Promise<ActionState
   assertSameMinistry(user, event.ministryId);
 
   try {
-    const updated = await prisma.publicEvent.update({
+    const updated = await prisma.event.update({
       where: { id: eventId },
       data: {
         status: "DRAFT",
@@ -336,7 +335,7 @@ export async function unpublishPublicEvent(eventId: string): Promise<ActionState
       action: "UNPUBLISH_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: updated.title },
     });
 
@@ -352,7 +351,7 @@ export async function unpublishPublicEvent(eventId: string): Promise<ActionState
 export async function deletePublicEvent(eventId: string): Promise<ActionState> {
   const user = await assertAdminRole();
 
-  const event = await prisma.publicEvent.findUnique({
+  const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: { ministryId: true, title: true },
   });
@@ -364,7 +363,7 @@ export async function deletePublicEvent(eventId: string): Promise<ActionState> {
   assertSameMinistry(user, event.ministryId);
 
   try {
-    await prisma.publicEvent.delete({
+    await prisma.event.delete({
       where: { id: eventId },
     });
 
@@ -373,7 +372,7 @@ export async function deletePublicEvent(eventId: string): Promise<ActionState> {
       action: "DELETE_PUBLIC_EVENT",
       entityType: "PublicEvent",
       entityId: eventId,
-      ministryId: user.ministryId,
+      ministryId: user.ministryId!,
       metadata: { title: event.title },
     });
   } catch (err) {

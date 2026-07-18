@@ -6,8 +6,7 @@ import { canManageExistingEvent, canViewMinutesForEvent } from "@/lib/eventAcces
 import { MinutesEditor } from "./MinutesEditor";
 import { ActionItemsPanel } from "./ActionItemsPanel";
 import { PublishButton } from "./PublishButton";
-import { SubmitButton } from "./SubmitButton";
-import { FileText, CheckCircle, Clock, Send, Hourglass } from "lucide-react";
+import { FileText, CheckCircle, Clock } from "lucide-react";
 import { isMinutesArchived, isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
 import { isSuperAdmin } from "@/lib/roles";
 import { isMinistryAdminLevel } from "@/lib/roles";
@@ -28,6 +27,7 @@ export default async function MinutesPage({
       id: true,
       title: true,
       startAt: true,
+      endAt: true,
       scope: true,
       ministryId: true,
       organizerId: true,
@@ -44,11 +44,10 @@ export default async function MinutesPage({
   if (!canViewMinutesForEvent(user, event)) notFound();
 
   // Lazy-init minutes from transcript text if no record yet.
-  const minutesQuery = prisma.minutes.findUnique({
+  const minutesFromDb = await prisma.minutes.findUnique({
     where: { eventId: id },
     include: {
       drafted: { select: { name: true, email: true } },
-      submitted: { select: { name: true, email: true } },
       approver: { select: { name: true, email: true } },
       actionItems: {
         include: { owner: { select: { id: true, name: true, email: true } } },
@@ -57,13 +56,11 @@ export default async function MinutesPage({
     },
   });
 
-  const attendeesQuery = prisma.eventAttendee.findMany({
+  const attendees = await prisma.eventAttendee.findMany({
     where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
     include: { user: { select: { id: true, name: true, email: true } } },
     orderBy: { createdAt: "asc" },
   });
-
-  const [minutesFromDb, attendees] = await Promise.all([minutesQuery, attendeesQuery]);
 
   let minutes: typeof minutesFromDb;
   if (!minutesFromDb) {
@@ -75,7 +72,6 @@ export default async function MinutesPage({
       create: { eventId: id, body, draftedById: user.id, draftedAt: new Date() },
       include: {
         drafted: { select: { name: true, email: true } },
-        submitted: { select: { name: true, email: true } },
         approver: { select: { name: true, email: true } },
         actionItems: {
           include: { owner: { select: { id: true, name: true, email: true } } },
@@ -95,8 +91,6 @@ export default async function MinutesPage({
     .filter((p) => p.name || p.email);
 
   const isAdmin = canManageExistingEvent(user, event);
-  const isApprover = canViewMinutesForEvent(user, event) && !isAdmin;
-  const isSubmitted = minutes.status === "SUBMITTED";
   const isPublished = minutes.status === "PUBLISHED";
 
   // Check if minutes are archived (6+ months old)
@@ -106,7 +100,7 @@ export default async function MinutesPage({
 
   // Check if edit window is closed (unless user is admin-level)
   const canOverrideEditWindow = isMinistryAdminLevel(user.systemRole);
-  const editWindowClosed = isMinutesEditWindowClosed(event.startAt) && !canOverrideEditWindow;
+  const editWindowClosed = isMinutesEditWindowClosed(event.endAt) && !canOverrideEditWindow;
   // const segments = (event.recordings[0]?.transcript?.segments as Segment[] | null) ?? [];
   const segments: Segment[] = [];
 
@@ -147,20 +141,13 @@ export default async function MinutesPage({
           className={`rounded-full px-4 py-2 text-sm font-medium flex items-center gap-2 ${
             isPublished
               ? "bg-green-500/10 text-green-400"
-              : isSubmitted
-                ? "bg-blue-500/10 text-blue-400"
-                : "bg-yellow-500/10 text-yellow-400"
+              : "bg-yellow-500/10 text-yellow-400"
           }`}
         >
           {isPublished ? (
             <>
               <CheckCircle className="h-4 w-4" />
               Published
-            </>
-          ) : isSubmitted ? (
-            <>
-              <Send className="h-4 w-4" />
-              Submitted for Review
             </>
           ) : (
             <>
@@ -219,26 +206,9 @@ export default async function MinutesPage({
                 eventId={id}
                 body={minutes.body}
                 summary={minutes.summary ?? null}
-                status={minutes.status as "DRAFT" | "SUBMITTED" | "PUBLISHED"}
+                status={minutes.status as "DRAFT" | "PUBLISHED"}
                 editWindowClosed={editWindowClosed}
               />
-              {minutes.status === "DRAFT" && (
-                <div className="mt-4">
-                  {event.scope === "TEAM" ? (
-                    <PublishButton minutesId={minutes.id} eventId={id} />
-                  ) : (
-                    <SubmitButton minutesId={minutes.id} eventId={id} />
-                  )}
-                </div>
-              )}
-              {minutes.status === "SUBMITTED" && (
-                <div className="mt-4 rounded-lg bg-blue-500/10 p-4">
-                  <p className="flex items-center gap-2 text-sm text-blue-400">
-                    <Hourglass className="h-4 w-4" />
-                    Submitted for review on {minutes.submittedAt?.toLocaleString() ?? "—"} — awaiting approval
-                  </p>
-                </div>
-              )}
             </>
           ) : (
             <div className="space-y-6">
@@ -280,49 +250,20 @@ export default async function MinutesPage({
           eventId={id}
           items={itemsForClient}
           users={users}
-          status={minutes.status as "DRAFT" | "SUBMITTED" | "PUBLISHED"}
+          status={minutes.status as "DRAFT" | "PUBLISHED"}
           canEdit={isAdmin}
         />
       </div>
 
-      {/* Approval Section */}
-      {isApprover ? (
+      {/* Publish Button */}
+      {isAdmin && minutes.status === "DRAFT" && (
         <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Publication Status
-          </h2>
-          {isPublished ? (
-            <div className="space-y-3 rounded-lg bg-green-500/10 p-4">
-              <p className="flex items-center gap-2 text-sm text-green-400">
-                <CheckCircle className="h-4 w-4" />
-                Published on {minutes.publishedAt?.toLocaleString() ?? "—"}
-              </p>
-              {minutes.approver && (
-                <p className="text-xs text-muted-foreground">
-                  Approved by {minutes.approver.name || minutes.approver.email}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Minutes are locked. Contact an admin to make corrections.
-              </p>
-            </div>
-          ) : isSubmitted ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Review the minutes and action items above, then publish to lock and distribute to all attendees.
-              </p>
-              <PublishButton minutesId={minutes.id} eventId={id} />
-            </div>
-          ) : (
-            <div className="rounded-lg bg-yellow-500/10 p-4">
-              <p className="flex items-center gap-2 text-sm text-yellow-400">
-                <Clock className="h-4 w-4" />
-                Waiting for the drafter to submit for review
-              </p>
-            </div>
-          )}
+          <PublishButton minutesId={minutes.id} eventId={id} />
         </div>
-      ) : isAdmin && event.scope === "TEAM" && minutes.status === "PUBLISHED" ? (
+      )}
+
+      {/* Publication Status Summary */}
+      {isAdmin && minutes.status === "PUBLISHED" && (
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Publication Status
@@ -333,11 +274,11 @@ export default async function MinutesPage({
               Published on {minutes.publishedAt?.toLocaleString() ?? "—"}
             </p>
             <p className="text-xs text-muted-foreground">
-              These meeting notes are published and locked for editing.
+              Minutes are locked for editing.
             </p>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

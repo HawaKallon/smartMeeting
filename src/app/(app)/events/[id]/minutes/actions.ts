@@ -3,11 +3,11 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser, assertSameMinistry } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
 import { isMinistryAdminLevel } from "@/lib/roles";
-import { sendMinutesEmail, sendMinutesSubmittedEmail, sendActionItemEmail } from "@/lib/email";
+import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
@@ -154,16 +154,16 @@ export async function saveMinutesDraft(
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, startAt: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    select: { id: true, startAt: true, endAt: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
   });
   if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const existing = await prisma.minutes.findUnique({ where: { eventId } });
   if (existing?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
 
-  // Check edit-window: can only edit within 2 days of the meeting, unless admin-level
-  if (isMinutesEditWindowClosed(event.startAt) && !isMinistryAdminLevel(user.systemRole)) {
-    return { error: "Minutes can only be edited within 2 days of the meeting." };
+  // Check edit-window: can only edit within 2 days of the meeting end, unless admin-level
+  if (isMinutesEditWindowClosed(event.endAt) && !isMinistryAdminLevel(user.systemRole)) {
+    return { error: "Minutes can only be edited within 2 days of the meeting end." };
   }
 
   const minutes = await prisma.minutes.upsert({
@@ -206,7 +206,10 @@ export async function publishMinutes(
 
   const { eventId, minutesId } = parsed.data;
 
-  const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
+  const minutes = await prisma.minutes.findUnique({
+    where: { id: minutesId },
+    include: { actionItems: { orderBy: { createdAt: "asc" } } },
+  });
   if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -214,6 +217,7 @@ export async function publishMinutes(
       id: true,
       title: true,
       startAt: true,
+      endAt: true,
       ministryId: true,
       scope: true,
       organizerId: true,
@@ -231,22 +235,11 @@ export async function publishMinutes(
   });
   if (!event) return { error: "Event not found." };
 
-  // P4: Scope-based publish authorization
-  if (event.scope === "TEAM") {
-    // TEAM scope: organizer/co-organizer can publish directly (no role gate, no SUBMITTED requirement)
-    if (!canPublishMinutes(user, { ...event, id: eventId, coOrganizers: event.coOrganizers } as any)) {
-      return { error: "You don't have permission to publish these notes." };
-    }
-    if (minutes.status === "PUBLISHED") return { error: "Already published." };
-  } else {
-    // OFFICIAL scope: requires APPROVER role + ministry + SUBMITTED status
-    assertSameMinistry(user, event.ministryId);
-    if (!canPublishMinutes(user, { ...event, id: eventId, coOrganizers: event.coOrganizers } as any)) {
-      return { error: "Only an approver in this ministry can publish." };
-    }
-    if (minutes.status === "PUBLISHED") return { error: "Already published." };
-    if (minutes.status !== "SUBMITTED") return { error: "Minutes must be submitted for review before publishing." };
+  // Organizer/co-organizer/super-admin can publish directly
+  if (!canPublishMinutes(user, { ...event, id: eventId, coOrganizers: event.coOrganizers } as any)) {
+    return { error: "You don't have permission to publish these notes." };
   }
+  if (minutes.status === "PUBLISHED") return { error: "Already published." };
 
   await prisma.minutes.update({
     where: { id: minutesId },
@@ -267,6 +260,12 @@ export async function publishMinutes(
     weekday: "short", year: "numeric", month: "short", day: "numeric",
   });
 
+  const actionItems = minutes.actionItems.map(item => ({
+    title: item.title,
+    ownerName: item.ownerName,
+    dueDate: item.dueDate,
+  }));
+
   await Promise.allSettled(
     event.attendees.map((a) => {
       // Internal attendees: send full link and SMS (if they opted in)
@@ -280,6 +279,7 @@ export async function publishMinutes(
             eventDate,
             summary: minutes.summary,
             minutesUrl,
+            actionItems,
           }),
           sendMinutesSms({
             to: a.user!.email,
@@ -300,6 +300,7 @@ export async function publishMinutes(
             eventDate,
             summary: minutes.summary,
             minutesUrl: guestPortalUrl,
+            actionItems,
           }),
         ]);
       }
@@ -313,61 +314,6 @@ export async function publishMinutes(
   return { ok: true };
 }
 
-// ── Submit Minutes for Review ────────────────────────────────────────────────
-
-const SubmitSchema = z.object({
-  eventId: z.string().min(1),
-  minutesId: z.string().min(1),
-});
-
-export async function submitMinutes(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const user = await requireUser();
-
-  const parsed = SubmitSchema.safeParse({
-    eventId: formData.get("eventId"),
-    minutesId: formData.get("minutesId"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
-
-  const { eventId, minutesId } = parsed.data;
-
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: { id: true, title: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
-  });
-  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
-
-  const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
-  if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
-  if (minutes.status !== "DRAFT") return { error: "Only draft minutes can be submitted for review." };
-
-  await prisma.minutes.update({
-    where: { id: minutesId },
-    data: { status: "SUBMITTED", submittedAt: new Date(), submittedById: user.id },
-  });
-
-  await audit({
-    actorId: user.id,
-    action: "SUBMIT_MINUTES",
-    entityType: "Minutes",
-    entityId: minutesId,
-    metadata: { eventId },
-    ministryId: event.ministryId,
-  });
-
-  await notifyApproversOfSubmission({
-    eventId,
-    ministryId: event.ministryId,
-    eventTitle: event.title,
-    submitterName: user.name ?? user.email,
-  });
-
-  revalidatePath(`/administrative/events/${eventId}/minutes`);
-  return { ok: true };
-}
 
 // ── Add Action Item ──────────────────────────────────────────────────────────
 
@@ -694,39 +640,6 @@ function assigneeChanged(
   return item.ownerId !== null || normalizeAssignee(item.ownerName) !== normalizeAssignee(ownerName);
 }
 
-async function notifyApproversOfSubmission({
-  eventId, ministryId, eventTitle, submitterName,
-}: { eventId: string; ministryId: string; eventTitle: string; submitterName: string }) {
-  const approvers = await prisma.user.findMany({
-    where: { ministryId, systemRole: { in: ["LEADERSHIP", "MINISTER"] }, active: true },
-    select: { id: true, name: true, email: true, ministryId: true },
-  });
-  if (approvers.length === 0) return;
-
-  const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
-
-  await Promise.allSettled(
-    approvers.map((a) =>
-      Promise.allSettled([
-        sendMinutesSubmittedEmail({
-          to: a.email,
-          toName: a.name ?? a.email,
-          eventTitle,
-          submitterName,
-          minutesUrl,
-        }),
-        notify({
-          userId: a.id,
-          type: "MINUTES_SUBMITTED",
-          title: "Minutes pending your approval",
-          body: `${submitterName} submitted minutes for "${eventTitle}" for review.`,
-          link: minutesUrl,
-          ministryId: a.ministryId,
-        }),
-      ]),
-    ),
-  );
-}
 
 async function notifyExternalActionItemOwner({
   to, toName, title, dueDate, eventId, attendeeId,

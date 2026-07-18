@@ -6,7 +6,6 @@ export const SYSTEM_ROLES = [
   "SUPER_ADMIN",
   "MINISTER",
   "MINISTRY_ADMIN",
-  "LEADERSHIP",
   "STAFF",
 ] as const;
 
@@ -16,7 +15,6 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   SUPER_ADMIN: "Super Admin",
   MINISTER: "Minister",
   MINISTRY_ADMIN: "Ministry Admin",
-  LEADERSHIP: "Leadership",
   STAFF: "Staff",
 };
 
@@ -27,7 +25,7 @@ export function isMinistryAdminLevel(role: SystemRole | undefined): boolean {
 
 /**
  * Operational staff: create/manage events, letters, attendance, draft minutes.
- * Includes STAFF, LEADERSHIP, MINISTRY_ADMIN, and SUPER_ADMIN.
+ * Includes STAFF, MINISTRY_ADMIN, MINISTER, and SUPER_ADMIN.
  */
 export function canManageEvents(role: SystemRole | undefined): boolean {
   return (
@@ -37,10 +35,6 @@ export function canManageEvents(role: SystemRole | undefined): boolean {
   );
 }
 
-/** Roles that can approve/publish minutes. */
-export function canApproveMinutes(role: SystemRole | undefined): boolean {
-  return role === "LEADERSHIP" || role === "MINISTER";
-}
 
 /** Every defined role can view ministry-wide schedule. */
 export function canViewMinistrySchedule(role: SystemRole | undefined): boolean {
@@ -59,14 +53,19 @@ export function isSuperAdmin(role: SystemRole | undefined): boolean {
 
 // Per-event permissions: the organizer, their co-organizers, and ministry ADMINs
 // may manage a given event; only the organizer or a ministry ADMIN may reassign it.
+// For public events (organizerId is null), only ministry admins can manage.
 
-export type EventPerm = { ministryId: string; organizerId: string; coOrganizerIds: string[] };
+export type EventPerm = { ministryId: string; organizerId: string | null; coOrganizerIds: string[] };
 export type ActorPerm = { id: string; systemRole: SystemRole; ministryId: string | null };
 
 /** Can this actor edit/cancel/manage the given event? */
 export function canManageEvent(actor: ActorPerm, e: EventPerm): boolean {
   if (isSuperAdmin(actor.systemRole)) return true;
   if (actor.ministryId !== e.ministryId) return false;
+  // Public events (organizerId is null) can only be managed by ministry admins
+  if (e.organizerId === null) {
+    return isMinistryAdminLevel(actor.systemRole);
+  }
   return (
     e.organizerId === actor.id ||
     e.coOrganizerIds.includes(actor.id) ||
@@ -78,6 +77,10 @@ export function canManageEvent(actor: ActorPerm, e: EventPerm): boolean {
 export function canReassignEvent(actor: ActorPerm, e: EventPerm): boolean {
   if (isSuperAdmin(actor.systemRole)) return true;
   if (actor.ministryId !== e.ministryId) return false;
+  // Public events (organizerId is null) can only be managed by ministry admins
+  if (e.organizerId === null) {
+    return isMinistryAdminLevel(actor.systemRole);
+  }
   return e.organizerId === actor.id || isMinistryAdminLevel(actor.systemRole);
 }
 

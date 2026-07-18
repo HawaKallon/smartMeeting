@@ -21,6 +21,7 @@ const MINISTRY_USERS: {
   systemRole: SystemRole;
   jobTitle: string | null;
   ministryCode: string;
+
 }[] = [
   // MOH (@moh.gov.sl)
   {
@@ -40,21 +41,21 @@ const MINISTRY_USERS: {
   {
     email: "ps@moh.gov.sl",
     name: "Permanent Secretary",
-    systemRole: "LEADERSHIP",
+    systemRole: "STAFF",
     jobTitle: "Permanent Secretary",
     ministryCode: "MOH",
   },
   {
     email: "deputy.minister@moh.gov.sl",
     name: "Deputy Minister",
-    systemRole: "LEADERSHIP",
+    systemRole: "STAFF",
     jobTitle: "Deputy Minister",
     ministryCode: "MOH",
   },
   {
     email: "ds@moh.gov.sl",
     name: "Deputy Secretary",
-    systemRole: "LEADERSHIP",
+    systemRole: "STAFF",
     jobTitle: "Deputy Secretary",
     ministryCode: "MOH",
   },
@@ -91,14 +92,14 @@ const MINISTRY_USERS: {
   {
     email: "ps@moe.gov.sl",
     name: "PS Education",
-    systemRole: "LEADERSHIP",
+    systemRole: "STAFF",
     jobTitle: "Permanent Secretary",
     ministryCode: "MOE",
   },
   {
     email: "ds@moe.gov.sl",
     name: "DS Education",
-    systemRole: "LEADERSHIP",
+    systemRole: "STAFF",
     jobTitle: "Deputy Secretary",
     ministryCode: "MOE",
   },
@@ -198,11 +199,7 @@ async function main() {
 
   // Create super-admin users
   console.log("\n👑 Creating super-admin users...");
-  const superAdminPasswordHash = await bcrypt.hash("platform88pass", 10);
-  const keepEmails = SUPER_ADMIN_USERS.map((u) => u.email);
-  await prisma.user.deleteMany({
-    where: { email: { notIn: keepEmails } },
-  });
+  const superAdminPasswordHash = await bcrypt.hash("password123", 10);
   for (const u of SUPER_ADMIN_USERS) {
     await prisma.user.upsert({
       where: { email: u.email },

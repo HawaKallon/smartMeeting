@@ -140,7 +140,7 @@ export default async function SearchPage({
                     <div className="mt-2 flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
                         {e.startAt.toLocaleDateString("en-GB")} •{" "}
-                        {e.organizer.name || e.organizer.email}
+                        {e.organizer?.name || e.organizer?.email}
                       </p>
                     </div>
                   </Link>

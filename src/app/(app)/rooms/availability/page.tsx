@@ -109,7 +109,7 @@ export default async function RoomAvailabilityPage({
       title: e.title,
       startTime: e.startAt,
       endTime: e.endAt,
-      user: e.organizer.name,
+      user: e.organizer?.name ?? "System",
     })),
   ].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
