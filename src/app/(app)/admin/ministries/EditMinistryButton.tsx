@@ -10,17 +10,11 @@ export function EditMinistryButton({
   ministryId,
   name,
   emailDomain,
-  compoundLat,
-  compoundLng,
-  compoundGeofenceRadius,
   compoundMaxGpsAccuracy,
 }: {
   ministryId: string;
   name: string;
   emailDomain: string | null;
-  compoundLat: number | null;
-  compoundLng: number | null;
-  compoundGeofenceRadius: number;
   compoundMaxGpsAccuracy: number;
 }) {
   const [open, setOpen] = useState(false);
@@ -53,48 +47,15 @@ export function EditMinistryButton({
           <p className="text-[11px] text-muted-foreground">
             Changing the domain means users must use the new domain to log in.
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="number"
-              name="compoundLat"
-              step="any"
-              min="-90"
-              max="90"
-              defaultValue={compoundLat ?? ""}
-              className={field}
-              placeholder="Compound lat"
-            />
-            <input
-              type="number"
-              name="compoundLng"
-              step="any"
-              min="-180"
-              max="180"
-              defaultValue={compoundLng ?? ""}
-              className={field}
-              placeholder="Compound long"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="number"
-              name="compoundGeofenceRadius"
-              min="1"
-              max="10000"
-              defaultValue={compoundGeofenceRadius}
-              className={field}
-              placeholder="Radius meters"
-            />
-            <input
-              type="number"
-              name="compoundMaxGpsAccuracy"
-              min="1"
-              max="1000"
-              defaultValue={compoundMaxGpsAccuracy}
-              className={field}
-              placeholder="Max GPS accuracy"
-            />
-          </div>
+          <input
+            type="number"
+            name="compoundMaxGpsAccuracy"
+            min="1"
+            max="1000"
+            defaultValue={compoundMaxGpsAccuracy}
+            className={field}
+            placeholder="Max GPS accuracy (meters)"
+          />
           <button
             type="submit"
             disabled={isPending}
