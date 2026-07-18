@@ -517,11 +517,12 @@ export async function manualCheckIn(
     const attendance = await prisma.attendance.create({
       data: {
         eventId,
-        userId,
-        externalName: userId ? null : guestName,
-        externalEmail: userId ? null : guestEmail,
+        ...(userId ? { userId } : {}),
+        ...(guestName ? { externalName: guestName } : {}),
+        ...(guestEmail ? { externalEmail: guestEmail } : {}),
         method: "MANUAL",
       },
+      select: { id: true },
     });
 
     await audit({

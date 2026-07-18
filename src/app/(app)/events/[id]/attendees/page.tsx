@@ -100,9 +100,6 @@ export default async function AttendeesPage({
             Checked In
           </div>
           <p className="mt-1 text-2xl font-bold text-foreground">{event.attendances.length}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {event.attendances.filter((a) => a.userId).length} invited + {walkInGuests.length} guests
-          </p>
         </div>
       </div>
 
