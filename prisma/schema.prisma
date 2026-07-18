@@ -295,6 +295,8 @@ model Attendance {
   user             User?         @relation(fields: [userId], references: [id])
   externalName     String?
   externalEmail    String? // external guest's email — disambiguates same-named guests
+  signedName       String? // name typed by the attendee at check-in
+  signature        String? // base64 PNG data URL of the drawn signature
   checkInAt        DateTime      @default(now())
   method           CheckInMethod @default(QR)
   lat              Float?
