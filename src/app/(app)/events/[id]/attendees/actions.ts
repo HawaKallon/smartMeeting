@@ -569,7 +569,7 @@ export async function removeAttendance(formData: FormData): Promise<void> {
   const attendance = await prisma.attendance.findUnique({ where: { id: attendanceId }, select: { id: true, eventId: true } });
   if (!attendance || attendance.eventId !== eventId) return;
 
-  await prisma.attendance.delete({ where: { id: attendanceId } });
+  await prisma.attendance.delete({ where: { id: attendanceId }, select: { id: true } });
 
   await audit({
     actorId: staff.id,
