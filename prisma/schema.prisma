@@ -131,9 +131,6 @@ model Ministry {
   code        String   @unique // short slug, e.g. "MOH"
   emailDomain String?  @unique // gov.sl subdomain that maps logins to this ministry, e.g. "mocti.gov.sl"
   active      Boolean  @default(true)
-  compoundLat Float?
-  compoundLng Float?
-  compoundGeofenceRadius Int @default(100)
   compoundMaxGpsAccuracy Int @default(75)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -189,6 +186,9 @@ model User {
   roomBookings      RoomBooking[]   @relation("RoomBookings")
   accounts          Account[]
   sessions          Session[]
+
+  @@index([ministryId])
+  @@index([ministryId, systemRole])
 }
 
 model Event {
@@ -295,6 +295,8 @@ model Attendance {
   user             User?         @relation(fields: [userId], references: [id])
   externalName     String?
   externalEmail    String? // external guest's email — disambiguates same-named guests
+  signedName       String? // name typed by the attendee at check-in
+  signature        String? // base64 PNG data URL of the drawn signature
   checkInAt        DateTime      @default(now())
   method           CheckInMethod @default(QR)
   lat              Float?

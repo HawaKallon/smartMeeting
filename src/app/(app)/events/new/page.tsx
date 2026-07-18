@@ -31,9 +31,6 @@ export default async function NewEventPage({
             id: true,
             name: true,
             code: true,
-            compoundLat: true,
-            compoundLng: true,
-            compoundGeofenceRadius: true,
             compoundMaxGpsAccuracy: true,
           },
         })
@@ -43,9 +40,6 @@ export default async function NewEventPage({
             id: true,
             name: true,
             code: true,
-            compoundLat: true,
-            compoundLng: true,
-            compoundGeofenceRadius: true,
             compoundMaxGpsAccuracy: true,
           },
         }),
@@ -61,6 +55,7 @@ export default async function NewEventPage({
           },
           orderBy: { name: "asc" },
           select: { id: true, name: true, email: true },
+          take: 50,
         }),
   ]);
 

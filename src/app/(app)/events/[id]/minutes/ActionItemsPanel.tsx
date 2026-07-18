@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Plus, Edit2, Trash2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { addActionItem, updateActionItem, deleteActionItem, type ActionState } from "./actions";
 import { DateTimePicker } from "@/components/DateTimePicker";
+import { useActionMessage } from "@/hooks/useActionMessage";
 
 type Item = {
   id: string;
@@ -104,6 +105,8 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, status, can
     undefined,
   );
 
+  const editMessageVisible = useActionMessage(editState);
+
   const showActions = canEdit && status === "DRAFT";
 
   return (
@@ -129,15 +132,16 @@ export function ActionItemsPanel({ minutesId, eventId, items, users, status, can
                   <input type="hidden" name="eventId" value={eventId} />
                   <input type="hidden" name="timezoneOffset" value={timezoneOffset} />
 
-                  {editState?.error ? (
+                  {editMessageVisible && editState?.error && (
                     <div className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
                       {editState.error}
                     </div>
-                  ) : editState?.ok ? (
+                  )}
+                  {editMessageVisible && editState?.ok && !editState?.error && (
                     <div className="rounded bg-green-500/10 px-2 py-1 text-xs text-green-400">
                       ✓ Saved.
                     </div>
-                  ) : null}
+                  )}
 
                   {/* Row 1: Point + Timeline */}
                   <div className="grid grid-cols-2 gap-3">

@@ -87,9 +87,7 @@ export async function updateEvent(
       ministryId: true,
       ministry: {
         select: {
-          compoundLat: true,
-          compoundLng: true,
-          compoundGeofenceRadius: true,
+          compoundMaxGpsAccuracy: true,
         },
       },
     },
@@ -142,9 +140,6 @@ export async function updateEvent(
       });
       if (!room) return { error: "Room not found or you don't have access" };
     }
-    const hasCompoundGeofence =
-      room && anchor.ministry.compoundLat != null && anchor.ministry.compoundLng != null;
-
     // Block on any room clash (siblings in this series don't count).
     for (const s of slots) {
       const reason = await findSlotConflict({
@@ -185,9 +180,9 @@ export async function updateEvent(
       classification: classification as Classification,
       roomId,
       venueName: anchor.venueName,
-      venueLat: hasCompoundGeofence ? anchor.ministry.compoundLat : null,
-      venueLng: hasCompoundGeofence ? anchor.ministry.compoundLng : null,
-      geofenceRadius: hasCompoundGeofence ? anchor.ministry.compoundGeofenceRadius : anchor.geofenceRadius,
+      venueLat: anchor.venueLat,
+      venueLng: anchor.venueLng,
+      geofenceRadius: anchor.geofenceRadius,
       colorCategory: anchor.colorCategory,
       organizerId: anchor.organizerId,
       ministryId: anchor.ministryId,
@@ -258,9 +253,6 @@ export async function updateEvent(
       });
       if (!room) return { error: "Room not found or you don't have access" };
     }
-    const hasCompoundGeofence =
-      room && event.ministry.compoundLat != null && event.ministry.compoundLng != null;
-
     // Compute new times per target and block on any room clash.
     const updates: { id: string; startAt: Date; endAt: Date; reschedule: boolean }[] = [];
     for (const t of targets) {
@@ -295,9 +287,6 @@ export async function updateEvent(
             roomId,
             startAt: u.startAt,
             endAt: u.endAt,
-            venueLat: hasCompoundGeofence ? event.ministry.compoundLat : null,
-            venueLng: hasCompoundGeofence ? event.ministry.compoundLng : null,
-            geofenceRadius: hasCompoundGeofence ? event.ministry.compoundGeofenceRadius : event.geofenceRadius,
             // Re-arm the 1h-before reminder for any rescheduled occurrence.
             ...(u.reschedule ? { reminderSentAt: null } : {}),
           },

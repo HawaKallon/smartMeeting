@@ -69,6 +69,7 @@ export default async function EventDetailPage({
           },
           select: { id: true, name: true, email: true },
           orderBy: [{ name: "asc" }, { email: "asc" }],
+          take: 50,
         })
       : Promise.resolve([]),
     prisma.eventAttendee.findUnique({
