@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { manualCheckIn, type ActionState } from "./actions";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
@@ -11,6 +11,15 @@ export function WalkInCheckInForm({ eventId }: { eventId: string }) {
     manualCheckIn,
     undefined,
   );
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    if (state?.ok && !state?.error) {
+      setShowSuccess(true);
+      const timer = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state?.ok, state?.error]);
 
   return (
     <form action={action} className="space-y-4">
@@ -21,7 +30,7 @@ export function WalkInCheckInForm({ eventId }: { eventId: string }) {
           {state.error}
         </div>
       )}
-      {state?.ok && (
+      {showSuccess && (
         <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
           ✓ Guest checked in
         </div>
@@ -39,12 +48,13 @@ export function WalkInCheckInForm({ eventId }: { eventId: string }) {
           />
         </div>
         <div>
-          <label className={label}>Email</label>
+          <label className={label}>Email *</label>
           <input
             name="externalEmail"
             type="email"
             placeholder="e.g. jane@example.com"
             className={field}
+            required
           />
         </div>
       </div>
