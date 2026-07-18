@@ -5,6 +5,7 @@ import { updateEvent } from "./actions";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { RecurrenceFields } from "@/components/RecurrenceFields";
 import { describeRecurrence } from "@/lib/recurrence";
+import { useActionMessage } from "@/hooks/useActionMessage";
 import type {
   Classification,
   EventType,
@@ -46,18 +47,19 @@ function toDateInput(d: Date | string | null | undefined): string {
 export function EditEventForm({ event, rooms }: { event: EditableEvent; rooms: Room[] }) {
   const [state, formAction, isPending] = useActionState(updateEvent, undefined);
   const [changePattern, setChangePattern] = useState(false);
+  const messageVisible = useActionMessage(state);
 
   return (
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="eventId" value={event.id} />
 
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
           {state.error}
         </div>
       )}
 
-      {state?.ok && (
+      {messageVisible && state?.ok && !state?.error && (
         <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
           Event updated successfully
         </div>

@@ -1,14 +1,11 @@
 "use server";
 
-import path from "path";
-import { mkdir, writeFile } from "fs/promises";
-import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { requireUser } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
+import { saveImage } from "@/lib/cloudinary";
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp"];
 
@@ -68,7 +65,7 @@ export async function updateProfile(
     }
 
     if (imageFile && imageFile.size > 0) {
-      const ext = path.extname(imageFile.name).toLowerCase();
+      const ext = "." + imageFile.name.split(".").pop()?.toLowerCase();
       if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
         return { error: "Only PNG, JPG, JPEG, and WebP images are allowed" };
       }
@@ -76,13 +73,12 @@ export async function updateProfile(
         return { error: "Image must be smaller than 5MB" };
       }
 
-      await mkdir(UPLOAD_DIR, { recursive: true });
-      const storedName = `${randomUUID()}${ext}`;
-      const fullPath = path.join(UPLOAD_DIR, storedName);
-      const bytes = Buffer.from(await imageFile.arrayBuffer());
-      await writeFile(fullPath, bytes);
-
-      updateData.image = `/uploads/${storedName}`;
+      try {
+        updateData.image = await saveImage(imageFile, "user-avatars");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to upload image";
+        return { error: message };
+      }
     }
 
     await prisma.user.update({
