@@ -303,10 +303,10 @@ export async function sendInviteEmail({
 // ── Minutes Published ─────────────────────────────────────────────────────────
 
 export async function sendMinutesEmail({
-  to, toName, eventTitle, eventDate, summary, minutesUrl,
+  to, toName, eventTitle, eventDate, summary, minutesUrl, actionItems,
 }: {
   to: string; toName: string; eventTitle: string;
-  eventDate: string; summary: string | null; minutesUrl: string;
+  eventDate: string; summary: string | null; minutesUrl: string; actionItems?: Array<{ title: string; ownerName?: string | null; dueDate?: Date | null }>;
 }) {
   if (!resend) return skip(to, `RESEND_API_KEY not set`);
   if (!FROM || FROM === "noreply@resend.dev") {
@@ -314,6 +314,14 @@ export async function sendMinutesEmail({
   }
 
   try {
+    const actionItemsText = actionItems && actionItems.length > 0
+      ? `\n\nAction Items:\n${actionItems.map(item => {
+          const owner = item.ownerName ? ` (${item.ownerName})` : "";
+          const dueStr = item.dueDate ? ` — Due: ${new Date(item.dueDate).toLocaleDateString("en-GB")}` : "";
+          return `• ${item.title}${owner}${dueStr}`;
+        }).join("\n")}`
+      : "";
+
     const result = await resend.emails.send({
       from: FROM, to,
       subject: `Minutes Published: ${eventTitle}`,
@@ -322,6 +330,7 @@ export async function sendMinutesEmail({
         ``,
         `The official minutes for "${eventTitle}" (${eventDate}) have been published.`,
         summary ? `\nSummary:\n${summary}` : null,
+        actionItemsText,
         ``,
         `View minutes: ${minutesUrl}`,
       ].filter(Boolean).join("\n"),
@@ -329,37 +338,6 @@ export async function sendMinutesEmail({
     console.log(`[email] sent minutes to ${to}:`, result.data?.id);
   } catch (err) {
     logError(to, `Minutes Published: ${eventTitle}`, err);
-  }
-}
-
-// ── Minutes Submitted for Review ─────────────────────────────────────────────
-
-export async function sendMinutesSubmittedEmail({
-  to, toName, eventTitle, submitterName, minutesUrl,
-}: {
-  to: string; toName: string; eventTitle: string; submitterName: string; minutesUrl: string;
-}) {
-  if (!resend) return skip(to, `RESEND_API_KEY not set`);
-  if (!FROM || FROM === "noreply@resend.dev") {
-    return skip(to, `EMAIL_FROM not properly configured in .env`);
-  }
-
-  try {
-    const result = await resend.emails.send({
-      from: FROM,
-      to,
-      subject: `Minutes Pending Approval: ${eventTitle}`,
-      text: [
-        `Dear ${toName},`,
-        ``,
-        `${submitterName} submitted minutes for "${eventTitle}" for your review.`,
-        ``,
-        `Review and publish: ${minutesUrl}`,
-      ].join("\n"),
-    });
-    console.log(`[email] sent minutes-submitted to ${to}:`, result.data?.id);
-  } catch (err) {
-    logError(to, `Minutes Pending Approval: ${eventTitle}`, err);
   }
 }
 

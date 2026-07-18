@@ -64,3 +64,10 @@ export async function resolveToken(token: string) {
   if (row.expiresAt < new Date()) return { event: row.event, expired: true as const };
   return { event: row.event, expired: false as const };
 }
+
+export async function setCheckInLocation(eventId: string, lat: number, lng: number) {
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { venueLat: lat, venueLng: lng },
+  });
+}

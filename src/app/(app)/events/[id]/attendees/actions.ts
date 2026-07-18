@@ -2,13 +2,16 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { SYSTEM_ROLES } from "@/lib/roles";
 import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
-import { sendInviteEmail } from "@/lib/email";
+import { queueInvitationEmail } from "@/lib/email-queue";
 import { describeRecurrence } from "@/lib/recurrence";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { canManageExistingEvent } from "@/lib/eventAccess";
+import { checkInClosed } from "@/lib/checkin";
 import type { EventAttendee, Prisma } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
@@ -56,7 +59,7 @@ export async function inviteUser(
         organizer: { select: { name: true, email: true } },
       },
     }),
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, ministryId: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, ministryId: true, emailNotifications: true } }),
   ]);
   if (!event || !canManageExistingEvent(staff, event)) return { error: "Event not found or you don't have access." };
   if (!user) return { error: "User not found." };
@@ -112,25 +115,29 @@ export async function inviteUser(
     ministryId: event.ministryId,
   });
 
-  // Send invite email if user has an email address.
-  await sendInviteEmail({
-    to: user.email,
-    toName: user.name ?? user.email,
-    eventTitle: event.title,
-    eventDescription: event.description,
-    eventType: event.type,
-    classification: event.classification,
-    startAt: emailEvent.startAt,
-    endAt: emailEvent.endAt,
-    venueName: emailEvent.venueName,
-    roomName: emailEvent.room?.name ?? null,
-    organizerName: event.organizer.name ?? event.organizer.email,
-    organizerEmail: event.organizer.email,
-    ministryName: event.ministry.name,
-    recurrenceText: event.series ? describeRecurrence(event.series) : null,
-    acceptUrl: rsvpUrl(token, "CONFIRMED"),
-    declineUrl: rsvpUrl(token, "DECLINED"),
-  }).catch((err) => console.error("[email] invite failed:", err));
+  // Queue invite email if user has an email address and has opted in.
+  // Only queue for internal events (public events shouldn't have attendee invitations through this path)
+  // Non-blocking - user won't wait for email delivery
+  if (user.emailNotifications !== false && event.organizer) {
+    queueInvitationEmail({
+      to: user.email,
+      toName: user.name ?? user.email,
+      eventTitle: event.title,
+      eventDescription: event.description,
+      eventType: event.type,
+      classification: event.classification,
+      startAt: emailEvent.startAt,
+      endAt: emailEvent.endAt,
+      venueName: emailEvent.venueName,
+      roomName: emailEvent.room?.name ?? null,
+      organizerName: event.organizer.name ?? event.organizer.email,
+      organizerEmail: event.organizer.email,
+      ministryName: event.ministry.name,
+      recurrenceText: event.series ? describeRecurrence(event.series) : null,
+      acceptUrl: rsvpUrl(token, "CONFIRMED"),
+      declineUrl: rsvpUrl(token, "DECLINED"),
+    }).catch((err) => console.error("[email-queue] invite failed:", err));
+  }
 
   for (const targetId of targetEventIds) {
     revalidatePath(`/administrative/events/${targetId}/attendees`);
@@ -244,8 +251,8 @@ export async function inviteExternal(
     ministryId: event.ministryId,
   });
 
-  if (externalEmail) {
-    await sendInviteEmail({
+  if (externalEmail && event.organizer) {
+    queueInvitationEmail({
       to: externalEmail,
       toName: externalName,
       eventTitle: event.title,
@@ -262,7 +269,7 @@ export async function inviteExternal(
       recurrenceText: event.series ? describeRecurrence(event.series) : null,
       acceptUrl: rsvpUrl(credentials!.token, "CONFIRMED"),
       declineUrl: rsvpUrl(credentials!.token, "DECLINED"),
-    }).catch((err) => console.error("[email] invite failed:", err));
+    }).catch((err) => console.error("[email-queue] invite failed:", err));
   }
 
   for (const targetId of targetEventIds) {
@@ -304,6 +311,17 @@ export async function removeInvite(formData: FormData): Promise<void> {
 
   revalidatePath(`/administrative/events/${eventId}/attendees`);
   revalidatePath(`/administrative/events/${eventId}`);
+}
+
+// ── Manual check-in (for forms; use with useActionState, wrap with manualCheckInAction) ──
+
+export async function manualCheckInAction(formData: FormData): Promise<void> {
+  const eventId = String(formData.get("eventId") ?? "");
+  const result = await manualCheckIn(undefined, formData);
+
+  if (result?.ok) {
+    redirect(`/administrative/events/${eventId}/attendees`);
+  }
 }
 
 // ── Staff manually updates an attendee's RSVP status ────────────────────────
@@ -370,15 +388,7 @@ export async function selfRsvp(
   formData: FormData,
 ): Promise<ActionState> {
   // Any authenticated user can respond to their own invite.
-  const session = await assertRole(
-    "MINISTRY_ADMIN",
-    "APPROVER",
-    "EXECUTIVE_VIEWER",
-    "APPROVER",
-    "EVENT_MANAGER",
-    "MINISTRY_ADMIN",
-    "SUPER_ADMIN",
-  );
+  const session = await assertRole(...SYSTEM_ROLES);
 
   const parsed = SelfRsvpSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -420,4 +430,157 @@ export async function selfRsvp(
     revalidatePath(`/administrative/events/${item.eventId}/attendees`);
   }
   return { ok: true };
+}
+
+// ── Staff manually checks in an attendee ────────────────────────────────────
+
+const ManualCheckInSchema = z.object({
+  eventId: z.string().min(1),
+  attendeeId: z.string().optional(),
+  externalName: z.string().optional(),
+  externalEmail: z.string().email().optional(),
+}).refine((d) => d.attendeeId || d.externalName, {
+  message: "Select an invitee or enter a name",
+});
+
+export async function manualCheckIn(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+
+    const parsed = ManualCheckInSchema.safeParse({
+      eventId: formData.get("eventId"),
+      attendeeId: formData.get("attendeeId") || undefined,
+      externalName: formData.get("externalName") || undefined,
+      externalEmail: formData.get("externalEmail") || undefined,
+    });
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+    const { eventId, attendeeId, externalName, externalEmail } = parsed.data;
+
+    const event = await prisma.event.findFirst({
+      where: { id: eventId } as Prisma.EventWhereInput,
+      select: {
+        id: true,
+        endAt: true,
+        ministryId: true,
+        organizerId: true,
+        coOrganizers: { select: { id: true } },
+      },
+    });
+    if (!event || !canManageExistingEvent(user, event)) {
+      return { error: "Event not found or you don't have access." };
+    }
+
+    if (checkInClosed(event.endAt)) {
+      return { error: "This meeting has ended. Check-in is closed." };
+    }
+
+    let userId: string | null = null;
+    let guestName: string | null = externalName ?? null;
+    let guestEmail: string | null = externalEmail ?? null;
+
+    if (attendeeId) {
+      const invite = await prisma.eventAttendee.findFirst({
+        where: { id: attendeeId, eventId },
+      });
+      if (!invite) {
+        return { error: "This invitee is not on the list for this event." };
+      }
+      userId = invite.userId;
+      guestName = invite.userId ? null : invite.externalName;
+      guestEmail = invite.userId ? null : invite.externalEmail;
+    }
+
+    guestName = guestName?.trim() || null;
+
+    // Dedupe: registered users by userId, external guests by name/email OR-match
+    const externalMatches = [
+      guestEmail ? { externalEmail: { equals: guestEmail, mode: "insensitive" as const } } : null,
+      guestName ? { externalName: { equals: guestName, mode: "insensitive" as const } } : null,
+    ].filter(Boolean) as object[];
+
+    const existing = userId
+      ? await prisma.attendance.findFirst({ where: { eventId, userId }, select: { id: true } })
+      : externalMatches.length
+        ? await prisma.attendance.findFirst({
+            where: { eventId, userId: null, OR: externalMatches },
+            select: { id: true },
+          })
+        : null;
+
+    if (existing) {
+      revalidatePath(`/administrative/events/${eventId}/attendees`);
+      revalidatePath(`/administrative/events/${eventId}`);
+      return { ok: true, error: "Already checked in" };
+    }
+
+    const attendance = await prisma.attendance.create({
+      data: {
+        eventId,
+        ...(userId ? { userId } : {}),
+        ...(guestName ? { externalName: guestName } : {}),
+        ...(guestEmail ? { externalEmail: guestEmail } : {}),
+        method: "MANUAL",
+      },
+      select: { id: true },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "MANUAL_CHECK_IN",
+      entityType: "Attendance",
+      entityId: attendance.id,
+      metadata: { eventId, userId, externalName: guestName, externalEmail: guestEmail },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/administrative/events/${eventId}/attendees`);
+    revalidatePath(`/administrative/events/${eventId}`);
+
+    return { ok: true };
+  } catch (err) {
+    // Unique (eventId, userId) race condition for logged-in users
+    if ((err as { code?: string }).code === "P2002") {
+      return { ok: true, error: "Already checked in" };
+    }
+    console.error("Manual check-in failed:", err);
+    return { error: "Failed to check in" };
+  }
+}
+
+// ── Remove attendance (walk-in guest check-in) ──────────────────────────────
+
+export async function removeAttendance(formData: FormData): Promise<void> {
+  const staff = await requireUser();
+
+  const attendanceId = String(formData.get("attendanceId") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  if (!attendanceId || !eventId) return;
+
+  // Verify event exists and belongs to user's ministry
+  const event = await prisma.event.findFirst({
+    where: { id: eventId } as Prisma.EventWhereInput,
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+  });
+  if (!event || !canManageExistingEvent(staff, event)) return;
+
+  const attendance = await prisma.attendance.findUnique({ where: { id: attendanceId }, select: { id: true, eventId: true } });
+  if (!attendance || attendance.eventId !== eventId) return;
+
+  await prisma.attendance.delete({ where: { id: attendanceId }, select: { id: true } });
+
+  await audit({
+    actorId: staff.id,
+    action: "REMOVE_ATTENDANCE",
+    entityType: "Attendance",
+    entityId: attendanceId,
+    metadata: { eventId },
+    ministryId: event.ministryId,
+  });
+
+  revalidatePath(`/administrative/events/${eventId}/attendees`);
+  revalidatePath(`/administrative/events/${eventId}`);
 }

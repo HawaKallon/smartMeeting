@@ -1,4 +1,4 @@
-import { canApproveMinutes, canManageEvent, canReassignEvent, isSuperAdmin } from "@/lib/roles";
+import { canManageEvent, canReassignEvent, isSuperAdmin } from "@/lib/roles";
 import type { SystemRole } from "@/generated/prisma/enums";
 
 type EventAccessUser = {
@@ -9,7 +9,7 @@ type EventAccessUser = {
 
 type EventAccessRecord = {
   ministryId: string;
-  organizerId: string;
+  organizerId: string | null;
   coOrganizers: Array<{ id: string }>;
 };
 
@@ -46,6 +46,5 @@ export function canViewMinutesForEvent(
   user: EventAccessUser,
   event: EventAccessRecord,
 ) {
-  if (canManageExistingEvent(user, event)) return true;
-  return canApproveMinutes(user.systemRole) && canAccessMinistryEvent(user, event.ministryId);
+  return canManageExistingEvent(user, event);
 }

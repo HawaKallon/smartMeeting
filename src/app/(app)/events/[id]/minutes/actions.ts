@@ -3,13 +3,16 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
+import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
-import { sendMinutesEmail, sendMinutesSubmittedEmail, sendActionItemEmail } from "@/lib/email";
+import { isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
+import { isMinistryAdminLevel } from "@/lib/roles";
+import { queueMinutesEmail, queueActionItemAssignedEmail } from "@/lib/email-queue";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
 import { canManageExistingEvent } from "@/lib/eventAccess";
+import { canPublishMinutes } from "@/lib/permissions";
 import { notify } from "@/lib/notify";
 import {
   notifyMeetingInviteesActionItemCreated,
@@ -93,7 +96,13 @@ export async function generateMinutesSummary(
 
   let summary: string;
   try {
-    const { summary: overview, keyPoints } = await summarizeMeeting(minutes.body);
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Summarization timed out after 30 seconds")), 30000);
+    });
+    const { summary: overview, keyPoints } = await Promise.race([
+      summarizeMeeting(minutes.body),
+      timeoutPromise as Promise<Awaited<ReturnType<typeof summarizeMeeting>>>,
+    ]);
     const points = keyPoints.length
       ? `\n\nKey points:\n${keyPoints.map((p) => `- ${p}`).join("\n")}`
       : "";
@@ -145,12 +154,17 @@ export async function saveMinutesDraft(
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    select: { id: true, startAt: true, endAt: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
   });
   if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
   const existing = await prisma.minutes.findUnique({ where: { eventId } });
   if (existing?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
+
+  // Check edit-window: can only edit within 2 days of the meeting end, unless admin-level
+  if (isMinutesEditWindowClosed(event.endAt) && !isMinistryAdminLevel(user.systemRole)) {
+    return { error: "Minutes can only be edited within 2 days of the meeting end." };
+  }
 
   const minutes = await prisma.minutes.upsert({
     where: { eventId },
@@ -182,7 +196,7 @@ export async function publishMinutes(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const approver = await assertRole("APPROVER");
+  const user = await requireUser();
 
   const parsed = PublishSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -192,37 +206,48 @@ export async function publishMinutes(
 
   const { eventId, minutesId } = parsed.data;
 
-  const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
+  const minutes = await prisma.minutes.findUnique({
+    where: { id: minutesId },
+    include: { actionItems: { orderBy: { createdAt: "asc" } } },
+  });
   if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: {
+      id: true,
       title: true,
       startAt: true,
+      endAt: true,
       ministryId: true,
+      scope: true,
+      organizerId: true,
+      coOrganizers: { select: { id: true } },
       attendees: {
         where: { status: { in: ["INVITED", "CONFIRMED"] } },
         select: {
           rsvpTokenHash: true,
           externalName: true,
           externalEmail: true,
-          user: { select: { name: true, email: true } },
+          user: { select: { name: true, email: true, minutesNotifications: true } },
         },
       },
     },
   });
   if (!event) return { error: "Event not found." };
-  assertSameMinistry(approver, event.ministryId);
+
+  // Organizer/co-organizer/super-admin can publish directly
+  if (!canPublishMinutes(user, { ...event, id: eventId, coOrganizers: event.coOrganizers } as any)) {
+    return { error: "You don't have permission to publish these notes." };
+  }
   if (minutes.status === "PUBLISHED") return { error: "Already published." };
-  if (minutes.status !== "SUBMITTED") return { error: "Minutes must be submitted for review before publishing." };
 
   await prisma.minutes.update({
     where: { id: minutesId },
-    data: { status: "PUBLISHED", publishedAt: new Date(), approvedById: approver.id },
+    data: { status: "PUBLISHED", publishedAt: new Date(), approvedById: user.id },
   });
 
   await audit({
-    actorId: approver.id,
+    actorId: user.id,
     action: "PUBLISH_MINUTES",
     entityType: "Minutes",
     entityId: minutesId,
@@ -235,45 +260,47 @@ export async function publishMinutes(
     weekday: "short", year: "numeric", month: "short", day: "numeric",
   });
 
+  const actionItems = minutes.actionItems.map(item => ({
+    title: item.title,
+    ownerName: item.ownerName,
+    dueDate: item.dueDate,
+  }));
+
   await Promise.allSettled(
     event.attendees.map((a) => {
-      // Internal attendees: send full link and SMS
-      if (a.user?.email) {
+      // Internal attendees: queue minutes email and SMS (if they opted in)
+      if (a.user?.email && a.user.minutesNotifications !== false) {
         const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
-        return Promise.allSettled([
-          sendMinutesEmail({
-            to: a.user!.email,
-            toName: a.user!.name ?? a.user!.email,
-            eventTitle: event.title,
-            eventDate,
-            summary: minutes.summary,
-            minutesUrl,
-          }),
-          sendMinutesSms({
-            to: a.user!.email,
-            toName: a.user!.name ?? a.user!.email,
-            eventTitle: event.title,
-          }),
-        ]);
+        queueMinutesEmail({
+          to: a.user!.email,
+          toName: a.user!.name ?? a.user!.email,
+          eventTitle: event.title,
+          eventDate,
+          summary: minutes.summary,
+          minutesUrl,
+          actionItems,
+        }).catch((err) => console.error("[email-queue] minutes failed:", err));
+
+        sendMinutesSms({
+          to: a.user!.email,
+          toName: a.user!.name ?? a.user!.email,
+          eventTitle: event.title,
+        }).catch((err) => console.error("[sms] minutes failed:", err));
       }
 
-      // External attendees: send guest portal link
+      // External attendees: queue guest portal link
       if (a.externalEmail && a.rsvpTokenHash) {
         const guestPortalUrl = absoluteAppUrl(`/guest/${a.rsvpTokenHash}/minutes`);
-        return Promise.allSettled([
-          sendMinutesEmail({
-            to: a.externalEmail,
-            toName: a.externalName ?? a.externalEmail,
-            eventTitle: event.title,
-            eventDate,
-            summary: minutes.summary,
-            minutesUrl: guestPortalUrl,
-          }),
-        ]);
+        queueMinutesEmail({
+          to: a.externalEmail,
+          toName: a.externalName ?? a.externalEmail,
+          eventTitle: event.title,
+          eventDate,
+          summary: minutes.summary,
+          minutesUrl: guestPortalUrl,
+          actionItems,
+        }).catch((err) => console.error("[email-queue] minutes failed:", err));
       }
-
-      // Fallback: do nothing if neither internal nor external email available
-      return Promise.resolve();
     }),
   );
 
@@ -281,61 +308,6 @@ export async function publishMinutes(
   return { ok: true };
 }
 
-// ── Submit Minutes for Review ────────────────────────────────────────────────
-
-const SubmitSchema = z.object({
-  eventId: z.string().min(1),
-  minutesId: z.string().min(1),
-});
-
-export async function submitMinutes(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const user = await requireUser();
-
-  const parsed = SubmitSchema.safeParse({
-    eventId: formData.get("eventId"),
-    minutesId: formData.get("minutesId"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
-
-  const { eventId, minutesId } = parsed.data;
-
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: { id: true, title: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
-  });
-  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
-
-  const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
-  if (!minutes || minutes.eventId !== eventId) return { error: "Minutes not found." };
-  if (minutes.status !== "DRAFT") return { error: "Only draft minutes can be submitted for review." };
-
-  await prisma.minutes.update({
-    where: { id: minutesId },
-    data: { status: "SUBMITTED", submittedAt: new Date(), submittedById: user.id },
-  });
-
-  await audit({
-    actorId: user.id,
-    action: "SUBMIT_MINUTES",
-    entityType: "Minutes",
-    entityId: minutesId,
-    metadata: { eventId },
-    ministryId: event.ministryId,
-  });
-
-  await notifyApproversOfSubmission({
-    eventId,
-    ministryId: event.ministryId,
-    eventTitle: event.title,
-    submitterName: user.name ?? user.email,
-  });
-
-  revalidatePath(`/administrative/events/${eventId}/minutes`);
-  return { ok: true };
-}
 
 // ── Add Action Item ──────────────────────────────────────────────────────────
 
@@ -391,6 +363,7 @@ export async function addActionItem(
       title,
       ownerId,
       ownerName: ownerName ?? null,
+      assignedById: user.id,
       dueDate: timeline.date,
       point,
     },
@@ -499,6 +472,7 @@ export async function updateActionItem(
       title,
       ownerId,
       ownerName: ownerName ?? null,
+      assignedById: user.id,
       dueDate: timeline.date,
       ...(resetReminder ? { reminderSentAt: null } : {}),
       point,
@@ -660,39 +634,6 @@ function assigneeChanged(
   return item.ownerId !== null || normalizeAssignee(item.ownerName) !== normalizeAssignee(ownerName);
 }
 
-async function notifyApproversOfSubmission({
-  eventId, ministryId, eventTitle, submitterName,
-}: { eventId: string; ministryId: string; eventTitle: string; submitterName: string }) {
-  const approvers = await prisma.user.findMany({
-    where: { ministryId, systemRole: "APPROVER", active: true },
-    select: { id: true, name: true, email: true, ministryId: true },
-  });
-  if (approvers.length === 0) return;
-
-  const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
-
-  await Promise.allSettled(
-    approvers.map((a) =>
-      Promise.allSettled([
-        sendMinutesSubmittedEmail({
-          to: a.email,
-          toName: a.name ?? a.email,
-          eventTitle,
-          submitterName,
-          minutesUrl,
-        }),
-        notify({
-          userId: a.id,
-          type: "MINUTES_SUBMITTED",
-          title: "Minutes pending your approval",
-          body: `${submitterName} submitted minutes for "${eventTitle}" for review.`,
-          link: minutesUrl,
-          ministryId: a.ministryId,
-        }),
-      ]),
-    ),
-  );
-}
 
 async function notifyExternalActionItemOwner({
   to, toName, title, dueDate, eventId, attendeeId,
@@ -722,14 +663,15 @@ async function notifyExternalActionItemOwner({
     }
   }
 
-  await sendActionItemEmail({
+  // Queue email (non-blocking)
+  await queueActionItemAssignedEmail({
     to,
     toName,
     title,
     eventTitle: event.title,
     dueDate,
     minutesUrl,
-  });
+  }).catch((err) => console.error("[email-queue] action item failed:", err));
 }
 
 async function notifyActionItemOwner({
@@ -739,7 +681,10 @@ async function notifyActionItemOwner({
   eventId: string; minutesId?: string;
 }) {
   const [owner, event] = await Promise.all([
-    prisma.user.findUnique({ where: { id: ownerId }, select: { id: true, name: true, email: true, ministryId: true } }),
+    prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { id: true, name: true, email: true, ministryId: true, actionItemNotifications: true },
+    }),
     prisma.event.findUnique({ where: { id: eventId }, select: { title: true } }),
   ]);
   if (!owner || !event) return;
@@ -748,22 +693,25 @@ async function notifyActionItemOwner({
   const dueDateStr = dueDate ? dueDate.toLocaleDateString() : "No deadline set";
   const body = `Action item: ${title}\nTimeline: ${dueDateStr}`;
 
-  await Promise.allSettled([
-    sendActionItemEmail({
+  // Queue email (non-blocking)
+  if (owner.actionItemNotifications !== false) {
+    await queueActionItemAssignedEmail({
       to: owner.email,
       toName: owner.name ?? owner.email,
       title,
       eventTitle: event.title,
       dueDate,
       minutesUrl,
-    }),
-    notify({
-      userId: owner.id,
-      type: "ACTION_ITEM",
-      title: "New action item assigned",
-      body,
-      link: minutesUrl,
-      ministryId: owner.ministryId,
-    }),
-  ]);
+    }).catch((err) => console.error("[email-queue] action item failed:", err));
+  }
+
+  // Queue notification (non-blocking)
+  await notify({
+    userId: owner.id,
+    type: "ACTION_ITEM",
+    title: "New action item assigned",
+    body,
+    link: minutesUrl,
+    ministryId: owner.ministryId,
+  }).catch((err) => console.error("[notify] action item failed:", err));
 }

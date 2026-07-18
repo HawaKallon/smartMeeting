@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { sendWelcomeEmail } from "@/lib/email";
+import { queueWelcomeEmail } from "@/lib/email-queue";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import type { SystemRole } from "@/generated/prisma/enums";
 import type { User } from "@/generated/prisma/client";
@@ -38,11 +38,16 @@ export async function provisionUser({
     data: { name, email, systemRole, ministryId, jobTitle: jobTitle ?? null, passwordHash },
   });
 
-  // Send welcome email (with temp password) via the shared, verified-domain sender.
+  // Queue welcome email (with temp password) via the shared, verified-domain sender.
+  // Non-blocking - user creation completes immediately
   const loginUrl = absoluteAppUrl("/administrative/login");
-  const emailSent = await sendWelcomeEmail({ to: email, toName: name, loginUrl, tempPassword });
-
-  return { user, emailSent };
+  try {
+    await queueWelcomeEmail({ to: email, toName: name, loginUrl, tempPassword });
+    return { user, emailSent: true };
+  } catch (err) {
+    console.error(`[email-queue] failed to queue welcome email to ${email}:`, err);
+    return { user, emailSent: false };
+  }
 }
 
 /**
@@ -62,12 +67,16 @@ export async function regenerateTempPassword(
   });
 
   const loginUrl = absoluteAppUrl("/administrative/login");
-  const emailSent = await sendWelcomeEmail({
-    to: user.email,
-    toName: user.name ?? user.email,
-    loginUrl,
-    tempPassword,
-  });
-
-  return { user, emailSent };
+  try {
+    await queueWelcomeEmail({
+      to: user.email,
+      toName: user.name ?? user.email,
+      loginUrl,
+      tempPassword,
+    });
+    return { user, emailSent: true };
+  } catch (err) {
+    console.error(`[email-queue] failed to queue welcome email to ${user.email}:`, err);
+    return { user, emailSent: false };
+  }
 }

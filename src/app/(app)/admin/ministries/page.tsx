@@ -111,9 +111,6 @@ export default async function AdminMinistriesPage() {
                         ministryId={m.id}
                         name={m.name}
                         emailDomain={m.emailDomain}
-                        compoundLat={m.compoundLat}
-                        compoundLng={m.compoundLng}
-                        compoundGeofenceRadius={m.compoundGeofenceRadius}
                         compoundMaxGpsAccuracy={m.compoundMaxGpsAccuracy}
                       />
                       <AddAdminButton ministryId={m.id} emailDomain={m.emailDomain} />

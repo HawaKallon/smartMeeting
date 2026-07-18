@@ -44,3 +44,18 @@ export async function markAllRead(): Promise<void> {
     console.error("Failed to mark all notifications as read:", err);
   }
 }
+
+export async function getRecentNotifications() {
+  try {
+    const user = await requireUser();
+
+    return await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+  } catch (err) {
+    console.error("Failed to fetch notifications:", err);
+    return [];
+  }
+}

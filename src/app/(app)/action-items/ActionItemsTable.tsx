@@ -68,7 +68,7 @@ export function ActionItemsTable({
               Event
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Owner
+              Assignee
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Timeline
