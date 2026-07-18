@@ -41,7 +41,18 @@ export default async function AttendeesPage({
     event.attendances.filter((a) => a.userId).map((a) => [a.userId, a])
   );
 
-  const walkInGuests = event.attendances.filter((a) => !a.userId);
+  // Walk-in guests: attendance records with no userId AND not matching any invited external guest
+  const invitedExternalNames = new Set(
+    event.attendees
+      .filter((a) => !a.userId && a.externalName)
+      .map((a) => `${a.externalName}|${a.externalEmail}`)
+  );
+
+  const walkInGuests = event.attendances.filter((a) => {
+    if (a.userId) return false; // Has a registered user ID
+    // Exclude if matches an invited external guest
+    return !invitedExternalNames.has(`${a.externalName}|${a.externalEmail}`);
+  });
 
   const invitedUserIds = event.attendees
     .map((a) => a.userId)
@@ -155,7 +166,15 @@ export default async function AttendeesPage({
                   DECLINED: { bg: "bg-red-500/10", text: "text-red-400", label: "Declined" },
                 };
                 const status = statusConfig[a.status as keyof typeof statusConfig];
-                const checkin = a.userId ? checkinsByUserId.get(a.userId) : null;
+
+                // Check-in: by userId for registered users, or by name/email for external guests
+                let checkin = a.userId ? checkinsByUserId.get(a.userId) : null;
+                if (!checkin && !a.userId && a.externalName) {
+                  checkin = event.attendances.find(
+                    (att) => !att.userId && att.externalName === a.externalName && att.externalEmail === a.externalEmail
+                  );
+                }
+
                 const isLastInvited = idx === event.attendees.length - 1 && walkInGuests.length === 0;
 
                 return (
