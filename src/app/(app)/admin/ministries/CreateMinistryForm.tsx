@@ -2,22 +2,24 @@
 
 import { useActionState } from "react";
 import { createMinistry } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 
 const field = "mt-1 w-full rounded-xl border border-border bg-secondary/55 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
 
 export function CreateMinistryForm() {
   const [state, formAction, isPending] = useActionState(createMinistry, undefined);
+  const messageVisible = useActionMessage(state);
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.error}
         </div>
       )}
 
-      {state?.ok && (
+      {messageVisible && state?.ok && !state?.error && (
         state.emailSent ? (
           <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             Ministry created and admin invitation email sent

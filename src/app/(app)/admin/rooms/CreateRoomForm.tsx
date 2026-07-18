@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createRoom } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
@@ -14,14 +15,15 @@ export function CreateRoomForm({
   ministries?: { id: string; name: string }[];
 }) {
   const [state, formAction, isPending] = useActionState(createRoom, undefined);
+  const messageVisible = useActionMessage(state);
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">{state.error}</div>
       )}
 
-      {state?.ok && (
+      {messageVisible && state?.ok && !state?.error && (
         <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
           Room created successfully!
         </div>

@@ -8,6 +8,7 @@ import {
   type ActionState,
   type GenerateSummaryState,
 } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 
 const field =
   "mt-1 w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1";
@@ -31,6 +32,8 @@ export function MinutesEditor({ eventId, body, summary, status, editWindowClosed
     GenerateSummaryState,
     FormData
   >(generateMinutesSummary, undefined);
+
+  const messageVisible = useActionMessage(state);
 
   // Summary is controlled so the AI-generated text can populate it in place.
   // When a generate run returns, sync its text in during render (the React-
@@ -84,15 +87,16 @@ export function MinutesEditor({ eventId, body, summary, status, editWindowClosed
       <form action={formAction} className="space-y-5">
         <input type="hidden" name="eventId" value={eventId} />
 
-        {state?.error ? (
+        {messageVisible && state?.error && (
           <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {state.error}
           </div>
-        ) : state?.ok ? (
+        )}
+        {messageVisible && state?.ok && !state?.error && (
           <div className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-400">
             ✓ Draft saved.
           </div>
-        ) : null}
+        )}
 
         <div>
           <label className={label}>Meeting Notes</label>
