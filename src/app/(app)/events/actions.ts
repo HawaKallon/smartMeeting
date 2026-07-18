@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { saveImage } from "@/lib/cloudinary";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
-import { sendInviteEmail } from "@/lib/email";
+import { queueInvitationEmail } from "@/lib/email-queue";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { generateOccurrences, describeRecurrence, MAX_OCCURRENCES } from "@/lib/recurrence";
 import { isSuperAdmin } from "@/lib/roles";
@@ -376,9 +376,10 @@ export async function createEvent(
           until: data.recurrenceUntil,
         })
       : null;
-    await Promise.allSettled(
-      resolved.map((r) =>
-        r.emailNotifications !== false ? sendInviteEmail({
+    // Queue invitation emails (non-blocking - user won't wait for delivery)
+    resolved.forEach((r) => {
+      if (r.emailNotifications !== false) {
+        queueInvitationEmail({
           to: r.email,
           toName: r.name,
           eventTitle: data.title,
@@ -395,9 +396,11 @@ export async function createEvent(
           recurrenceText,
           acceptUrl: rsvpUrl(r.token, "CONFIRMED"),
           declineUrl: rsvpUrl(r.token, "DECLINED"),
-        }) : Promise.resolve(),
-      ),
-    );
+        }).catch((err) => {
+          console.error(`Failed to queue invitation for ${r.email}:`, err);
+        });
+      }
+    });
   }
 
   revalidatePath("/administrative/calendar");

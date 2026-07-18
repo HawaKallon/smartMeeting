@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { assertAdminRole, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { savePublicImage } from "@/lib/cloudinary";
-import { sendPublicEventInviteEmail } from "@/lib/email";
+import { queuePublicInvitationEmail } from "@/lib/email-queue";
 import { notify } from "@/lib/notify";
 import { PublicEventCategory } from "@/generated/prisma/enums";
 
@@ -262,27 +262,24 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
               ministryId: recipient.ministryId,
             });
 
-            // Email (if enabled)
+            // Queue email (if enabled) - non-blocking
             if (recipient.emailNotifications) {
-              try {
-                await sendPublicEventInviteEmail({
-                  to: recipient.email,
-                  toName: recipient.name || "User",
-                  eventTitle: updated.title,
-                  eventDescription: updated.description,
-                  startAt: updated.startAt,
-                  endAt: updated.endAt,
-                  venueName: updated.venueName,
-                  organizerMinistryName,
-                  eventUrl,
-                });
-              } catch (emailErr) {
+              queuePublicInvitationEmail({
+                to: recipient.email,
+                toName: recipient.name || "User",
+                eventTitle: updated.title,
+                eventDescription: updated.description,
+                startAt: updated.startAt,
+                endAt: updated.endAt,
+                venueName: updated.venueName,
+                organizerMinistryName,
+                eventUrl,
+              }).catch((err) => {
                 console.error(
-                  `[publishPublicEvent] failed to send email to ${recipient.email} for event ${eventId}:`,
-                  emailErr,
+                  `[email-queue] failed to queue email to ${recipient.email} for event ${eventId}:`,
+                  err,
                 );
-                // Swallow error — in-app notification already sent
-              }
+              });
             }
           } catch (notifyErr) {
             console.error(
