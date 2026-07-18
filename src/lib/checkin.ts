@@ -52,9 +52,22 @@ export async function getActiveToken(eventId: string): Promise<{
 export async function resolveToken(token: string) {
   const row = await prisma.qRToken.findUnique({
     where: { token },
-    include: { event: true },
+    include: {
+      event: {
+        include: {
+          ministry: { select: { compoundMaxGpsAccuracy: true } },
+        },
+      },
+    },
   });
   if (!row) return null;
   if (row.expiresAt < new Date()) return { event: row.event, expired: true as const };
   return { event: row.event, expired: false as const };
+}
+
+export async function setCheckInLocation(eventId: string, lat: number, lng: number) {
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { venueLat: lat, venueLng: lng },
+  });
 }

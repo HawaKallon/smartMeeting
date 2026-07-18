@@ -21,6 +21,7 @@ const MinistrySchema = z.object({
     .transform((d) => d.replace(/^@/, "")),
   adminName: z.string().min(2, "Admin name is required").max(100),
   adminEmail: z.string().email("A valid admin email is required").toLowerCase().trim(),
+  compoundMaxGpsAccuracy: z.coerce.number().int().positive().max(1000).default(75),
 });
 
 export async function createMinistry(
@@ -30,7 +31,7 @@ export async function createMinistry(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can create ministries" };
     }
 
@@ -40,13 +41,21 @@ export async function createMinistry(
       emailDomain: formData.get("emailDomain"),
       adminName: formData.get("adminName"),
       adminEmail: formData.get("adminEmail"),
+      compoundMaxGpsAccuracy: formData.get("compoundMaxGpsAccuracy") || 75,
     });
 
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
     }
 
-    const { name, code, emailDomain, adminName, adminEmail } = parsed.data;
+    const {
+      name,
+      code,
+      emailDomain,
+      adminName,
+      adminEmail,
+      compoundMaxGpsAccuracy,
+    } = parsed.data;
 
     // The domain must be a gov.sl (sub)domain so logins under it are valid.
     if (!isGovDomain(emailDomain)) {
@@ -74,7 +83,12 @@ export async function createMinistry(
 
     // Create ministry
     const ministry = await prisma.ministry.create({
-      data: { name, code, emailDomain },
+      data: {
+        name,
+        code,
+        emailDomain,
+        compoundMaxGpsAccuracy,
+      },
     });
 
     await audit({
@@ -82,14 +96,14 @@ export async function createMinistry(
       action: "CREATE_MINISTRY",
       entityType: "Ministry",
       entityId: ministry.id,
-      metadata: { name, code, emailDomain },
+      metadata: { name, code, emailDomain, compoundMaxGpsAccuracy },
     });
 
     // Provision the ministry's first admin (ADMIN role, scoped to this ministry).
     const { user: admin, emailSent } = await provisionUser({
       name: adminName,
       email: adminEmail,
-      role: "ADMIN",
+      systemRole: "MINISTRY_ADMIN",
       ministryId: ministry.id,
     });
 
@@ -98,11 +112,11 @@ export async function createMinistry(
       action: "CREATE_USER",
       entityType: "User",
       entityId: admin.id,
-      metadata: { name: adminName, email: adminEmail, role: "ADMIN", emailSent },
+      metadata: { name: adminName, email: adminEmail, role: "MINISTRY_ADMIN", emailSent },
       ministryId: ministry.id,
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true, emailSent };
   } catch (err) {
     console.error("Failed to create ministry:", err);
@@ -118,7 +132,7 @@ export async function addMinistryAdmin(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can add ministry admins" };
     }
 
@@ -157,7 +171,7 @@ export async function addMinistryAdmin(
     const { user: admin, emailSent } = await provisionUser({
       name: adminName,
       email: adminEmail,
-      role: "ADMIN",
+      systemRole: "MINISTRY_ADMIN",
       ministryId: ministry.id,
     });
 
@@ -166,11 +180,11 @@ export async function addMinistryAdmin(
       action: "CREATE_USER",
       entityType: "User",
       entityId: admin.id,
-      metadata: { name: adminName, email: adminEmail, role: "ADMIN", emailSent },
+      metadata: { name: adminName, email: adminEmail, role: "MINISTRY_ADMIN", emailSent },
       ministryId: ministry.id,
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true, emailSent };
   } catch (err) {
     console.error("Failed to add ministry admin:", err);
@@ -185,7 +199,7 @@ export async function toggleMinistryActive(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can manage ministries" };
     }
 
@@ -203,7 +217,7 @@ export async function toggleMinistryActive(
       metadata: { name: ministry.name },
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true };
   } catch (err) {
     console.error("Failed to toggle ministry:", err);
@@ -220,6 +234,7 @@ const UpdateMinistrySchema = z.object({
     .trim()
     .toLowerCase()
     .transform((d) => d.replace(/^@/, "")),
+  compoundMaxGpsAccuracy: z.coerce.number().int().positive().max(1000).default(75),
 });
 
 export async function updateMinistry(
@@ -230,20 +245,21 @@ export async function updateMinistry(
   try {
     const user = await requireUser();
 
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       return { error: "Only super-admins can edit ministries" };
     }
 
     const parsed = UpdateMinistrySchema.safeParse({
       name: formData.get("name"),
       emailDomain: formData.get("emailDomain"),
+      compoundMaxGpsAccuracy: formData.get("compoundMaxGpsAccuracy") || 75,
     });
 
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
     }
 
-    const { name, emailDomain } = parsed.data;
+    const { name, emailDomain, compoundMaxGpsAccuracy } = parsed.data;
 
     if (!isGovDomain(emailDomain)) {
       return { error: "Email domain must be a government domain ending in .gov.sl" };
@@ -259,7 +275,11 @@ export async function updateMinistry(
 
     await prisma.ministry.update({
       where: { id: ministryId },
-      data: { name, emailDomain },
+      data: {
+        name,
+        emailDomain,
+        compoundMaxGpsAccuracy,
+      },
     });
 
     await audit({
@@ -267,10 +287,10 @@ export async function updateMinistry(
       action: "UPDATE_MINISTRY",
       entityType: "Ministry",
       entityId: ministryId,
-      metadata: { name, emailDomain },
+      metadata: { name, emailDomain, compoundMaxGpsAccuracy },
     });
 
-    revalidatePath("/admin/ministries");
+    revalidatePath("/administrative/admin/ministries");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update ministry:", err);

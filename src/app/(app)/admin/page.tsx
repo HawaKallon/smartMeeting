@@ -18,7 +18,7 @@ export default async function PlatformOverviewPage() {
   ] = await Promise.all([
     prisma.ministry.count(),
     prisma.ministry.count({ where: { active: true } }),
-    prisma.user.count({ where: { role: { not: "SUPER_ADMIN" } } }),
+    prisma.user.count({ where: { systemRole: { not: "SUPER_ADMIN" } } }),
     prisma.event.count(),
     prisma.event.count({ where: { endAt: { gt: now } } }),
     prisma.attendance.count(),
@@ -47,36 +47,40 @@ export default async function PlatformOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Platform Overview</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Super administration</p>
+        <h1 className="mt-2 text-2xl font-bold text-foreground">Platform Overview</h1>
         <p className="mt-1 text-sm text-muted-foreground">Aggregate activity across all ministries</p>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-xl border border-border bg-card p-6">
+          <div key={c.label} className="relative overflow-hidden rounded-[1.75rem] border border-[#d3e0f0] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-6 shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+            <div className="absolute inset-x-0 top-0 h-1 bg-[#003580]" />
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{c.label}</p>
-              <c.icon className="h-5 w-5 text-muted-foreground/60" />
+              <p className="text-sm font-semibold text-muted-foreground">{c.label}</p>
+              <span className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[#bfd1ee] bg-[#e4eefc]">
+                <c.icon className="h-5 w-5 text-[#003580]" />
+              </span>
             </div>
-            <p className="mt-2 text-3xl font-bold text-foreground">{c.value}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{c.hint}</p>
+            <p className="mt-6 text-3xl font-semibold tracking-tight text-[#003580]">{c.value}</p>
+            <p className="mt-1 text-xs font-medium text-[#4e678f]">{c.hint}</p>
           </div>
         ))}
       </div>
 
       {/* Per-ministry breakdown */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="border-b border-border px-6 py-3">
+      <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
+        <div className="border-b border-border bg-secondary/55 px-6 py-4">
           <h2 className="text-sm font-semibold text-foreground">By ministry</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="border-b border-border bg-secondary/40">
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Code</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email Domain</th>
@@ -89,7 +93,7 @@ export default async function PlatformOverviewPage() {
               {ministries.map((m, idx) => (
                 <tr
                   key={m.id}
-                  className={`transition-colors hover:bg-muted/30 ${idx < ministries.length - 1 ? "border-b border-border/50" : ""}`}
+                  className={`transition-colors hover:bg-secondary/30 ${idx < ministries.length - 1 ? "border-b border-border/50" : ""}`}
                 >
                   <td className="px-6 py-3 font-medium text-foreground">{m.name}</td>
                   <td className="px-6 py-3 font-mono text-xs text-muted-foreground">{m.code}</td>

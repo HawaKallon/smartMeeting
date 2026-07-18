@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "MinistryRole" ADD VALUE 'STAFF_MEMBER';
+
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "role" SET DEFAULT 'STAFF_MEMBER';

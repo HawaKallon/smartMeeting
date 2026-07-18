@@ -17,7 +17,7 @@ export default function HelpPage() {
     },
     {
       q: "Who can publish meeting minutes?",
-      a: "Meeting minutes are published by designated approvers (usually Permanent Secretary or above). Once the organizer drafts the minutes, an approver can review and publish them to all attendees.",
+      a: "The meeting organizer drafts and publishes minutes directly. Once draft notes are saved, the organizer can click Publish & Distribute to send the minutes to all attendees.",
     },
     {
       q: "What is geofencing and why does it matter?",
@@ -29,7 +29,7 @@ export default function HelpPage() {
     },
     {
       q: "How do I track action items assigned to me?",
-      a: "Visit the Action Items section from the Dashboard or sidebar. You'll see all tasks assigned to you with due dates and event context. You can mark items as Done when completed.",
+      a: "Visit the Action Items section from the Dashboard or sidebar. You’ll find it under /administrative/action-items, with all tasks assigned to you, their due dates, and event context. You can move items to Done when completed.",
     },
     {
       q: "What happens to my recordings after an event?",
@@ -39,25 +39,27 @@ export default function HelpPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton href="/" label="Dashboard" />
+      <BackButton href="/administrative" label="Dashboard" />
 
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Help &amp; Centre</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#007236]">Support resources</p>
+        <h1 className="mt-2 text-2xl font-bold text-[#003580]">Help &amp; Centre</h1>
         <p className="mt-1 text-sm text-muted-foreground">Find answers and learn how to use Smart Meeting</p>
       </div>
 
-      {/* FAQ Section */}
       <div className="space-y-4">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <HelpCircle className="h-6 w-6 text-white" />
+        <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+              <HelpCircle className="h-5 w-5" />
+            </span>
             <h2 className="text-lg font-semibold text-foreground">Frequently Asked Questions</h2>
           </div>
 
           <div className="space-y-3">
             {faqs.map((faq, idx) => (
-              <details key={idx} className="group border border-border rounded-lg">
-                <summary className="flex items-center justify-between cursor-pointer px-4 py-3 hover:bg-muted/30 transition-colors">
+              <details key={idx} className="group rounded-xl border border-border">
+                <summary className="flex cursor-pointer items-center justify-between px-4 py-3 transition-colors hover:bg-muted/30">
                   <span className="font-medium text-foreground text-sm">{faq.q}</span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
                 </summary>
@@ -70,10 +72,11 @@ export default function HelpPage() {
         </div>
       </div>
 
-      {/* Documentation Section */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <BookOpen className="h-6 w-6 text-white" />
+      <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+            <BookOpen className="h-5 w-5" />
+          </span>
           <h2 className="text-lg font-semibold text-foreground">Documentation</h2>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
@@ -103,10 +106,11 @@ export default function HelpPage() {
         </ul>
       </div>
 
-      {/* Support Section */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Mail className="h-6 w-6 text-white" />
+      <div className="rounded-[1.5rem] border border-border bg-card p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
+            <Mail className="h-5 w-5" />
+          </span>
           <h2 className="text-lg font-semibold text-foreground">Contact Support</h2>
         </div>
         <p className="text-sm text-muted-foreground mb-3">
@@ -114,7 +118,7 @@ export default function HelpPage() {
         </p>
         <a
           href="mailto:support@smartmeeting.gov"
-          className="inline-flex items-center gap-2 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-medium text-[#003580] transition-colors hover:text-[#00265b]"
         >
           support@smartmeeting.gov
           <span>→</span>

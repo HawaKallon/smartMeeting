@@ -1,38 +1,38 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isSuperAdmin } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 // PRD §7 — server-side authorization guards for pages and server actions.
 
 export async function requireUser() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/administrative/login");
   return session.user;
 }
 
-export async function requireRole(...roles: MinistryRole[]) {
+export async function requireRole(...roles: SystemRole[]) {
   const user = await requireUser();
-  if (!roles.includes(user.role)) redirect("/forbidden");
+  if (!roles.includes(user.systemRole)) redirect("/administrative/forbidden");
   return user;
 }
 
 /** Throwing variant for use inside server actions / route handlers. */
-export async function assertRole(...roles: MinistryRole[]) {
+export async function assertRole(...roles: SystemRole[]) {
   const session = await auth();
   if (!session?.user) throw new Error("UNAUTHENTICATED");
-  if (!roles.includes(session.user.role)) throw new Error("FORBIDDEN");
+  if (!roles.includes(session.user.systemRole)) throw new Error("FORBIDDEN");
   return session.user;
 }
 
-/** Page guard: Admin Staff (ministry ops) or Admin (tech team). */
+/** Page guard: operational staff (STAFF, MINISTRY_ADMIN, MINISTER, SUPER_ADMIN). */
 export async function requireStaffRole() {
-  return requireRole("ADMIN_STAFF", "ADMIN");
+  return requireRole("STAFF", "MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
-/** Action guard: Admin Staff (ministry ops) or Admin (tech team). */
+/** Action guard: operational staff (STAFF, MINISTRY_ADMIN, MINISTER, SUPER_ADMIN). */
 export async function assertStaffRole() {
-  return assertRole("ADMIN_STAFF", "ADMIN");
+  return assertRole("STAFF", "MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
 /** Page guard: ministry admin or platform super-admin. */
@@ -48,7 +48,7 @@ export async function assertAdminRole() {
 /** Page guard: platform super-admin only. */
 export async function requireSuperAdmin() {
   const user = await requireUser();
-  if (!isSuperAdmin(user.role)) redirect("/forbidden");
+  if (!isSuperAdmin(user.systemRole)) redirect("/administrative/forbidden");
   return user;
 }
 
@@ -56,24 +56,34 @@ export async function requireSuperAdmin() {
 export async function assertSuperAdmin() {
   const session = await auth();
   if (!session?.user) throw new Error("UNAUTHENTICATED");
-  if (!isSuperAdmin(session.user.role)) throw new Error("FORBIDDEN");
+  if (!isSuperAdmin(session.user.systemRole)) throw new Error("FORBIDDEN");
   return session.user;
+}
+
+/** Page guard: ministry-admin-level or super-admin. */
+export async function requireAdminRole() {
+  return requireRole("MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
+}
+
+/** Action guard: ministry-admin-level or super-admin. */
+export async function assertAdminRole() {
+  return assertRole("MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
 /** Scope helper: returns where clause for ministry filtering. Super-admins bypass filtering. */
 export function ministryScope(
-  user: { role: MinistryRole; ministryId: string | null },
-): { ministryId?: string } {
-  if (isSuperAdmin(user.role)) return {};
-  // A ministry-bound role without a ministry must never receive an unscoped query.
-  return { ministryId: user.ministryId ?? "__missing_ministry__" };
+  user: { systemRole: SystemRole; ministryId: string | null },
+): Record<string, never> | { ministryId: string } {
+  if (isSuperAdmin(user.systemRole)) return {};
+  if (!user.ministryId) throw new Error("FORBIDDEN");
+  return { ministryId: user.ministryId };
 }
 
 /** Assert that an entity belongs to the user's ministry (or allow super-admin). */
 export function assertSameMinistry(
-  user: { role: MinistryRole; ministryId: string | null },
+  user: { systemRole: SystemRole; ministryId: string | null },
   entityMinistryId: string | null
 ) {
-  if (isSuperAdmin(user.role)) return;
+  if (isSuperAdmin(user.systemRole)) return;
   if (user.ministryId !== entityMinistryId) throw new Error("FORBIDDEN");
 }

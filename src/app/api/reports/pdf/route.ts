@@ -10,7 +10,7 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 
   const user = session.user;
-  if (!canManageEvents(user.role) && !isSuperAdmin(user.role)) {
+  if (!canManageEvents(user.systemRole) && !isSuperAdmin(user.systemRole)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

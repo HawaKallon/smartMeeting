@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/src/.next/
 /out/
 
 # production
@@ -45,5 +46,8 @@ next-env.d.ts
 # uploaded audio
 /uploads
 
-# publicly served event banners (persistent runtime storage)
-/public-uploads
+# local review & implementation docs
+/docs/*.md
+!docs/README.md
+
+

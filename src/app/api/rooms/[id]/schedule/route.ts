@@ -1,11 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { ministryScope } from "@/lib/guard";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    const user = session?.user;
+    if (!user) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+
     const { id: roomId } = await params;
     const startAtStr = request.nextUrl.searchParams.get("startAt");
     const endAtStr = request.nextUrl.searchParams.get("endAt");
@@ -16,6 +23,14 @@ export async function GET(
         hasConflict: false,
       });
     }
+
+    // Enforce tenancy: the room must belong to the caller's ministry (super-admins bypass).
+    // 404 (not 403) so room ids can't be probed across ministries.
+    const room = await prisma.room.findFirst({
+      where: { id: roomId, ...ministryScope(user) } as Prisma.RoomWhereInput,
+      select: { id: true },
+    });
+    if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const startAt = new Date(startAtStr);
     const endAt = new Date(endAtStr);
@@ -66,7 +81,7 @@ export async function GET(
         startAt: e.startAt,
         endAt: e.endAt,
         type: "event" as const,
-        organizer: e.organizer.name || "Unknown",
+        organizer: e.organizer?.name || "Unknown",
       })),
       ...bookings.map((b) => ({
         id: b.id,

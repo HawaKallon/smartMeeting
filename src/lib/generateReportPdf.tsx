@@ -1,5 +1,6 @@
 import { renderToBuffer, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { ROLE_LABELS } from "@/lib/roles";
+import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
+import type { SystemRole } from "@/generated/prisma/enums";
 import type { ReportAnalytics } from "@/lib/analytics";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -10,17 +11,19 @@ const TYPE_LABELS: Record<string, string> = {
 const METHOD_LABELS: Record<string, string> = { QR: "QR code", MANUAL: "Manual", GEO: "Geofence" };
 
 const s = StyleSheet.create({
-  page: { paddingHorizontal: 48, paddingVertical: 48, fontFamily: "Helvetica", fontSize: 10, color: "#374151" },
-  title: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#111827" },
-  subtitle: { fontSize: 10, color: "#6b7280", marginTop: 2, marginBottom: 20 },
-  sectionTitle: { fontSize: 13, fontFamily: "Helvetica-Bold", color: "#111827", marginTop: 18, marginBottom: 8 },
+  page: { paddingHorizontal: 48, paddingVertical: 42, fontFamily: "Helvetica", fontSize: 10, color: "#374151", backgroundColor: "#ffffff" },
+  masthead: { backgroundColor: "#003580", borderBottomWidth: 5, borderBottomColor: "#007236", borderRadius: 12, paddingHorizontal: 22, paddingVertical: 18, marginBottom: 24 },
+  eyebrow: { fontSize: 9, color: "#dbeafe", fontFamily: "Helvetica-Bold", letterSpacing: 1.2, textTransform: "uppercase" },
+  title: { fontSize: 22, fontFamily: "Helvetica-Bold", color: "#ffffff", marginTop: 6 },
+  subtitle: { fontSize: 10, color: "#d7e5fb", marginTop: 4 },
+  sectionTitle: { fontSize: 13, fontFamily: "Helvetica-Bold", color: "#003580", marginTop: 18, marginBottom: 8 },
   statsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  stat: { width: "31%", border: "1 solid #e5e7eb", borderRadius: 4, padding: 10, marginBottom: 8 },
+  stat: { width: "31%", border: "1 solid #d8e1ee", borderRadius: 10, padding: 12, marginBottom: 8, backgroundColor: "#f9fbfe" },
   statLabel: { fontSize: 8, color: "#6b7280" },
-  statValue: { fontSize: 18, fontFamily: "Helvetica-Bold", color: "#111827", marginTop: 2 },
-  row: { flexDirection: "row", borderBottom: "1 solid #f0f0f0", paddingVertical: 4 },
+  statValue: { fontSize: 18, fontFamily: "Helvetica-Bold", color: "#003580", marginTop: 2 },
+  row: { flexDirection: "row", borderBottom: "1 solid #edf2f7", paddingVertical: 5 },
   cellL: { flex: 1, color: "#374151" },
-  cellR: { width: 60, textAlign: "right", fontFamily: "Helvetica-Bold", color: "#111827" },
+  cellR: { width: 60, textAlign: "right", fontFamily: "Helvetica-Bold", color: "#003580" },
   footer: { marginTop: 32, fontSize: 8, color: "#9ca3af" },
 });
 
@@ -51,10 +54,13 @@ function ReportDoc({ a, scopeLabel, generatedDate }: { a: ReportAnalytics; scope
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <Text style={s.title}>Reports & Analytics</Text>
-        <Text style={s.subtitle}>
-          {scopeLabel} · Generated {generatedDate}
-        </Text>
+        <View style={s.masthead}>
+          <Text style={s.eyebrow}>Government of Sierra Leone</Text>
+          <Text style={s.title}>Reports & Analytics</Text>
+          <Text style={s.subtitle}>
+            {scopeLabel} · Generated {generatedDate}
+          </Text>
+        </View>
 
         <Text style={s.sectionTitle}>Overview</Text>
         <View style={s.statsRow}>
@@ -67,7 +73,7 @@ function ReportDoc({ a, scopeLabel, generatedDate }: { a: ReportAnalytics; scope
         </View>
 
         <Text style={s.sectionTitle}>Users by role</Text>
-        <Table rows={a.users.byRole.map((r) => ({ label: ROLE_LABELS[r.role], value: r.count }))} />
+        <Table rows={a.users.byRole.map((r) => ({ label: SYSTEM_ROLE_LABELS[r.role as SystemRole] || "Unknown", value: r.count }))} />
 
         <Text style={s.sectionTitle}>Events</Text>
         <Table
@@ -88,7 +94,7 @@ function ReportDoc({ a, scopeLabel, generatedDate }: { a: ReportAnalytics; scope
           ]}
         />
 
-        <Text style={s.footer}>Smart Meeting & Attendance Logger</Text>
+        <Text style={s.footer}>Smart Meeting & Attendance Logger · Official ministry reporting format</Text>
       </Page>
     </Document>
   );

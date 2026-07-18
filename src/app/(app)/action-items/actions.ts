@@ -1,0 +1,66 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { assertRole } from "@/lib/guard";
+import { canManageEvents, SYSTEM_ROLES } from "@/lib/roles";
+import { audit } from "@/lib/audit";
+import { notifyMeetingInviteesActionItemStatusChanged } from "@/lib/actionItemNotifications";
+
+const Schema = z.object({
+  itemId: z.string().min(1),
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+});
+
+export async function changeItemStatus(formData: FormData): Promise<void> {
+  const session = await assertRole(...SYSTEM_ROLES);
+
+  const parsed = Schema.safeParse({
+    itemId: formData.get("itemId"),
+    status: formData.get("status"),
+  });
+  if (!parsed.success) return;
+
+  const { itemId, status } = parsed.data;
+
+  const item = await prisma.actionItem.findFirst({
+    where: {
+      id: itemId,
+      minutes: { event: { ministryId: session.ministryId || undefined } },
+    },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      ownerId: true,
+      minutes: { select: { eventId: true, event: { select: { ministryId: true } } } },
+    },
+  });
+  if (!item) return;
+
+  const isStaff = canManageEvents(session.systemRole);
+  const isOwner = item.ownerId === session.id;
+  if (!isStaff && !isOwner) return;
+  if (item.status === status) return;
+
+  await prisma.actionItem.update({ where: { id: itemId }, data: { status } });
+
+  await audit({
+    actorId: session.id,
+    action: "KANBAN_MOVE",
+    entityType: "ActionItem",
+    entityId: itemId,
+    metadata: { status },
+    ministryId: session.ministryId,
+  });
+
+  await notifyMeetingInviteesActionItemStatusChanged({
+    eventId: item.minutes.eventId,
+    title: item.title,
+    oldStatus: item.status,
+    newStatus: status,
+  });
+
+  revalidatePath("/administrative/action-items");
+}

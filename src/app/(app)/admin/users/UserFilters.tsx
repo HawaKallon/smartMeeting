@@ -2,18 +2,20 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
-import { ROLE_LABELS, MINISTRY_ROLES } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import { SYSTEM_ROLE_LABELS, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
+import type { SystemRole } from "@/generated/prisma/enums";
 
-const ASSIGNABLE_ROLES = MINISTRY_ROLES.filter((r) => r !== "SUPER_ADMIN") as MinistryRole[];
+
 
 const control =
-  "rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
+  "rounded-xl border border-border bg-secondary/55 px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 
 export function UserFilters({
   ministries,
+  isSuperAdmin = false,
 }: {
   ministries?: { id: string; name: string }[];
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -22,11 +24,11 @@ export function UserFilters({
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
     else next.delete(key);
-    router.push(`/admin/users?${next.toString()}`);
+    router.push(`/administrative/admin/users?${next.toString()}`);
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-[1.35rem] border border-border bg-card p-4 shadow-[0_16px_40px_rgba(15,35,63,0.07)]">
       <form
         action={(fd) => setParam("q", String(fd.get("q") ?? ""))}
         className="relative flex-1 min-w-[200px]"
@@ -46,9 +48,9 @@ export function UserFilters({
         className={control}
       >
         <option value="">All roles</option>
-        {ASSIGNABLE_ROLES.map((r) => (
+        {ASSIGNABLE_SYSTEM_ROLES.filter((r) => isSuperAdmin || r !== "MINISTER").map((r) => (
           <option key={r} value={r}>
-            {ROLE_LABELS[r]}
+            {SYSTEM_ROLE_LABELS[r as SystemRole]}
           </option>
         ))}
       </select>

@@ -1,14 +1,13 @@
 "use server";
 
-import { requireUser } from "@/lib/guard";
-import { isSuperAdmin } from "@/lib/roles";
+import { requireUser, assertAdminRole } from "@/lib/guard";
+import { isSuperAdmin, ASSIGNABLE_SYSTEM_ROLES, isMinistryAdminLevel } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { provisionUser, regenerateTempPassword } from "@/lib/provisionUser";
 import { isGovEmail, emailDomainOf, GOV_EMAIL_ERROR } from "@/lib/govEmail";
-import { MINISTRY_ROLES } from "@/lib/roles";
-import type { MinistryRole } from "@/generated/prisma/enums";
+import type { SystemRole } from "@/generated/prisma/enums";
 
 /**
  * Authorize the current user to manage `userId`, returning both records.
@@ -17,18 +16,21 @@ import type { MinistryRole } from "@/generated/prisma/enums";
  */
 async function authorizeManageUser(userId: string) {
   const user = await requireUser();
-  if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-    return { error: "You do not have permission to manage users" as string };
-  }
+  await assertAdminRole();
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, role: true, ministryId: true, active: true },
+    select: { id: true, email: true, name: true, systemRole: true, ministryId: true, active: true, deletedAt: true },
   });
   if (!target) return { error: "User not found" };
-  if (target.role === "SUPER_ADMIN") return { error: "Super Admin accounts cannot be managed here" };
+  if (target.systemRole === "SUPER_ADMIN") return { error: "Super Admin accounts cannot be managed here" };
 
-  if (user.role === "ADMIN" && user.ministryId !== target.ministryId) {
+  // Non-superadmins cannot manage soft-deleted users
+  if (target.deletedAt && user.systemRole !== "SUPER_ADMIN") {
+    return { error: "This user has been deleted and cannot be managed" };
+  }
+
+  if (user.systemRole === "MINISTRY_ADMIN" && user.ministryId !== target.ministryId) {
     return { error: "You can only manage users from your own ministry" };
   }
 
@@ -41,17 +43,14 @@ export async function createUser(
 ): Promise<{ ok?: boolean; emailSent?: boolean; error?: string }> {
   try {
     const user = await requireUser();
-
-    // Only ADMIN or SUPER_ADMIN can create users
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "You do not have permission to create users" };
-    }
+    await assertAdminRole();
 
     const name = formData.get("name") as string;
     // Normalize to match how auth.ts looks users up at login (lowercase + trim).
     const email = (formData.get("email") as string)?.toLowerCase().trim();
     const role = formData.get("role") as string;
     const ministryIdParam = formData.get("ministryId") as string;
+    const jobTitle = (formData.get("jobTitle") as string)?.trim() || null;
 
     if (!name || !email || !role) {
       return { error: "All fields are required" };
@@ -64,7 +63,7 @@ export async function createUser(
 
     // Super-admin can choose any ministry; regular admins use their own
     let targetMinistryId = ministryIdParam;
-    if (!isSuperAdmin(user.role)) {
+    if (!isSuperAdmin(user.systemRole)) {
       if (!user.ministryId) {
         return { error: "Cannot create users without a ministry context" };
       }
@@ -104,8 +103,9 @@ export async function createUser(
     const { user: newUser, emailSent } = await provisionUser({
       name,
       email,
-      role: role as MinistryRole,
+      systemRole: role as SystemRole,
       ministryId: targetMinistryId,
+      jobTitle,
     });
 
     // Audit log
@@ -118,9 +118,12 @@ export async function createUser(
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true, emailSent };
   } catch (err) {
+    if ((err as any)?.code === "P2002") {
+      return { error: "This ministry already has a Minister. Reassign the current one first." };
+    }
     console.error("Failed to create user:", err);
     return { error: "Failed to create user" };
   }
@@ -129,11 +132,7 @@ export async function createUser(
 export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?: string }> {
   try {
     const user = await requireUser();
-
-    // Only ADMIN or SUPER_ADMIN can delete users
-    if (user.role !== "ADMIN" && !isSuperAdmin(user.role)) {
-      return { error: "You do not have permission to delete users" };
-    }
+    await assertAdminRole();
 
     // Prevent self-deletion
     if (user.id === userId) {
@@ -142,22 +141,57 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
 
     const userToDelete = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, ministryId: true },
+      select: { id: true, email: true, name: true, ministryId: true, systemRole: true, deletedAt: true },
     });
 
     if (!userToDelete) {
       return { error: "User not found" };
     }
 
+    // Cannot delete a user that's already soft-deleted (unless superadmin doing final cleanup)
+    if (userToDelete.deletedAt && !isSuperAdmin(user.systemRole)) {
+      return { error: "This user has already been deleted" };
+    }
+
+    // MINISTER role can only be deleted by SUPER_ADMIN
+    if (userToDelete.systemRole === "MINISTER" && !isSuperAdmin(user.systemRole)) {
+      return { error: "Only a super admin can delete a Minister account" };
+    }
+
     // Regular admins can only delete users from their own ministry
-    if (user.role === "ADMIN" && user.ministryId !== userToDelete.ministryId) {
+    if (user.systemRole === "MINISTRY_ADMIN" && user.ministryId !== userToDelete.ministryId) {
       return { error: "You can only delete users from your own ministry" };
     }
 
-    // Delete user (will cascade delete related records due to onDelete: Cascade)
-    await prisma.user.delete({
-      where: { id: userId },
-    });
+    // Event.organizer and EventSeries.organizer are required FKs (Postgres Restrict),
+    // so a user who organizes anything cannot be hard-deleted — the DB would reject it.
+    // Surface an actionable message instead of a swallowed FK error. (All other user
+    // relations are optional/SetNull or Cascade, so these two are the only blockers.)
+    const [organizedEvents, organizedSeries] = await Promise.all([
+      prisma.event.count({ where: { organizerId: userId } }),
+      prisma.eventSeries.count({ where: { organizerId: userId } }),
+    ]);
+    if (organizedEvents > 0 || organizedSeries > 0) {
+      return {
+        error: `This user organizes ${organizedEvents} event(s). Reassign them to a co-organizer, or deactivate the user instead of deleting.`,
+      };
+    }
+
+    // Ministry admins soft-delete (mark deletedAt); superadmins hard-delete
+    if (isSuperAdmin(user.systemRole)) {
+      // Hard delete for superadmin
+      // Deleting cascades/nulls the user's optional relations (attendances, action items,
+      // audit actor, notifications, bookings, sessions) per the schema's onDelete rules.
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+    } else {
+      // Soft delete for ministry admin (mark as deleted but keep in DB)
+      await prisma.user.update({
+        where: { id: userId },
+        data: { deletedAt: new Date() },
+      });
+    }
 
     // Audit log
     await audit({
@@ -165,13 +199,21 @@ export async function deleteUser(userId: string): Promise<{ ok?: boolean; error?
       action: "DELETE_USER",
       entityType: "User",
       entityId: userId,
-      metadata: { email: userToDelete.email, name: userToDelete.name },
+      metadata: {
+        email: userToDelete.email,
+        name: userToDelete.name,
+        softDelete: !isSuperAdmin(user.systemRole),
+      },
       ministryId: user.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
+    // Backstop: any remaining FK restriction (P2003) → point to deactivation.
+    if ((err as { code?: string }).code === "P2003") {
+      return { error: "This user has linked records and can't be deleted. Deactivate the user instead." };
+    }
     console.error("Failed to delete user:", err);
     return { error: "Failed to delete user" };
   }
@@ -186,26 +228,45 @@ export async function updateUserRole(
     if ("error" in auth) return { error: auth.error };
     const { user, target } = auth;
 
-    // Only assignable ministry roles — never grant SUPER_ADMIN here.
-    if (!MINISTRY_ROLES.includes(role as MinistryRole) || role === "SUPER_ADMIN") {
+    // Only assignable system roles — never grant SUPER_ADMIN here.
+    if (role === "SUPER_ADMIN" || !ASSIGNABLE_SYSTEM_ROLES.includes(role as any)) {
       return { error: "Invalid role" };
     }
-    if (role === target.role) return { ok: true };
+    const validatedRole = role as SystemRole;
+    if (validatedRole === target.systemRole) return { ok: true };
 
-    await prisma.user.update({ where: { id: userId }, data: { role: role as MinistryRole } });
+    // MINISTER role can only be assigned by SUPER_ADMIN
+    if (role === "MINISTER" && !isSuperAdmin(user.systemRole)) {
+      return { error: "Only a super admin can assign the Minister role" };
+    }
+
+    // Enforce one MINISTER per ministry
+    if (role === "MINISTER") {
+      const existingMinister = await prisma.user.count({
+        where: { ministryId: target.ministryId, systemRole: "MINISTER", id: { not: userId } },
+      });
+      if (existingMinister > 0) {
+        return { error: "This ministry already has a Minister. Reassign the current one first." };
+      }
+    }
+
+    await prisma.user.update({ where: { id: userId }, data: { systemRole: role as SystemRole } });
 
     await audit({
       actorId: user.id,
       action: "UPDATE_USER_ROLE",
       entityType: "User",
       entityId: userId,
-      metadata: { email: target.email, from: target.role, to: role },
+      metadata: { email: target.email, from: target.systemRole, to: role },
       ministryId: target.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
+    if ((err as any)?.code === "P2002") {
+      return { error: "This ministry already has a Minister. Reassign the current one first." };
+    }
     console.error("Failed to update user role:", err);
     return { error: "Failed to update user role" };
   }
@@ -224,6 +285,11 @@ export async function setUserActive(
       return { error: "You cannot deactivate your own account" };
     }
 
+    // MINISTER role can only be deactivated by SUPER_ADMIN
+    if (!active && target.systemRole === "MINISTER" && !isSuperAdmin(user.systemRole)) {
+      return { error: "Only a super admin can deactivate a Minister account" };
+    }
+
     await prisma.user.update({ where: { id: userId }, data: { active } });
 
     await audit({
@@ -235,7 +301,7 @@ export async function setUserActive(
       ministryId: target.ministryId,
     });
 
-    revalidatePath("/admin/users");
+    revalidatePath("/administrative/admin/users");
     return { ok: true };
   } catch (err) {
     console.error("Failed to update user status:", err);
@@ -260,7 +326,7 @@ async function reissueCredentials(userId: string, action: "RESET_PASSWORD" | "RE
     ministryId: target.ministryId,
   });
 
-  revalidatePath("/admin/users");
+  revalidatePath("/administrative/admin/users");
   return { ok: true as const, emailSent };
 }
 

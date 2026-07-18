@@ -70,7 +70,14 @@ export async function findSlotConflict(params: {
   return null;
 }
 
-export type ResolvedInvitee = { email: string; name: string; userId: string | null };
+export type ResolvedInvitee = {
+  email: string;
+  name: string;
+  userId: string | null;
+  status?: "INVITED" | "CONFIRMED" | "DECLINED";
+  rsvpTokenHash?: string | null;
+  respondedAt?: Date | null;
+};
 
 /**
  * Create the given occurrence slots as Event rows (sharing `seriesId`), each
@@ -85,6 +92,7 @@ export async function materializeOccurrences(
     seriesId: string | null;
     base: Record<string, unknown>;
     invitees: ResolvedInvitee[];
+    coOrganizerIds?: string[];
   },
 ): Promise<string> {
   let firstId = "";
@@ -102,10 +110,33 @@ export async function materializeOccurrences(
       await tx.eventAttendee.createMany({
         data: opts.invitees.map((r) =>
           r.userId
-            ? { eventId: ev.id, userId: r.userId, status: "INVITED" as const }
-            : { eventId: ev.id, externalEmail: r.email, externalName: r.name, status: "INVITED" as const },
+            ? {
+                eventId: ev.id,
+                userId: r.userId,
+                status: r.status ?? "INVITED",
+                rsvpTokenHash: r.rsvpTokenHash ?? null,
+                respondedAt: r.respondedAt ?? null,
+              }
+            : {
+                eventId: ev.id,
+                externalEmail: r.email,
+                externalName: r.name,
+                status: r.status ?? "INVITED",
+                rsvpTokenHash: r.rsvpTokenHash ?? null,
+                respondedAt: r.respondedAt ?? null,
+              },
         ),
         skipDuplicates: true,
+      });
+    }
+    if (opts.coOrganizerIds && opts.coOrganizerIds.length > 0) {
+      await tx.event.update({
+        where: { id: ev.id },
+        data: {
+          coOrganizers: {
+            connect: opts.coOrganizerIds.map((id) => ({ id })),
+          },
+        },
       });
     }
   }
