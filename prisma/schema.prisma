@@ -186,6 +186,9 @@ model User {
   roomBookings      RoomBooking[]   @relation("RoomBookings")
   accounts          Account[]
   sessions          Session[]
+
+  @@index([ministryId])
+  @@index([ministryId, systemRole])
 }
 
 model Event {
