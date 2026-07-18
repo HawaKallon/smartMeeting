@@ -35,6 +35,7 @@ export default async function CheckInPage({
             hasGeofence={
               resolved.event.venueLat != null && resolved.event.venueLng != null
             }
+            defaultName={session.user.name ?? ""}
           />
         )}
       </div>
