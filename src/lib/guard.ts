@@ -35,6 +35,16 @@ export async function assertStaffRole() {
   return assertRole("STAFF", "MINISTRY_ADMIN", "MINISTER", "SUPER_ADMIN");
 }
 
+/** Page guard: ministry admin or platform super-admin. */
+export async function requireAdminRole() {
+  return requireRole("ADMIN", "SUPER_ADMIN");
+}
+
+/** Action guard: ministry admin or platform super-admin. */
+export async function assertAdminRole() {
+  return assertRole("ADMIN", "SUPER_ADMIN");
+}
+
 /** Page guard: platform super-admin only. */
 export async function requireSuperAdmin() {
   const user = await requireUser();
