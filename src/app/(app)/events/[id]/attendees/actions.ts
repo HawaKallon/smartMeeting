@@ -549,3 +549,37 @@ export async function manualCheckIn(
     return { error: "Failed to check in" };
   }
 }
+
+// ── Remove attendance (walk-in guest check-in) ──────────────────────────────
+
+export async function removeAttendance(formData: FormData): Promise<void> {
+  const staff = await requireUser();
+
+  const attendanceId = String(formData.get("attendanceId") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  if (!attendanceId || !eventId) return;
+
+  // Verify event exists and belongs to user's ministry
+  const event = await prisma.event.findFirst({
+    where: { id: eventId } as Prisma.EventWhereInput,
+    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+  });
+  if (!event || !canManageExistingEvent(staff, event)) return;
+
+  const attendance = await prisma.attendance.findUnique({ where: { id: attendanceId } });
+  if (!attendance || attendance.eventId !== eventId) return;
+
+  await prisma.attendance.delete({ where: { id: attendanceId } });
+
+  await audit({
+    actorId: staff.id,
+    action: "REMOVE_ATTENDANCE",
+    entityType: "Attendance",
+    entityId: attendanceId,
+    metadata: { eventId },
+    ministryId: event.ministryId,
+  });
+
+  revalidatePath(`/administrative/events/${eventId}/attendees`);
+  revalidatePath(`/administrative/events/${eventId}`);
+}

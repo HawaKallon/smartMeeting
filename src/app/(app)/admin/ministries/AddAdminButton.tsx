@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { addMinistryAdmin } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 
@@ -16,6 +17,7 @@ export function AddAdminButton({
   const [open, setOpen] = useState(false);
   const action = addMinistryAdmin.bind(null, ministryId);
   const [state, formAction, isPending] = useActionState(action, undefined);
+  const messageVisible = useActionMessage(state);
 
   if (!emailDomain) {
     return <span className="text-xs text-muted-foreground">No domain set</span>;
@@ -33,8 +35,8 @@ export function AddAdminButton({
 
       {open && (
         <form action={formAction} className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
-          {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
-          {state?.ok && (
+          {messageVisible && state?.error && <p className="text-xs text-red-400">{state.error}</p>}
+          {messageVisible && state?.ok && !state?.error && (
             <p className="text-xs text-green-400">
               Admin added{state.emailSent ? " and invite sent" : " — invite email not sent"}
             </p>

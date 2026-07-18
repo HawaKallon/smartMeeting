@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState } from "react";
 import { manualCheckIn, type ActionState } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 const label = "block text-sm font-medium text-foreground/80";
@@ -11,26 +12,18 @@ export function WalkInCheckInForm({ eventId }: { eventId: string }) {
     manualCheckIn,
     undefined,
   );
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  useEffect(() => {
-    if (state?.ok && !state?.error) {
-      setShowSuccess(true);
-      const timer = setTimeout(() => setShowSuccess(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [state?.ok, state?.error]);
+  const messageVisible = useActionMessage(state);
 
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="eventId" value={eventId} />
 
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
           {state.error}
         </div>
       )}
-      {showSuccess && (
+      {messageVisible && state?.ok && !state?.error && (
         <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
           ✓ Guest checked in
         </div>

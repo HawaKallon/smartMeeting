@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { inviteUser, inviteExternal, type ActionState } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 import { Users, Mail } from "lucide-react";
 
 type User = { id: string; name: string | null; email: string };
@@ -25,6 +26,9 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
     inviteExternal,
     undefined,
   );
+
+  const userMessageVisible = useActionMessage(userState);
+  const extMessageVisible = useActionMessage(extState);
 
   return (
     <div className="space-y-4">
@@ -60,12 +64,12 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
         <form action={userAction} className="space-y-4">
           <input type="hidden" name="eventId" value={eventId} />
 
-          {userState?.error && (
+          {userMessageVisible && userState?.error && (
             <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
               {userState.error}
             </div>
           )}
-          {userState?.ok && (
+          {userMessageVisible && userState?.ok && !userState?.error && (
             <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
               ✅ User invited
             </div>
@@ -103,12 +107,12 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
         <form action={extAction} className="space-y-4">
           <input type="hidden" name="eventId" value={eventId} />
 
-          {extState?.error && (
+          {extMessageVisible && extState?.error && (
             <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
               {extState.error}
             </div>
           )}
-          {extState?.ok && (
+          {extMessageVisible && extState?.ok && !extState?.error && (
             <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
               ✅ Guest invited
             </div>

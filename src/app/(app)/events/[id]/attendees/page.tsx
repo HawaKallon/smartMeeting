@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { canManageExistingEvent } from "@/lib/eventAccess";
-import { removeInvite } from "./actions";
+import { removeInvite, removeAttendance } from "./actions";
 import { AddAttendeeForm } from "./AddAttendeeForm";
 import { WalkInCheckInForm } from "./WalkInCheckInForm";
 import { InlineCheckInButton } from "./InlineCheckInButton";
@@ -30,7 +30,7 @@ export default async function AttendeesPage({
         include: { user: { select: { id: true, name: true, email: true } } },
       },
       attendances: {
-        select: { userId: true, checkInAt: true, withinGeofence: true, method: true, externalName: true, externalEmail: true },
+        select: { id: true, userId: true, checkInAt: true, withinGeofence: true, method: true, externalName: true, externalEmail: true },
       },
     },
   });
@@ -112,12 +112,12 @@ export default async function AttendeesPage({
         <AddAttendeeForm eventId={id} uninvitedUsers={uninvitedUsers} />
       </div>
 
-      {/* Attendee List */}
+      {/* Attendees & Check-ins List */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="border-b border-border bg-muted/30 px-6 py-3">
           <h2 className="text-sm font-semibold text-foreground">Attendees & Check-ins</h2>
         </div>
-        {event.attendees.length === 0 ? (
+        {event.attendees.length === 0 && walkInGuests.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <Users className="mx-auto h-8 w-8 text-muted-foreground/30" />
             <p className="mt-3 text-sm text-muted-foreground">No attendees yet. Add some to get started.</p>
@@ -147,6 +147,7 @@ export default async function AttendeesPage({
               </tr>
             </thead>
             <tbody>
+              {/* Invited attendees */}
               {event.attendees.map((a, idx) => {
                 const statusConfig = {
                   INVITED: { bg: "bg-amber-500/10", text: "text-amber-400", label: "Invited" },
@@ -155,11 +156,12 @@ export default async function AttendeesPage({
                 };
                 const status = statusConfig[a.status as keyof typeof statusConfig];
                 const checkin = a.userId ? checkinsByUserId.get(a.userId) : null;
+                const isLastInvited = idx === event.attendees.length - 1 && walkInGuests.length === 0;
 
                 return (
                   <tr
                     key={a.id}
-                    className={`transition-colors hover:bg-muted/20 ${idx < event.attendees.length - 1 ? "border-b border-border/50" : ""}`}
+                    className={`transition-colors hover:bg-muted/20 ${!isLastInvited ? "border-b border-border/50" : ""}`}
                   >
                     <td className="px-6 py-3">
                       <span className="font-medium text-foreground">
@@ -214,55 +216,54 @@ export default async function AttendeesPage({
                   </tr>
                 );
               })}
+
+              {/* Walk-in guests */}
+              {walkInGuests.map((guest, idx) => {
+                const isLastRow = idx === walkInGuests.length - 1;
+                return (
+                  <tr
+                    key={guest.id}
+                    className={`transition-colors hover:bg-muted/20 ${!isLastRow ? "border-b border-border/50" : ""}`}
+                  >
+                    <td className="px-6 py-3">
+                      <span className="font-medium text-foreground">{guest.externalName ?? "—"}</span>
+                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">
+                      {guest.externalEmail ?? "—"}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className="text-xs text-muted-foreground">Walk-in</span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className="rounded-full px-2 py-1 text-xs font-medium bg-blue-500/10 text-blue-400">
+                        Walk-in
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-2 text-xs text-foreground">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <span>{guest.checkInAt.toLocaleString()}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <form action={removeAttendance}>
+                        <input type="hidden" name="attendanceId" value={guest.id} />
+                        <input type="hidden" name="eventId" value={id} />
+                        <button
+                          type="submit"
+                          className="rounded-md bg-red-600/20 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-600/30 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
-
-      {/* Walk-in Guests Section */}
-      {walkInGuests.length > 0 && (
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="border-b border-border bg-muted/30 px-6 py-3">
-            <h2 className="text-sm font-semibold text-foreground">Attendance ({walkInGuests.length})</h2>
-          </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Checked In
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {walkInGuests.map((guest, idx) => (
-                <tr
-                  key={`${guest.externalName}-${idx}`}
-                  className={`transition-colors hover:bg-muted/20 ${idx < walkInGuests.length - 1 ? "border-b border-border/50" : ""}`}
-                >
-                  <td className="px-6 py-3">
-                    <span className="font-medium text-foreground">{guest.externalName ?? "—"}</span>
-                  </td>
-                  <td className="px-6 py-3 text-muted-foreground">
-                    {guest.externalEmail ?? "—"}
-                  </td>
-                  <td className="px-6 py-3">
-                    <div className="flex items-center gap-2 text-xs text-foreground">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>{guest.checkInAt.toLocaleString()}</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
       {/* Walk-in Check-in Form */}
       <div className="rounded-lg border border-border bg-card p-6">

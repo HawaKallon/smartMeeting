@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createUser } from "./actions";
 import { SYSTEM_ROLE_LABELS, ASSIGNABLE_SYSTEM_ROLES } from "@/lib/roles";
+import { useActionMessage } from "@/hooks/useActionMessage";
 import type { SystemRole } from "@/generated/prisma/enums";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
@@ -19,17 +20,18 @@ export function CreateUserForm({
 }) {
   const [state, formAction, isPending] = useActionState(createUser, undefined);
   const [ministryId, setMinistryId] = useState("");
+  const messageVisible = useActionMessage(state);
   const selectedDomain = ministries.find((m) => m.id === ministryId)?.emailDomain ?? null;
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
           {state.error}
         </div>
       )}
 
-      {state?.ok && (
+      {messageVisible && state?.ok && !state?.error && (
         state.emailSent ? (
           <div className="rounded-lg bg-green-500/10 px-4 py-2 text-sm text-green-400">
             User created and invitation email sent

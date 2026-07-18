@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Pencil } from "lucide-react";
 import { updateMinistry } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 
 const field = "mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none";
 
@@ -20,6 +21,7 @@ export function EditMinistryButton({
   const [open, setOpen] = useState(false);
   const action = updateMinistry.bind(null, ministryId);
   const [state, formAction, isPending] = useActionState(action, undefined);
+  const messageVisible = useActionMessage(state);
 
   return (
     <div className="space-y-2">
@@ -33,8 +35,8 @@ export function EditMinistryButton({
 
       {open && (
         <form action={formAction} className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
-          {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
-          {state?.ok && <p className="text-xs text-green-400">Ministry updated</p>}
+          {messageVisible && state?.error && <p className="text-xs text-red-400">{state.error}</p>}
+          {messageVisible && state?.ok && !state?.error && <p className="text-xs text-green-400">Ministry updated</p>}
           <input type="text" name="name" required defaultValue={name} className={field} placeholder="Ministry name" />
           <input
             type="text"
