@@ -14,6 +14,8 @@ const CheckInSchema = z.object({
   lng: z.coerce.number().optional(),
   accuracy: z.coerce.number().optional(),
   mock: z.coerce.boolean().optional(),
+  signedName: z.string().trim().min(2, "Enter your name"),
+  signature: z.string().min(1, "Signature is required"),
 });
 
 export type CheckInResult =
@@ -27,8 +29,10 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
     lng: formData.get("lng") || undefined,
     accuracy: formData.get("accuracy") || undefined,
     mock: formData.get("mock") || undefined,
+    signedName: formData.get("signedName"),
+    signature: formData.get("signature"),
   });
-  if (!parsed.success) return { ok: false, error: "Invalid check-in data." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid check-in data." };
   const data = parsed.data;
 
   const resolved = await resolveToken(data.token);
@@ -124,6 +128,8 @@ export async function submitCheckIn(formData: FormData): Promise<CheckInResult> 
         withinGeofence: within,
         mockLocationFlag: data.mock ?? false,
         ipAddress: ip,
+        signedName: data.signedName,
+        signature: data.signature,
       },
     });
   } catch (err) {
