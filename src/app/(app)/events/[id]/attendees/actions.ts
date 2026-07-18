@@ -500,10 +500,11 @@ export async function manualCheckIn(
     ].filter(Boolean) as object[];
 
     const existing = userId
-      ? await prisma.attendance.findFirst({ where: { eventId, userId } })
+      ? await prisma.attendance.findFirst({ where: { eventId, userId }, select: { id: true } })
       : externalMatches.length
         ? await prisma.attendance.findFirst({
             where: { eventId, userId: null, OR: externalMatches },
+            select: { id: true },
           })
         : null;
 
