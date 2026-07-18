@@ -17,9 +17,6 @@ type Ministry = {
   id: string;
   name: string;
   code: string;
-  compoundLat: number | null;
-  compoundLng: number | null;
-  compoundGeofenceRadius: number;
   compoundMaxGpsAccuracy: number;
 };
 type CoOrganizerCandidate = { id: string; name: string | null; email: string };
@@ -98,8 +95,6 @@ export function EventForm({
     reader.readAsDataURL(file);
   }, []);
   const selectedRoom = availableRooms.find((room) => room.id === selectedRoomId);
-  const selectedMinistryHasCompound =
-    selectedMinistry?.compoundLat != null && selectedMinistry?.compoundLng != null;
 
   function addInvite() {
     const email = inviteEmail.trim().toLowerCase();
@@ -624,12 +619,6 @@ export function EventForm({
       <input type="hidden" name="geofenceRadius" value="100" />
 
       {/* Room Schedule Preview - internal events only */}
-      {!isPublic && selectedRoom && selectedMinistry && !selectedMinistryHasCompound && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {selectedMinistry.name} has no compound coordinates yet. This room-based meeting can be created, but QR check-in will not enforce on-site location until the ministry compound is configured.
-        </p>
-      )}
-
       {!isPublic && selectedRoomId && startAt && endAt && (
         <RoomSchedulePreview
           roomId={selectedRoomId}
