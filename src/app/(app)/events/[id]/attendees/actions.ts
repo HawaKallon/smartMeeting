@@ -10,6 +10,7 @@ import { sendInviteEmail } from "@/lib/email";
 import { describeRecurrence } from "@/lib/recurrence";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { canManageExistingEvent } from "@/lib/eventAccess";
+import { checkInClosed } from "@/lib/checkin";
 import type { EventAttendee, Prisma } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string; ok?: true } | undefined;
@@ -310,6 +311,12 @@ export async function removeInvite(formData: FormData): Promise<void> {
   revalidatePath(`/administrative/events/${eventId}`);
 }
 
+// ── Manual check-in (for forms; use with useActionState, wrap with manualCheckInAction) ──
+
+export async function manualCheckInAction(formData: FormData): Promise<void> {
+  await manualCheckIn(undefined, formData);
+}
+
 // ── Staff manually updates an attendee's RSVP status ────────────────────────
 
 const UpdateStatusSchema = z.object({
@@ -416,4 +423,119 @@ export async function selfRsvp(
     revalidatePath(`/administrative/events/${item.eventId}/attendees`);
   }
   return { ok: true };
+}
+
+// ── Staff manually checks in an attendee ────────────────────────────────────
+
+const ManualCheckInSchema = z.object({
+  eventId: z.string().min(1),
+  attendeeId: z.string().optional(),
+  externalName: z.string().optional(),
+}).refine((d) => d.attendeeId || d.externalName, {
+  message: "Select an invitee or enter a name",
+});
+
+export async function manualCheckIn(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+
+    const parsed = ManualCheckInSchema.safeParse({
+      eventId: formData.get("eventId"),
+      attendeeId: formData.get("attendeeId") || undefined,
+      externalName: formData.get("externalName") || undefined,
+    });
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+    const { eventId, attendeeId, externalName } = parsed.data;
+
+    const event = await prisma.event.findFirst({
+      where: { id: eventId } as Prisma.EventWhereInput,
+      select: {
+        id: true,
+        endAt: true,
+        ministryId: true,
+        organizerId: true,
+        coOrganizers: { select: { id: true } },
+      },
+    });
+    if (!event || !canManageExistingEvent(user, event)) {
+      return { error: "Event not found or you don't have access." };
+    }
+
+    if (checkInClosed(event.endAt)) {
+      return { error: "This meeting has ended. Check-in is closed." };
+    }
+
+    let userId: string | null = null;
+    let guestName: string | null = externalName ?? null;
+    let guestEmail: string | null = null;
+
+    if (attendeeId) {
+      const invite = await prisma.eventAttendee.findFirst({
+        where: { id: attendeeId, eventId },
+      });
+      if (!invite) {
+        return { error: "This invitee is not on the list for this event." };
+      }
+      userId = invite.userId;
+      guestName = invite.userId ? null : invite.externalName;
+      guestEmail = invite.userId ? null : invite.externalEmail;
+    }
+
+    guestName = guestName?.trim() || null;
+
+    // Dedupe: registered users by userId, external guests by name/email OR-match
+    const externalMatches = [
+      guestEmail ? { externalEmail: { equals: guestEmail, mode: "insensitive" as const } } : null,
+      guestName ? { externalName: { equals: guestName, mode: "insensitive" as const } } : null,
+    ].filter(Boolean) as object[];
+
+    const existing = userId
+      ? await prisma.attendance.findFirst({ where: { eventId, userId } })
+      : externalMatches.length
+        ? await prisma.attendance.findFirst({
+            where: { eventId, userId: null, OR: externalMatches },
+          })
+        : null;
+
+    if (existing) {
+      revalidatePath(`/administrative/events/${eventId}/attendees`);
+      revalidatePath(`/administrative/events/${eventId}`);
+      return { ok: true, error: "Already checked in" };
+    }
+
+    const attendance = await prisma.attendance.create({
+      data: {
+        eventId,
+        userId,
+        externalName: userId ? null : guestName,
+        externalEmail: userId ? null : guestEmail,
+        method: "MANUAL",
+      },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "MANUAL_CHECK_IN",
+      entityType: "Attendance",
+      entityId: attendance.id,
+      metadata: { eventId, userId, externalName: guestName, externalEmail: guestEmail },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/administrative/events/${eventId}/attendees`);
+    revalidatePath(`/administrative/events/${eventId}`);
+
+    return { ok: true };
+  } catch (err) {
+    // Unique (eventId, userId) race condition for logged-in users
+    if ((err as { code?: string }).code === "P2002") {
+      return { ok: true, error: "Already checked in" };
+    }
+    console.error("Manual check-in failed:", err);
+    return { error: "Failed to check in" };
+  }
 }
