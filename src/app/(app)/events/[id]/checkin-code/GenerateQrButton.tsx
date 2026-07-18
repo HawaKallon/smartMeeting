@@ -57,16 +57,11 @@ export function GenerateQrButton({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-border bg-card p-6">
-        <p className="text-sm text-muted-foreground mb-4">
-          Generate the check-in QR when you're at the venue — your current location becomes the
-          check-in boundary.
-        </p>
-
+      <div className="flex flex-col items-start gap-4">
         <button
           onClick={handleGenerateQr}
           disabled={status !== "idle"}
-          className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {status === "locating"
             ? "Getting location…"
@@ -76,7 +71,7 @@ export function GenerateQrButton({
         </button>
 
         {error && (
-          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
