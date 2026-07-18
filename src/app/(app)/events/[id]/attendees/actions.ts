@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { SYSTEM_ROLES } from "@/lib/roles";
 import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
 import { audit } from "@/lib/audit";
-import { sendInviteEmail } from "@/lib/email";
+import { queueInvitationEmail } from "@/lib/email-queue";
 import { describeRecurrence } from "@/lib/recurrence";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { canManageExistingEvent } from "@/lib/eventAccess";
@@ -115,10 +115,11 @@ export async function inviteUser(
     ministryId: event.ministryId,
   });
 
-  // Send invite email if user has an email address and has opted in.
-  // Only send for internal events (public events shouldn't have attendee invitations through this path)
+  // Queue invite email if user has an email address and has opted in.
+  // Only queue for internal events (public events shouldn't have attendee invitations through this path)
+  // Non-blocking - user won't wait for email delivery
   if (user.emailNotifications !== false && event.organizer) {
-    await sendInviteEmail({
+    queueInvitationEmail({
       to: user.email,
       toName: user.name ?? user.email,
       eventTitle: event.title,
@@ -135,7 +136,7 @@ export async function inviteUser(
       recurrenceText: event.series ? describeRecurrence(event.series) : null,
       acceptUrl: rsvpUrl(token, "CONFIRMED"),
       declineUrl: rsvpUrl(token, "DECLINED"),
-    }).catch((err) => console.error("[email] invite failed:", err));
+    }).catch((err) => console.error("[email-queue] invite failed:", err));
   }
 
   for (const targetId of targetEventIds) {
@@ -251,7 +252,7 @@ export async function inviteExternal(
   });
 
   if (externalEmail && event.organizer) {
-    await sendInviteEmail({
+    queueInvitationEmail({
       to: externalEmail,
       toName: externalName,
       eventTitle: event.title,
@@ -268,7 +269,7 @@ export async function inviteExternal(
       recurrenceText: event.series ? describeRecurrence(event.series) : null,
       acceptUrl: rsvpUrl(credentials!.token, "CONFIRMED"),
       declineUrl: rsvpUrl(credentials!.token, "DECLINED"),
-    }).catch((err) => console.error("[email] invite failed:", err));
+    }).catch((err) => console.error("[email-queue] invite failed:", err));
   }
 
   for (const targetId of targetEventIds) {
