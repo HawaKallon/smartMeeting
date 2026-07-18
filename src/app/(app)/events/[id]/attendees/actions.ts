@@ -114,7 +114,8 @@ export async function inviteUser(
   });
 
   // Send invite email if user has an email address and has opted in.
-  if (user.emailNotifications !== false) {
+  // Only send for internal events (public events shouldn't have attendee invitations through this path)
+  if (user.emailNotifications !== false && event.organizer) {
     await sendInviteEmail({
       to: user.email,
       toName: user.name ?? user.email,
@@ -247,7 +248,7 @@ export async function inviteExternal(
     ministryId: event.ministryId,
   });
 
-  if (externalEmail) {
+  if (externalEmail && event.organizer) {
     await sendInviteEmail({
       to: externalEmail,
       toName: externalName,

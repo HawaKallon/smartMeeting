@@ -189,7 +189,7 @@ export default async function RoomDetailPage({ params }: { params: { id: string 
                         {event.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {event.organizer.name || event.organizer.email}
+                        {(event.organizer?.name || event.organizer?.email) ?? "System"}
                       </p>
                     </div>
                     <div className="whitespace-nowrap text-right text-xs text-muted-foreground">

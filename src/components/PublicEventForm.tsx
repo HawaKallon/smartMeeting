@@ -4,20 +4,20 @@ import { useActionState } from "react";
 import Image from "next/image";
 import { useCallback, useState } from "react";
 import { Upload } from "lucide-react";
-import { createPublicEvent, updatePublicEvent, publishPublicEvent, unpublishPublicEvent, type ActionState } from "./actions";
+import { updatePublicEvent, type ActionState } from "@/app/(app)/admin/public-calendar/actions";
+import { publishEvent, unpublishEvent } from "@/app/(app)/events/[id]/edit/actions";
 import { CATEGORY_LIST, CATEGORY_LABELS } from "@/lib/public-event-categories";
 import { MinistryMultiSelect } from "@/components/MinistryMultiSelect";
-import type { PublicEvent } from "@/generated/prisma/client";
+import type { Event } from "@/generated/prisma/client";
 
 interface PublicEventFormProps {
-  event?: PublicEvent & { invitedMinistries?: { id: string }[] };
-  isNew?: boolean;
+  event: Event & { invitedMinistries?: { id: string; name: string }[] };
   ministries?: { id: string; name: string; code: string }[];
   userMinistryId?: string | null;
 }
 
-export function PublicEventForm({ event, isNew, ministries = [], userMinistryId }: PublicEventFormProps) {
-  const saveAction = event ? updatePublicEvent.bind(null, event.id) : createPublicEvent;
+export function PublicEventForm({ event, ministries = [], userMinistryId }: PublicEventFormProps) {
+  const saveAction = updatePublicEvent.bind(null, event.id);
   const [state, action, isPending] = useActionState<ActionState, FormData>(
     saveAction,
     undefined,
@@ -39,11 +39,11 @@ export function PublicEventForm({ event, isNew, ministries = [], userMinistryId 
   }, []);
 
   const handlePublish = async () => {
-    await publishPublicEvent(event!.id);
+    await publishEvent(event!.id);
   };
 
   const handleUnpublish = async () => {
-    await unpublishPublicEvent(event!.id);
+    await unpublishEvent(event!.id);
   };
 
   return (
@@ -150,6 +150,7 @@ export function PublicEventForm({ event, isNew, ministries = [], userMinistryId 
           <label htmlFor="bannerImage" className="block text-sm font-medium text-foreground mb-2">
             Banner Image
           </label>
+          <p className="text-xs text-muted-foreground mb-2">Optional - Max 5MB, JPG/PNG recommended</p>
           {preview && (
             <div className="relative w-full h-40 mb-3 rounded-lg overflow-hidden">
               <Image src={preview} alt="Preview" fill className="object-cover" />
@@ -242,14 +243,13 @@ export function PublicEventForm({ event, isNew, ministries = [], userMinistryId 
             disabled={isPending}
             className="rounded-xl bg-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-[#002a68] disabled:opacity-50"
           >
-            {isPending ? "Saving..." : isNew ? "Create Event" : "Save Changes"}
+            {isPending ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>
 
       {/* Publish/Unpublish buttons */}
-      {!isNew && (
-        <div className="border-t border-border pt-6">
+      <div className="border-t border-border pt-6">
           <h3 className="font-semibold text-foreground mb-3">Publication</h3>
           {event?.status === "DRAFT" ? (
             <button
@@ -267,7 +267,6 @@ export function PublicEventForm({ event, isNew, ministries = [], userMinistryId 
             </button>
           )}
         </div>
-      )}
     </div>
   );
 }

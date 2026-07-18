@@ -11,14 +11,15 @@ import { sendInviteEmail } from "@/lib/email";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
 import { generateOccurrences, describeRecurrence, MAX_OCCURRENCES } from "@/lib/recurrence";
 import { isSuperAdmin } from "@/lib/roles";
-import type { RecurrenceFrequency } from "@/generated/prisma/enums";
+import type { RecurrenceFrequency, PublicEventCategory } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 
 const EventSchema = z
   .object({
+    isPublic: z.enum(["true", "false"]).default("false").transform(v => v === "true"),
     title: z.string().min(2, "Title is required"),
     description: z.string().optional(),
-    type: z.enum(["MEETING", "CONFERENCE", "APPOINTMENT"]),
+    type: z.enum(["MEETING", "CONFERENCE", "APPOINTMENT"]).optional(),
     scope: z.enum(["OFFICIAL", "TEAM"]).default("TEAM"),
     startAt: z.coerce.date(),
     endAt: z.coerce.date(),
@@ -30,16 +31,46 @@ const EventSchema = z
     classification: z.enum(["PUBLIC", "RESTRICTED"]).default("PUBLIC"),
     roomId: z.string().optional(),
     ministryId: z.string().optional(),
+    contactEmail: z.string().email().optional(),
+    contactPhone: z.string().optional(),
     // Recurrence (NONE = a single event, the default).
     recurrenceFreq: z.enum(["NONE", "DAILY", "WEEKLY", "WEEKDAYS", "MONTHLY"]).default("NONE"),
     recurrenceInterval: z.coerce.number().int().positive().max(52).default(1),
     recurrenceEndType: z.enum(["COUNT", "UNTIL"]).optional(),
     recurrenceCount: z.coerce.number().int().positive().max(MAX_OCCURRENCES).optional(),
     recurrenceUntil: z.coerce.date().optional(),
+    // Public event fields
+    category: z.enum(["CONFERENCE", "WORKSHOP", "TRAINING", "MEETING", "LAUNCH", "OTHER"]).optional(),
+    bannerImage: z.string().optional(),
+    externalUrl: z.string().url().optional(),
+    coOrganizerIds: z.string().optional(), // JSON string of array
+    invitedMinistryIds: z.string().optional(), // JSON string of array
   })
   .refine((d) => d.endAt > d.startAt, {
     message: "End time must be after start time",
     path: ["endAt"],
+  })
+  .refine((d) => !d.isPublic || d.type === null || d.type === undefined, {
+    message: "Public events don't use activity type",
+    path: ["type"],
+  })
+  .refine((d) => d.isPublic || d.type !== null, {
+    message: "Internal events require an activity type",
+    path: ["type"],
+  })
+  .refine((d) => {
+    if (!d.isPublic && d.coOrganizerIds) {
+      try {
+        const ids = JSON.parse(d.coOrganizerIds);
+        return Array.isArray(ids) && ids.length > 0;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }, {
+    message: "Internal events require at least one co-organizer",
+    path: ["coOrganizerIds"],
   });
 
 export type ActionState = { error?: string } | undefined;
@@ -51,6 +82,7 @@ export async function createEvent(
   const user = await requireUser();
 
   const parsed = EventSchema.safeParse({
+    isPublic: formData.get("isPublic") || "false",
     title: formData.get("title"),
     description: formData.get("description") || undefined,
     type: formData.get("type"),
@@ -65,17 +97,84 @@ export async function createEvent(
     classification: formData.get("classification") || "PUBLIC",
     roomId: formData.get("roomId") || undefined,
     ministryId: formData.get("ministryId") || undefined,
+    contactEmail: formData.get("contactEmail") || undefined,
+    contactPhone: formData.get("contactPhone") || undefined,
     recurrenceFreq: formData.get("recurrenceFreq") || "NONE",
     recurrenceInterval: formData.get("recurrenceInterval") || 1,
     recurrenceEndType: formData.get("recurrenceEndType") || undefined,
     recurrenceCount: formData.get("recurrenceCount") || undefined,
     recurrenceUntil: formData.get("recurrenceUntil") || undefined,
+    category: formData.get("category") || undefined,
+    bannerImage: formData.get("bannerImage") || undefined,
+    externalUrl: formData.get("externalUrl") || undefined,
+    coOrganizerIds: formData.get("coOrganizerIds") || undefined,
+    invitedMinistryIds: formData.get("invitedMinistryIds") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
   const data = parsed.data;
+
+  // Handle public event creation (simplified path)
+  if (data.isPublic) {
+    try {
+      const targetMinistryId = isSuperAdmin(user.systemRole) ? data.ministryId : user.ministryId;
+      if (!targetMinistryId) {
+        return { error: "Choose a ministry for this event." };
+      }
+
+      let invitedMinistryIds: string[] = [];
+      try {
+        invitedMinistryIds = data.invitedMinistryIds ? JSON.parse(data.invitedMinistryIds) : [];
+      } catch {
+        return { error: "Invalid invited ministries" };
+      }
+
+      const publicEvent = await prisma.event.create({
+        data: {
+          title: data.title,
+          description: data.description || null,
+          isPublic: true,
+          category: data.category,
+          startAt: data.startAt,
+          endAt: data.endAt,
+          venueName: data.venueName || null,
+          bannerImage: data.bannerImage || null,
+          externalUrl: data.externalUrl || null,
+          contactEmail: data.contactEmail || null,
+          contactPhone: data.contactPhone || null,
+          status: "DRAFT",
+          ministryId: targetMinistryId,
+          organizerId: null,
+          scope: "TEAM",
+          classification: "PUBLIC",
+          geofenceRadius: 100,
+          invitedMinistries: invitedMinistryIds.length > 0 ? {
+            connect: invitedMinistryIds.map(id => ({ id }))
+          } : undefined,
+        },
+      });
+
+      await audit({
+        actorId: user.id,
+        action: "CREATE_PUBLIC_EVENT",
+        entityType: "Event",
+        entityId: publicEvent.id,
+        metadata: { title: data.title },
+        ministryId: targetMinistryId,
+      });
+
+      revalidatePath("/administrative/calendar");
+      revalidatePath("/administrative");
+      redirect(`/administrative/events/${publicEvent.id}`);
+    } catch (err) {
+      console.error("Failed to create public event:", err);
+      return { error: "Failed to create public event" };
+    }
+  }
+
+  // Handle internal event creation (existing logic)
   const targetMinistryId = isSuperAdmin(user.systemRole) ? data.ministryId : user.ministryId;
   if (!targetMinistryId) {
     return { error: "Choose a ministry for this event." };
@@ -198,6 +297,15 @@ export async function createEvent(
     );
   }
 
+  let coOrganizerIds: string[] = [];
+  if (data.coOrganizerIds) {
+    try {
+      coOrganizerIds = JSON.parse(data.coOrganizerIds);
+    } catch {
+      return { error: "Invalid co-organizers format" };
+    }
+  }
+
   const base = {
     title: data.title,
     description: data.description,
@@ -232,7 +340,7 @@ export async function createEvent(
       });
       seriesId = series.id;
     }
-    return materializeOccurrences(tx, { slots, seriesId, base, invitees: resolved });
+    return materializeOccurrences(tx, { slots, seriesId, base, invitees: resolved, coOrganizerIds });
   });
 
   await audit({
@@ -359,5 +467,80 @@ export async function checkRoomAvailability(
   } catch (err) {
     console.error("Room availability check failed:", err);
     return { ok: false, error: "Failed to check room availability" };
+  }
+}
+
+export async function createRoomInline(
+  formData: FormData,
+): Promise<{ room?: { id: string; name: string; location: string; capacity: number; ministryId: string }; error?: string }> {
+  try {
+    const user = await requireUser();
+
+    const name = formData.get("name") as string;
+    const location = formData.get("location") as string;
+    const capacity = parseInt(formData.get("capacity") as string);
+
+    if (!name || !location || !capacity || isNaN(capacity)) {
+      return { error: "All fields are required" };
+    }
+
+    if (capacity < 1) {
+      return { error: "Capacity must be at least 1" };
+    }
+
+    let ministryId: string;
+    if (isSuperAdmin(user.systemRole)) {
+      ministryId = formData.get("ministryId") as string;
+      if (!ministryId) {
+        return { error: "Ministry is required" };
+      }
+      const ministry = await prisma.ministry.findUnique({ where: { id: ministryId } });
+      if (!ministry) {
+        return { error: "Invalid ministry" };
+      }
+    } else {
+      if (!user.ministryId) {
+        return { error: "Cannot create rooms without a ministry context" };
+      }
+      ministryId = user.ministryId;
+    }
+
+    try {
+      const room = await prisma.room.create({
+        data: {
+          ministryId,
+          name,
+          location,
+          capacity,
+        },
+      });
+
+      await audit({
+        actorId: user.id,
+        action: "CREATE_ROOM",
+        entityType: "Room",
+        entityId: room.id,
+        metadata: { name, location, capacity },
+        ministryId,
+      });
+
+      return {
+        room: {
+          id: room.id,
+          name: room.name,
+          location: room.location,
+          capacity: room.capacity,
+          ministryId: room.ministryId,
+        },
+      };
+    } catch (dbErr: any) {
+      if (dbErr.code === "P2002") {
+        return { error: "A room with that name already exists in your ministry" };
+      }
+      throw dbErr;
+    }
+  } catch (err) {
+    console.error("Failed to create room:", err);
+    return { error: "Failed to create room" };
   }
 }

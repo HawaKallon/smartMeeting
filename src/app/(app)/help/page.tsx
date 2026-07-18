@@ -17,7 +17,7 @@ export default function HelpPage() {
     },
     {
       q: "Who can publish meeting minutes?",
-      a: "Meeting minutes are published by designated approvers (usually Permanent Secretary or above). Once the organizer drafts the minutes, an approver can review and publish them to all attendees.",
+      a: "The meeting organizer drafts and publishes minutes directly. Once draft notes are saved, the organizer can click Publish & Distribute to send the minutes to all attendees.",
     },
     {
       q: "What is geofencing and why does it matter?",

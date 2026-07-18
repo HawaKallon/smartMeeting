@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { requireUser, ministryScope } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
-import { canViewMinistrySchedule, canManageEvents } from "@/lib/roles";
+import { canViewMinistrySchedule, canManageEvents, isMinistryAdminLevel, isSuperAdmin } from "@/lib/roles";
+import { getCategoryColor } from "@/lib/public-event-categories";
 import { BackButton } from "@/components/BackButton";
 import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
+import { CalendarViewToggle } from "./CalendarViewToggle";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -16,7 +18,7 @@ function monthBounds(year: number, month: number) {
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ y?: string; m?: string }>;
+  searchParams: Promise<{ y?: string; m?: string; view?: string }>;
 }) {
   const user = await requireUser();
   const sp = await searchParams;
@@ -24,27 +26,46 @@ export default async function CalendarPage({
   const today = new Date();
   const year = sp.y ? Number(sp.y) : today.getFullYear();
   const month = sp.m ? Number(sp.m) : today.getMonth();
+  const view = (sp.view === "public" ? "public" : "internal") as "internal" | "public";
 
   const { start, end } = monthBounds(year, month);
 
-  const events = await prisma.event.findMany({
-    where: {
-      startAt: { gte: start, lt: end },
-      ...ministryScope(user),
-      ...(canViewMinistrySchedule(user.systemRole) ? {} : { organizerId: user.id }),
-    },
-    orderBy: { startAt: "asc" },
-    select: {
-      id: true,
-      title: true,
-      startAt: true,
-      endAt: true,
-      colorCategory: true,
-      room: { select: { name: true } },
-    },
-  });
+  const events = await (view === "internal"
+    ? prisma.event.findMany({
+        where: {
+          startAt: { gte: start, lt: end },
+          ...ministryScope(user),
+          ...(canViewMinistrySchedule(user.systemRole) ? {} : { organizerId: user.id }),
+        },
+        orderBy: { startAt: "asc" },
+        select: {
+          id: true,
+          title: true,
+          startAt: true,
+          endAt: true,
+          colorCategory: true,
+          room: { select: { name: true } },
+        },
+      })
+    : prisma.event.findMany({
+        where: {
+          isPublic: true,
+          status: "PUBLISHED",
+          startAt: { gte: start, lt: end },
+        },
+        orderBy: { startAt: "asc" },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          startAt: true,
+          endAt: true,
+          venueName: true,
+        },
+      }));
 
-  const byDay = new Map<number, typeof events>();
+  type DayEvent = (typeof events)[0];
+  const byDay = new Map<number, DayEvent[]>();
   for (const e of events) {
     const d = e.startAt.getDate();
     if (!byDay.has(d)) byDay.set(d, []);
@@ -70,20 +91,25 @@ export default async function CalendarPage({
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {view === "public" ? "Public Calendar" : "Internal Calendar"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             View all upcoming events • <span className="text-blue-400">Click any date to see day view</span>
           </p>
         </div>
-        {canManageEvents(user.systemRole) && (
-          <Link
-            href="/administrative/events/new"
-            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Schedule Activity
-          </Link>
-        )}
+        <div className="flex items-center gap-4">
+          <CalendarViewToggle view={view} year={year} month={month} />
+          {(view === "internal" ? canManageEvents(user.systemRole) : (isMinistryAdminLevel(user.systemRole) || isSuperAdmin(user.systemRole))) && (
+            <Link
+              href={`/administrative/events/new?view=${view}`}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Schedule Activity
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
@@ -92,19 +118,19 @@ export default async function CalendarPage({
           <h2 className="text-xl font-semibold text-foreground">{monthLabel}</h2>
           <div className="flex gap-2">
             <Link
-              href={`/administrative/calendar?y=${prev.y}&m=${prev.m}`}
+              href={`/administrative/calendar?y=${prev.y}&m=${prev.m}&view=${view}`}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </Link>
             <Link
-              href="/administrative/calendar"
+              href={`/administrative/calendar${view === "public" ? "?view=public" : ""}`}
               className="px-3 py-2 rounded-lg border border-border bg-muted hover:bg-muted/80 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Today
             </Link>
             <Link
-              href={`/administrative/calendar?y=${next.y}&m=${next.m}`}
+              href={`/administrative/calendar?y=${next.y}&m=${next.m}&view=${view}`}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
@@ -152,7 +178,7 @@ export default async function CalendarPage({
                   <>
                     <div className="flex items-center justify-between mb-2">
                       <Link
-                        href={`/administrative/calendar/day?d=${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
+                        href={`/administrative/calendar/day?d=${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}&view=${view}`}
                         className={`text-sm font-semibold hover:text-blue-400 transition-colors ${
                           isToday
                             ? "text-blue-400"
@@ -169,47 +195,78 @@ export default async function CalendarPage({
                     </div>
                     {hasEvents && (
                       <div className="space-y-1">
-                        {displayEvents.map((e) => {
-                          const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-                            RED: { bg: "bg-red-500/20", text: "text-red-400", dot: "bg-red-500" },
-                            AMBER: { bg: "bg-amber-500/20", text: "text-amber-400", dot: "bg-amber-500" },
-                            GREEN: { bg: "bg-green-500/20", text: "text-green-400", dot: "bg-green-500" },
-                          };
-                          const colors = e.colorCategory && colorMap[e.colorCategory]
-                            ? colorMap[e.colorCategory]
-                            : { bg: "bg-blue-500/20", text: "text-blue-400", dot: "bg-blue-400" };
-                          const bgColor = colors.bg;
-                          const textColor = colors.text;
-                          const dotColor = colors.dot;
-                          const time = e.startAt.toLocaleTimeString("en-GB", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          });
+                        {displayEvents.map((e: DayEvent) => {
+                          if (view === "internal") {
+                            const internalEvent = e as Extract<DayEvent, { colorCategory?: any }>;
+                            const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
+                              RED: { bg: "bg-red-500/20", text: "text-red-400", dot: "bg-red-500" },
+                              AMBER: { bg: "bg-amber-500/20", text: "text-amber-400", dot: "bg-amber-500" },
+                              GREEN: { bg: "bg-green-500/20", text: "text-green-400", dot: "bg-green-500" },
+                            };
+                            const colors = internalEvent.colorCategory && colorMap[internalEvent.colorCategory]
+                              ? colorMap[internalEvent.colorCategory]
+                              : { bg: "bg-blue-500/20", text: "text-blue-400", dot: "bg-blue-400" };
+                            const time = e.startAt.toLocaleTimeString("en-GB", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
 
-                          return (
-                            <Link
-                              key={e.id}
-                              href={`/administrative/events/${e.id}`}
-                              className={`block truncate rounded px-2 py-1.5 text-xs font-medium transition-all hover:shadow-md group ${bgColor} ${textColor}`}
-                              title={e.title}
-                            >
-                              <div className="flex items-center gap-1 truncate">
-                                <span className={`h-1 w-1 flex-shrink-0 rounded-full ${dotColor}`} />
-                                <span className="truncate group-hover:font-semibold">
-                                  {e.title}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-0.5 text-xs opacity-75 mt-0.5">
-                                <Clock className="h-2.5 w-2.5" />
-                                <span className="truncate">{time}</span>
-                                {e.room && (
-                                  <span className="truncate text-xs">
-                                    • {e.room.name}
+                            return (
+                              <Link
+                                key={e.id}
+                                href={`/administrative/events/${e.id}`}
+                                className={`block truncate rounded px-2 py-1.5 text-xs font-medium transition-all hover:shadow-md group ${colors.bg} ${colors.text}`}
+                                title={e.title}
+                              >
+                                <div className="flex items-center gap-1 truncate">
+                                  <span className={`h-1 w-1 flex-shrink-0 rounded-full ${colors.dot}`} />
+                                  <span className="truncate group-hover:font-semibold">
+                                    {e.title}
                                   </span>
-                                )}
-                              </div>
-                            </Link>
-                          );
+                                </div>
+                                <div className="flex items-center gap-0.5 text-xs opacity-75 mt-0.5">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  <span className="truncate">{time}</span>
+                                  {(internalEvent as any).room && (
+                                    <span className="truncate text-xs">
+                                      • {(internalEvent as any).room.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </Link>
+                            );
+                          } else {
+                            const publicEvent = e as Extract<DayEvent, { category?: any }>;
+                            const colorClass = getCategoryColor((publicEvent as any).category);
+                            const time = e.startAt.toLocaleTimeString("en-GB", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+
+                            return (
+                              <Link
+                                key={e.id}
+                                href={`/administrative/events/${e.id}`}
+                                className={`block truncate rounded px-2 py-1.5 text-xs font-medium transition-all hover:shadow-md group border ${colorClass}`}
+                                title={e.title}
+                              >
+                                <div className="flex items-center gap-1 truncate">
+                                  <span className="truncate group-hover:font-semibold">
+                                    {e.title}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-0.5 text-xs opacity-75 mt-0.5">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  <span className="truncate">{time}</span>
+                                  {(publicEvent as any).venueName && (
+                                    <span className="truncate text-xs">
+                                      • {(publicEvent as any).venueName}
+                                    </span>
+                                  )}
+                                </div>
+                              </Link>
+                            );
+                          }
                         })}
                         {moreCount > 0 && (
                           <button

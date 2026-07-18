@@ -148,7 +148,7 @@ export default async function RsvpPage({
             <Detail
               icon={<UserRound className="h-4 w-4" />}
               label="Organizer"
-              value={event.organizer.name ?? event.organizer.email}
+              value={event.organizer?.name ?? event.organizer?.email ?? "System"}
             />
             {invitations.length > 1 ? (
               <Detail

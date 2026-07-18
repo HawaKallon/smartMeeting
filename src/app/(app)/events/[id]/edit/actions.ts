@@ -494,3 +494,99 @@ export async function removeCoOrganizer(
     return { error: "Failed to remove co-organizer" };
   }
 }
+
+export async function publishEvent(eventId: string): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { isPublic: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    });
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    if (!event.isPublic) {
+      return { error: "Only public events can be published" };
+    }
+
+    const coOrganizerIds = event.coOrganizers.map((c) => c.id);
+    if (!canManageEvent(user, { ministryId: event.ministryId, organizerId: event.organizerId, coOrganizerIds })) {
+      return { error: "You do not have permission to publish this event" };
+    }
+
+    const updated = await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+      },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "PUBLISH_EVENT",
+      entityType: "Event",
+      entityId: eventId,
+      metadata: { title: updated.title },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/public-calendar");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to publish event:", err);
+    return { error: "Failed to publish event" };
+  }
+}
+
+export async function unpublishEvent(eventId: string): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { isPublic: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    });
+
+    if (!event) {
+      return { error: "Event not found" };
+    }
+
+    if (!event.isPublic) {
+      return { error: "Only public events can be unpublished" };
+    }
+
+    const coOrganizerIds = event.coOrganizers.map((c) => c.id);
+    if (!canManageEvent(user, { ministryId: event.ministryId, organizerId: event.organizerId, coOrganizerIds })) {
+      return { error: "You do not have permission to unpublish this event" };
+    }
+
+    const updated = await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        status: "DRAFT",
+        publishedAt: null,
+      },
+    });
+
+    await audit({
+      actorId: user.id,
+      action: "UNPUBLISH_EVENT",
+      entityType: "Event",
+      entityId: eventId,
+      metadata: { title: updated.title },
+      ministryId: event.ministryId,
+    });
+
+    revalidatePath(`/administrative/events/${eventId}`);
+    revalidatePath("/administrative/calendar");
+    revalidatePath("/public-calendar");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to unpublish event:", err);
+    return { error: "Failed to unpublish event" };
+  }
+}

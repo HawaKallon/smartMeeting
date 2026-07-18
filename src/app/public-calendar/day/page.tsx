@@ -30,8 +30,9 @@ export default async function PublicCalendarDayPage({
   const end = new Date(start);
   end.setDate(end.getDate() + 1);
 
-  const events = await prisma.publicEvent.findMany({
+  const events = await prisma.event.findMany({
     where: {
+      isPublic: true,
       status: "PUBLISHED",
       startAt: { gte: start, lt: end },
     },
