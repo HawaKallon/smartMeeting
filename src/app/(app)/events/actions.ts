@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
+import { saveImage } from "@/lib/cloudinary";
 import { findSlotConflict, materializeOccurrences } from "@/lib/events";
 import { sendInviteEmail } from "@/lib/email";
 import { createRsvpToken, rsvpUrl } from "@/lib/rsvp";
@@ -81,6 +82,18 @@ export async function createEvent(
 ): Promise<ActionState> {
   const user = await requireUser();
 
+  // Extract and process banner image separately (before schema validation)
+  const bannerImageFile = formData.get("bannerImage") as File | null;
+  let bannerImage: string | undefined;
+  if (bannerImageFile && bannerImageFile.size > 0) {
+    try {
+      bannerImage = await saveImage(bannerImageFile, "event-banners");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to upload banner image";
+      return { error: message };
+    }
+  }
+
   const parsed = EventSchema.safeParse({
     isPublic: formData.get("isPublic") || "false",
     title: formData.get("title"),
@@ -105,7 +118,6 @@ export async function createEvent(
     recurrenceCount: formData.get("recurrenceCount") || undefined,
     recurrenceUntil: formData.get("recurrenceUntil") || undefined,
     category: formData.get("category") || undefined,
-    bannerImage: formData.get("bannerImage") || undefined,
     externalUrl: formData.get("externalUrl") || undefined,
     coOrganizerIds: formData.get("coOrganizerIds") || undefined,
     invitedMinistryIds: formData.get("invitedMinistryIds") || undefined,
@@ -140,7 +152,7 @@ export async function createEvent(
           startAt: data.startAt,
           endAt: data.endAt,
           venueName: data.venueName || null,
-          bannerImage: data.bannerImage || null,
+          bannerImage: bannerImage || null,
           externalUrl: data.externalUrl || null,
           contactEmail: data.contactEmail || null,
           contactPhone: data.contactPhone || null,
