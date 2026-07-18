@@ -34,13 +34,13 @@ export default async function CheckInCodePage({
 
   const hasLocation = event.venueLat != null && event.venueLng != null;
   let dataUrl: string | null = null;
-  let secondsLeft = 0;
+  let expiresAtIso = "";
 
   if (hasLocation) {
     const { token, expiresAt } = await getActiveToken(event.id);
     const url = absoluteAppUrl(`/checkin/${token}`);
     dataUrl = await QRCode.toDataURL(url, { width: 360, margin: 2 });
-    secondsLeft = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
+    expiresAtIso = expiresAt.toISOString();
   }
 
   return (
@@ -54,7 +54,14 @@ export default async function CheckInCodePage({
       </div>
 
       {!hasLocation ? (
-        <GenerateQrButton eventId={id} />
+        <>
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="text-sm text-foreground">
+              We'll ask for your current location — that becomes the boundary attendees must be within to check in.
+            </p>
+          </div>
+          <GenerateQrButton eventId={id} />
+        </>
       ) : (
         <>
           <div className="rounded-lg border border-border bg-card p-6">
@@ -65,11 +72,11 @@ export default async function CheckInCodePage({
               </div>
             </div>
 
-            <div className="mt-6 space-y-2 text-center">
+            <div className="mt-6 space-y-3 text-center">
+              <RefreshOnExpiry expiresAt={expiresAtIso} />
               <p className="text-xs text-muted-foreground">
-                Code rotates automatically. Refreshing in ~{secondsLeft}s.
+                Rotates every 5 minutes so a screenshotted code can't be reused later.
               </p>
-              <RefreshOnExpiry secondsLeft={secondsLeft} />
             </div>
           </div>
 
