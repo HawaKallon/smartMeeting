@@ -70,6 +70,7 @@ export default async function ActionItemsPage({
         },
         select: { id: true, name: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }],
+        take: 50,
       })
     : [];
 
