@@ -3,8 +3,9 @@ import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { canManageExistingEvent } from "@/lib/eventAccess";
-import { removeInvite } from "./actions";
+import { removeInvite, manualCheckInAction } from "./actions";
 import { AddAttendeeForm } from "./AddAttendeeForm";
+import { WalkInCheckInForm } from "./WalkInCheckInForm";
 import { Users, CheckCircle, Clock, XCircle } from "lucide-react";
 
 export default async function AttendeesPage({
@@ -192,7 +193,16 @@ export default async function AttendeesPage({
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <form action={manualCheckInAction} className="inline">
+                          <input type="hidden" name="eventId" value={id} />
+                          <input type="hidden" name="attendeeId" value={a.id} />
+                          <button
+                            type="submit"
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                          >
+                            Check in
+                          </button>
+                        </form>
                       )}
                     </td>
                     <td className="px-6 py-3 text-right">
@@ -213,6 +223,15 @@ export default async function AttendeesPage({
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Walk-in Check-in Form */}
+      <div className="rounded-lg border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Check In Walk-in Guest
+        </h2>
+        <WalkInCheckInForm eventId={id} />
       </div>
     </div>
   );
