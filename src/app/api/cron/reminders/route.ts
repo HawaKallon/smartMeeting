@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendReminderEmail } from "@/lib/email";
+import { queueReminderEmail } from "@/lib/email-queue";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import { notify } from "@/lib/notify";
 
@@ -116,43 +116,44 @@ async function handleReminderCron(req: NextRequest) {
     if (item.owner) {
       const shouldNotify = item.owner.actionItemNotifications;
       const shouldEmail = item.owner.emailNotifications && item.owner.actionItemNotifications;
-      const delivery = [
-        shouldNotify
-          ? notify({
-              userId: item.owner.id,
-              type: "ACTION_ITEM_DEADLINE_REMINDER",
-              title: "Action item due in 24 hours",
-              body,
-              link: minutesUrl,
-              ministryId: item.owner.ministryId,
-            })
-          : Promise.resolve(),
-        shouldEmail
-          ? sendReminderEmail({
-              to: item.owner.email,
-              toName: item.owner.name ?? item.owner.email,
-              title: item.title,
-              eventTitle,
-              dueDate: item.dueDate,
-              minutesUrl,
-            })
-          : Promise.resolve(),
-      ];
+      // Queue notification and email (non-blocking)
+      if (shouldNotify) {
+        await notify({
+          userId: item.owner.id,
+          type: "ACTION_ITEM_DEADLINE_REMINDER",
+          title: "Action item due in 24 hours",
+          body,
+          link: minutesUrl,
+          ministryId: item.owner.ministryId,
+        }).catch((err) => console.error("[notify] failed:", err));
+      }
 
-      await Promise.allSettled(delivery);
+      if (shouldEmail) {
+        await queueReminderEmail({
+          to: item.owner.email,
+          toName: item.owner.name ?? item.owner.email,
+          title: item.title,
+          eventTitle,
+          dueDate: item.dueDate,
+          minutesUrl,
+        }).catch((err) => console.error("[email-queue] reminder failed:", err));
+      }
+
       if (shouldNotify || shouldEmail) sent++;
     } else {
       const external = resolveExternalAssignee(item.ownerName, item.minutes.event.attendees);
       if (!external) return;
 
-      await sendReminderEmail({
+      // Queue email for external user (non-blocking)
+      await queueReminderEmail({
         to: external.email,
         toName: external.name,
         title: item.title,
         eventTitle,
         dueDate: item.dueDate,
         minutesUrl,
-      });
+      }).catch((err) => console.error("[email-queue] reminder failed:", err));
+
       sent++;
     }
 

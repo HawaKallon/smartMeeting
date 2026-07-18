@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/guard";
 import { audit } from "@/lib/audit";
 import { isMinutesEditWindowClosed } from "@/lib/minutesPolicy";
 import { isMinistryAdminLevel } from "@/lib/roles";
-import { sendMinutesEmail, sendActionItemEmail } from "@/lib/email";
+import { queueMinutesEmail, queueActionItemAssignedEmail } from "@/lib/email-queue";
 import { absoluteAppUrl } from "@/lib/appUrl";
 import { sendMinutesSms } from "@/lib/sms";
 import { summarizeMeeting } from "@/lib/llm";
@@ -268,45 +268,39 @@ export async function publishMinutes(
 
   await Promise.allSettled(
     event.attendees.map((a) => {
-      // Internal attendees: send full link and SMS (if they opted in)
+      // Internal attendees: queue minutes email and SMS (if they opted in)
       if (a.user?.email && a.user.minutesNotifications !== false) {
         const minutesUrl = absoluteAppUrl(`/administrative/events/${eventId}/minutes`);
-        return Promise.allSettled([
-          sendMinutesEmail({
-            to: a.user!.email,
-            toName: a.user!.name ?? a.user!.email,
-            eventTitle: event.title,
-            eventDate,
-            summary: minutes.summary,
-            minutesUrl,
-            actionItems,
-          }),
-          sendMinutesSms({
-            to: a.user!.email,
-            toName: a.user!.name ?? a.user!.email,
-            eventTitle: event.title,
-          }),
-        ]);
+        queueMinutesEmail({
+          to: a.user!.email,
+          toName: a.user!.name ?? a.user!.email,
+          eventTitle: event.title,
+          eventDate,
+          summary: minutes.summary,
+          minutesUrl,
+          actionItems,
+        }).catch((err) => console.error("[email-queue] minutes failed:", err));
+
+        sendMinutesSms({
+          to: a.user!.email,
+          toName: a.user!.name ?? a.user!.email,
+          eventTitle: event.title,
+        }).catch((err) => console.error("[sms] minutes failed:", err));
       }
 
-      // External attendees: send guest portal link
+      // External attendees: queue guest portal link
       if (a.externalEmail && a.rsvpTokenHash) {
         const guestPortalUrl = absoluteAppUrl(`/guest/${a.rsvpTokenHash}/minutes`);
-        return Promise.allSettled([
-          sendMinutesEmail({
-            to: a.externalEmail,
-            toName: a.externalName ?? a.externalEmail,
-            eventTitle: event.title,
-            eventDate,
-            summary: minutes.summary,
-            minutesUrl: guestPortalUrl,
-            actionItems,
-          }),
-        ]);
+        queueMinutesEmail({
+          to: a.externalEmail,
+          toName: a.externalName ?? a.externalEmail,
+          eventTitle: event.title,
+          eventDate,
+          summary: minutes.summary,
+          minutesUrl: guestPortalUrl,
+          actionItems,
+        }).catch((err) => console.error("[email-queue] minutes failed:", err));
       }
-
-      // Fallback: do nothing if neither internal nor external email available
-      return Promise.resolve();
     }),
   );
 
@@ -669,14 +663,15 @@ async function notifyExternalActionItemOwner({
     }
   }
 
-  await sendActionItemEmail({
+  // Queue email (non-blocking)
+  await queueActionItemAssignedEmail({
     to,
     toName,
     title,
     eventTitle: event.title,
     dueDate,
     minutesUrl,
-  });
+  }).catch((err) => console.error("[email-queue] action item failed:", err));
 }
 
 async function notifyActionItemOwner({
@@ -698,24 +693,25 @@ async function notifyActionItemOwner({
   const dueDateStr = dueDate ? dueDate.toLocaleDateString() : "No deadline set";
   const body = `Action item: ${title}\nTimeline: ${dueDateStr}`;
 
-  await Promise.allSettled([
-    owner.actionItemNotifications !== false
-      ? sendActionItemEmail({
-          to: owner.email,
-          toName: owner.name ?? owner.email,
-          title,
-          eventTitle: event.title,
-          dueDate,
-          minutesUrl,
-        })
-      : Promise.resolve(),
-    notify({
-      userId: owner.id,
-      type: "ACTION_ITEM",
-      title: "New action item assigned",
-      body,
-      link: minutesUrl,
-      ministryId: owner.ministryId,
-    }),
-  ]);
+  // Queue email (non-blocking)
+  if (owner.actionItemNotifications !== false) {
+    await queueActionItemAssignedEmail({
+      to: owner.email,
+      toName: owner.name ?? owner.email,
+      title,
+      eventTitle: event.title,
+      dueDate,
+      minutesUrl,
+    }).catch((err) => console.error("[email-queue] action item failed:", err));
+  }
+
+  // Queue notification (non-blocking)
+  await notify({
+    userId: owner.id,
+    type: "ACTION_ITEM",
+    title: "New action item assigned",
+    body,
+    link: minutesUrl,
+    ministryId: owner.ministryId,
+  }).catch((err) => console.error("[notify] action item failed:", err));
 }
