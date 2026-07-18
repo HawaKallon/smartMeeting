@@ -2,18 +2,23 @@
 
 import { useState } from "react";
 import { submitCheckIn, type CheckInResult } from "../actions";
+import { SignaturePad } from "./SignaturePad";
 
 export function CheckInClient({
   token,
   eventTitle,
   hasGeofence,
+  defaultName,
 }: {
   token: string;
   eventTitle: string;
   hasGeofence: boolean;
+  defaultName: string;
 }) {
   const [status, setStatus] = useState<"idle" | "locating" | "submitting">("idle");
   const [result, setResult] = useState<CheckInResult | null>(null);
+  const [name, setName] = useState(defaultName);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
 
   async function getPosition(): Promise<GeolocationPosition | null> {
     if (!("geolocation" in navigator)) return null;
@@ -31,6 +36,8 @@ export function CheckInClient({
 
     const fd = new FormData();
     fd.set("token", token);
+    fd.set("signedName", name.trim());
+    fd.set("signature", signatureDataUrl || "");
 
     if (hasGeofence) {
       setStatus("locating");
@@ -76,6 +83,8 @@ export function CheckInClient({
     );
   }
 
+  const isFormValid = name.trim().length >= 2 && signatureDataUrl;
+
   return (
     <div className="space-y-4">
       <div>
@@ -89,10 +98,26 @@ export function CheckInClient({
         </p>
       ) : null}
 
+      <div>
+        <label className="block text-sm font-medium text-slate-900 mb-1">
+          Name <span className="text-red-600">*</span>
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your name"
+          minLength={2}
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-[#003580] focus:ring-1 focus:ring-[#003580] outline-none"
+        />
+      </div>
+
+      <SignaturePad onChange={setSignatureDataUrl} />
+
       <button
         onClick={handleCheckIn}
-        disabled={status !== "idle"}
-        className="w-full rounded-xl bg-[#003580] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#00265b] disabled:opacity-50"
+        disabled={status !== "idle" || !isFormValid}
+        className="w-full rounded-xl bg-[#003580] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#00265b] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {status === "locating"
           ? "Getting location…"
