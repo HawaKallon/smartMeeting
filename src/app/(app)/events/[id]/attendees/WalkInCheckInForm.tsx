@@ -27,15 +27,26 @@ export function WalkInCheckInForm({ eventId }: { eventId: string }) {
         </div>
       )}
 
-      <div>
-        <label className={label}>Full Name *</label>
-        <input
-          name="externalName"
-          placeholder="e.g. Jane Doe"
-          className={field}
-          required
-          minLength={1}
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={label}>Full Name *</label>
+          <input
+            name="externalName"
+            placeholder="e.g. Jane Doe"
+            className={field}
+            required
+            minLength={1}
+          />
+        </div>
+        <div>
+          <label className={label}>Email</label>
+          <input
+            name="externalEmail"
+            type="email"
+            placeholder="e.g. jane@example.com"
+            className={field}
+          />
+        </div>
       </div>
 
       <button
