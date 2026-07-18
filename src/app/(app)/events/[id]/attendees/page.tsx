@@ -44,16 +44,16 @@ export default async function AttendeesPage({
     .map((a) => a.userId)
     .filter((uid): uid is string => uid !== null);
 
-  const allUsers = await prisma.user.findMany({
+  const uninvitedUsers = await prisma.user.findMany({
     where: {
       ministryId: event.ministryId,
       systemRole: { not: "SUPER_ADMIN" },
+      id: { notIn: invitedUserIds },
     },
     select: { id: true, name: true, email: true },
     orderBy: [{ name: "asc" }, { email: "asc" }],
+    take: 100,
   });
-
-  const uninvitedUsers = allUsers.filter((u) => !invitedUserIds.includes(u.id));
 
   const confirmed = event.attendees.filter((a) => a.status === "CONFIRMED").length;
   const declined = event.attendees.filter((a) => a.status === "DECLINED").length;
