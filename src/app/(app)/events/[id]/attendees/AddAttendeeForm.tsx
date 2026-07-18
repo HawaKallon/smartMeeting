@@ -114,23 +114,25 @@ export function AddAttendeeForm({ eventId, uninvitedUsers }: Props) {
             </div>
           )}
 
-          <div>
-            <label className={label}>Full name *</label>
-            <input
-              name="externalName"
-              required
-              className={field}
-              placeholder="e.g. Jane Doe"
-            />
-          </div>
-          <div>
-            <label className={label}>Email (optional)</label>
-            <input
-              name="externalEmail"
-              type="email"
-              className={field}
-              placeholder="jane@example.com"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={label}>Full name *</label>
+              <input
+                name="externalName"
+                required
+                className={field}
+                placeholder="e.g. Jane Doe"
+              />
+            </div>
+            <div>
+              <label className={label}>Email (optional)</label>
+              <input
+                name="externalEmail"
+                type="email"
+                className={field}
+                placeholder="jane@example.com"
+              />
+            </div>
           </div>
 
           <button

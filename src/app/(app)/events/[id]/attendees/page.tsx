@@ -3,9 +3,10 @@ import { requireUser } from "@/lib/guard";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { canManageExistingEvent } from "@/lib/eventAccess";
-import { removeInvite, manualCheckInAction } from "./actions";
+import { removeInvite } from "./actions";
 import { AddAttendeeForm } from "./AddAttendeeForm";
 import { WalkInCheckInForm } from "./WalkInCheckInForm";
+import { InlineCheckInButton } from "./InlineCheckInButton";
 import { Users, CheckCircle, Clock, XCircle } from "lucide-react";
 
 export default async function AttendeesPage({
@@ -198,16 +199,7 @@ export default async function AttendeesPage({
                           )}
                         </div>
                       ) : (
-                        <form action={manualCheckInAction} className="inline">
-                          <input type="hidden" name="eventId" value={id} />
-                          <input type="hidden" name="attendeeId" value={a.id} />
-                          <button
-                            type="submit"
-                            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
-                          >
-                            Check in
-                          </button>
-                        </form>
+                        <InlineCheckInButton eventId={id} attendeeId={a.id} />
                       )}
                     </td>
                     <td className="px-6 py-3 text-right">
@@ -234,7 +226,7 @@ export default async function AttendeesPage({
       {walkInGuests.length > 0 && (
         <div className="rounded-lg border border-border bg-card overflow-hidden">
           <div className="border-b border-border bg-muted/30 px-6 py-3">
-            <h2 className="text-sm font-semibold text-foreground">Walk-in Guests ({walkInGuests.length})</h2>
+            <h2 className="text-sm font-semibold text-foreground">Attendance ({walkInGuests.length})</h2>
           </div>
           <table className="w-full text-sm">
             <thead>
