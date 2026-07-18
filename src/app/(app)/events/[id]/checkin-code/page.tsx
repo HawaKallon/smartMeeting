@@ -72,15 +72,14 @@ export default async function CheckInCodePage({
               </div>
             </div>
 
-            <div className="mt-6 space-y-3 text-center">
+            <div className="mt-6 text-center">
               <RefreshOnExpiry expiresAt={expiresAtIso} />
-              <p className="text-xs text-muted-foreground">
-                Rotates every 5 minutes so a screenshotted code can't be reused later.
-              </p>
             </div>
           </div>
 
-          <GenerateQrButton eventId={id} label="Regenerate at current location" />
+          <div className="flex justify-center">
+            <GenerateQrButton eventId={id} label="Regenerate at current location" />
+          </div>
         </>
       )}
     </div>

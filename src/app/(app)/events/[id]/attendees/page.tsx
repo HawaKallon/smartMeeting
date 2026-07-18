@@ -198,7 +198,7 @@ export default async function AttendeesPage({
                           <input type="hidden" name="attendeeId" value={a.id} />
                           <button
                             type="submit"
-                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
                           >
                             Check in
                           </button>
@@ -211,7 +211,7 @@ export default async function AttendeesPage({
                         <input type="hidden" name="eventId" value={id} />
                         <button
                           type="submit"
-                          className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                          className="rounded-md bg-red-600/20 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-600/30 transition-colors"
                         >
                           Remove
                         </button>
