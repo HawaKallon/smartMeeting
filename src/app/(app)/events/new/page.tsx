@@ -31,9 +31,6 @@ export default async function NewEventPage({
             id: true,
             name: true,
             code: true,
-            compoundLat: true,
-            compoundLng: true,
-            compoundGeofenceRadius: true,
             compoundMaxGpsAccuracy: true,
           },
         })
@@ -43,9 +40,6 @@ export default async function NewEventPage({
             id: true,
             name: true,
             code: true,
-            compoundLat: true,
-            compoundLng: true,
-            compoundGeofenceRadius: true,
             compoundMaxGpsAccuracy: true,
           },
         }),
@@ -74,7 +68,7 @@ export default async function NewEventPage({
       <div className="rounded-lg border border-border bg-card p-6">
         <EventForm
           rooms={rooms}
-          ministries={ministries}
+          ministries={ministries as any}
           coOrganizerCandidates={coOrganizerCandidates}
           isSuperAdmin={superAdmin}
           initialDate={initialDate}
