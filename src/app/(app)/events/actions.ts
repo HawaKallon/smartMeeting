@@ -187,7 +187,7 @@ export async function createEvent(
     if (!ministry) return { error: "Ministry not found or inactive." };
   }
 
-  // Room-based events use the ministry compound geofence, not per-room GPS.
+  // Validate room access (used for room-conflict checks, not geofence derivation).
   let room: { id: string } | null = null;
   if (data.roomId) {
     room = await prisma.room.findFirst({
@@ -198,19 +198,6 @@ export async function createEvent(
       return { error: "Room not found or you don't have access" };
     }
   }
-  const ministryGeofence = room
-    ? await prisma.ministry.findUnique({
-        where: { id: targetMinistryId },
-        select: { compoundLat: true, compoundLng: true, compoundGeofenceRadius: true },
-      })
-    : null;
-  const hasCompoundGeofence =
-    ministryGeofence?.compoundLat != null && ministryGeofence?.compoundLng != null;
-  const venueLat = hasCompoundGeofence ? ministryGeofence.compoundLat : null;
-  const venueLng = hasCompoundGeofence ? ministryGeofence.compoundLng : null;
-  const geofenceRadius = hasCompoundGeofence
-    ? ministryGeofence.compoundGeofenceRadius
-    : data.geofenceRadius;
 
   // Build the occurrence slots — one for a single event, many for a series.
   const recurring = data.recurrenceFreq !== "NONE";
@@ -312,9 +299,9 @@ export async function createEvent(
     type: data.type,
     scope: data.scope,
     venueName: data.venueName,
-    venueLat,
-    venueLng,
-    geofenceRadius,
+    venueLat: null,
+    venueLng: null,
+    geofenceRadius: data.geofenceRadius,
     colorCategory: data.colorCategory,
     classification: data.classification,
     roomId: data.roomId || null,
