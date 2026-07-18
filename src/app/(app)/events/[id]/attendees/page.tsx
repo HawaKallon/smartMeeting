@@ -29,7 +29,7 @@ export default async function AttendeesPage({
         include: { user: { select: { id: true, name: true, email: true } } },
       },
       attendances: {
-        select: { userId: true, checkInAt: true, withinGeofence: true, method: true },
+        select: { userId: true, checkInAt: true, withinGeofence: true, method: true, externalName: true, externalEmail: true },
       },
     },
   });
@@ -37,8 +37,10 @@ export default async function AttendeesPage({
   if (!canManageExistingEvent(user, event)) notFound();
 
   const checkinsByUserId = new Map(
-    event.attendances.map((a) => [a.userId, a])
+    event.attendances.filter((a) => a.userId).map((a) => [a.userId, a])
   );
+
+  const walkInGuests = event.attendances.filter((a) => !a.userId);
 
   const invitedUserIds = event.attendees
     .map((a) => a.userId)
@@ -97,6 +99,9 @@ export default async function AttendeesPage({
             Checked In
           </div>
           <p className="mt-1 text-2xl font-bold text-foreground">{event.attendances.length}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {event.attendances.filter((a) => a.userId).length} invited + {walkInGuests.length} guests
+          </p>
         </div>
       </div>
 
@@ -112,7 +117,7 @@ export default async function AttendeesPage({
       {/* Attendee List */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="border-b border-border bg-muted/30 px-6 py-3">
-          <h2 className="text-sm font-semibold text-foreground">Invite List</h2>
+          <h2 className="text-sm font-semibold text-foreground">Attendees & Check-ins</h2>
         </div>
         {event.attendees.length === 0 ? (
           <div className="px-6 py-12 text-center">
@@ -224,6 +229,51 @@ export default async function AttendeesPage({
           </table>
         )}
       </div>
+
+      {/* Walk-in Guests Section */}
+      {walkInGuests.length > 0 && (
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <div className="border-b border-border bg-muted/30 px-6 py-3">
+            <h2 className="text-sm font-semibold text-foreground">Walk-in Guests ({walkInGuests.length})</h2>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Checked In
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {walkInGuests.map((guest, idx) => (
+                <tr
+                  key={`${guest.externalName}-${idx}`}
+                  className={`transition-colors hover:bg-muted/20 ${idx < walkInGuests.length - 1 ? "border-b border-border/50" : ""}`}
+                >
+                  <td className="px-6 py-3">
+                    <span className="font-medium text-foreground">{guest.externalName ?? "—"}</span>
+                  </td>
+                  <td className="px-6 py-3 text-muted-foreground">
+                    {guest.externalEmail ?? "—"}
+                  </td>
+                  <td className="px-6 py-3">
+                    <div className="flex items-center gap-2 text-xs text-foreground">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span>{guest.checkInAt.toLocaleString()}</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Walk-in Check-in Form */}
       <div className="rounded-lg border border-border bg-card p-6">
