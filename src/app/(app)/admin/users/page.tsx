@@ -1,5 +1,5 @@
 import { ministryScope, requireAdminRole } from "@/lib/guard";
-import { isSuperAdmin } from "@/lib/roles";
+import { isSuperAdmin, SYSTEM_ROLES } from "@/lib/roles";
 import { BackButton } from "@/components/BackButton";
 import { prisma } from "@/lib/prisma";
 import { SYSTEM_ROLE_LABELS } from "@/lib/roles";
@@ -32,6 +32,8 @@ export default async function AdminUsersPage({
   const where: Prisma.UserWhereInput = {
     ...ministryScope(user),
     systemRole: { not: "SUPER_ADMIN" },
+    // Ministry admins don't see soft-deleted users; superadmins see all
+    ...(superAdmin ? {} : { deletedAt: null }),
   };
   if (q) {
     where.OR = [
@@ -39,12 +41,16 @@ export default async function AdminUsersPage({
       { email: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (role) where.systemRole = role as Prisma.UserWhereInput["systemRole"];
+  // Sanitize role param - only use valid roles from SYSTEM_ROLES
+  if (role && SYSTEM_ROLES.includes(role as SystemRole)) {
+    where.systemRole = role as SystemRole;
+  }
   if (superAdmin && ministryId) where.ministryId = ministryId;
 
   const users = await prisma.user.findMany({
     where,
     orderBy: [{ createdAt: "desc" }],
+    take: 50,
     select: { id: true,
       name: true,
       email: true,
@@ -52,6 +58,7 @@ export default async function AdminUsersPage({
       jobTitle: true,
       active: true,
       createdAt: true,
+      deletedAt: true,
       ministryId: true,
       ministry: { select: { name: true } },
     },
@@ -76,7 +83,7 @@ export default async function AdminUsersPage({
       </div>
 
       {/* Filters */}
-      <UserFilters ministries={superAdmin ? ministries : undefined} />
+      <UserFilters ministries={superAdmin ? ministries : undefined} isSuperAdmin={superAdmin} />
 
       <div className="overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-[0_18px_45px_rgba(15,35,63,0.08)]">
         <div className="overflow-x-auto">
@@ -89,6 +96,7 @@ export default async function AdminUsersPage({
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ministry</th>
                 )}
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Title</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Actions</th>
               </tr>
@@ -116,17 +124,25 @@ export default async function AdminUsersPage({
                       {SYSTEM_ROLE_LABELS[u.systemRole as SystemRole] || "Unknown"}
                     </span>
                   </td>
+                  <td className="px-6 py-3 text-muted-foreground">{u.jobTitle || "—"}</td>
                   <td className="px-6 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        u.active
-                          ? "bg-green-500/10 text-green-600"
-                          : "bg-red-500/10 text-red-600"
-                      }`}
-                    >
-                      {u.active ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                      {u.active ? "Active" : "Inactive"}
-                    </span>
+                    {u.deletedAt ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-500/10 px-2.5 py-1 text-xs font-medium text-gray-600">
+                        <X className="h-3 w-3" />
+                        Deleted
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                          u.active
+                            ? "bg-green-500/10 text-green-600"
+                            : "bg-red-500/10 text-red-600"
+                        }`}
+                      >
+                        {u.active ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        {u.active ? "Active" : "Inactive"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-3">
                     <UserRowActions
@@ -134,6 +150,7 @@ export default async function AdminUsersPage({
                       userName={u.name || u.email}
                       role={u.systemRole as SystemRole}
                       active={u.active}
+                      isSuperAdmin={superAdmin}
                     />
                   </td>
                 </tr>

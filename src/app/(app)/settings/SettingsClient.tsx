@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Bell, Lock, Monitor, Database } from "lucide-react";
 import { updateAllSettings } from "./actions";
+import { useActionMessage } from "@/hooks/useActionMessage";
 import type { User } from "@/generated/prisma/client";
 
 interface SettingsClientProps {
@@ -35,13 +36,14 @@ function ToggleSwitch({
 
 export function SettingsClient({ user }: SettingsClientProps) {
   const [state, formAction, isPending] = useActionState(updateAllSettings, undefined);
+  const messageVisible = useActionMessage(state);
 
   return (
     <form action={formAction} className="space-y-6">
-      {state?.error && (
+      {messageVisible && state?.error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</div>
       )}
-      {state?.ok && (
+      {messageVisible && state?.ok && !state?.error && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           All settings updated successfully!
         </div>

@@ -17,15 +17,10 @@ export async function createRoom(
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
     const capacity = parseInt(formData.get("capacity") as string);
-    const amenitiesStr = formData.get("amenities") as string;
 
     if (!name || !location || !capacity) {
       return { error: "All required fields must be filled" };
     }
-
-    const amenities = amenitiesStr
-      ? amenitiesStr.split(",").map((a) => a.trim())
-      : [];
 
     const latitude = formData.get("latitude") as string;
     const longitude = formData.get("longitude") as string;
@@ -53,7 +48,6 @@ export async function createRoom(
         name,
         location,
         capacity,
-        amenities,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
       },
@@ -100,15 +94,10 @@ export async function updateRoom(
     const name = formData.get("name") as string;
     const location = formData.get("location") as string;
     const capacity = parseInt(formData.get("capacity") as string);
-    const amenitiesStr = formData.get("amenities") as string;
 
     if (!name || !location || !capacity) {
       return { error: "All required fields must be filled" };
     }
-
-    const amenities = amenitiesStr
-      ? amenitiesStr.split(",").map((a) => a.trim())
-      : [];
 
     const latitude = formData.get("latitude") as string;
     const longitude = formData.get("longitude") as string;
@@ -119,7 +108,6 @@ export async function updateRoom(
         name,
         location,
         capacity,
-        amenities,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
       },

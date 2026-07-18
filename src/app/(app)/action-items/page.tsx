@@ -37,6 +37,7 @@ export default async function ActionItemsPage({
       createdAt: true,
       updatedAt: true,
       owner: { select: { id: true, name: true, email: true } },
+      assignedBy: { select: { name: true, email: true } },
       minutes: {
         select: {
           eventId: true,
@@ -56,6 +57,7 @@ export default async function ActionItemsPage({
     eventId: i.minutes.eventId,
     ownerId: i.ownerId,
     ownerName: i.owner?.name ?? i.ownerName ?? i.owner?.email ?? null,
+    assignedByName: i.assignedBy?.name ?? i.assignedBy?.email ?? null,
     createdAt: i.createdAt.toISOString(),
     updatedAt: i.updatedAt.toISOString(),
   }));
@@ -68,6 +70,7 @@ export default async function ActionItemsPage({
         },
         select: { id: true, name: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }],
+        take: 50,
       })
     : [];
 

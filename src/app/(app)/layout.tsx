@@ -18,10 +18,6 @@ export default async function AppLayout({
       ministry: {
         select: { name: true },
       },
-      notifications: {
-        orderBy: { createdAt: "desc" },
-        take: 20,
-      },
     },
   });
 
@@ -31,7 +27,6 @@ export default async function AppLayout({
       <AppShellClient
         user={user}
         ministryName={profile?.ministry?.name ?? null}
-        notifications={profile?.notifications ?? []}
         compactMode={profile?.compactMode ?? false}
       >
         {children}

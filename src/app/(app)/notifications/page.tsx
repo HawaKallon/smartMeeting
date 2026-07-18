@@ -11,6 +11,7 @@ export default async function NotificationsPage() {
   const notifications = await prisma.notification.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
+    take: 50,
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;

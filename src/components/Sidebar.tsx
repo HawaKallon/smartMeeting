@@ -66,7 +66,6 @@ export function Sidebar({
             "/administrative/reports",
           ]
         : []),
-      ...(isAdmin ? ["/administrative/admin/public-calendar"] : []),
       ...(canManageUsers(user)
         ? [
             "/administrative/admin/users",
@@ -238,15 +237,7 @@ export function Sidebar({
                 />
               </>
             )}
-            {isAdmin && (
-              <NavLink
-                href="/administrative/admin/public-calendar"
-                icon={<CalendarDays className="h-4 w-4" />}
-                label="Public Calendar"
-                collapsed={collapsed}
-              />
-            )}
-            {canManageUsers(user) && (
+            {canManageUsers(user) && !isSuperAdminUser && (
               <>
                 <NavLink
                   href="/administrative/admin/users"

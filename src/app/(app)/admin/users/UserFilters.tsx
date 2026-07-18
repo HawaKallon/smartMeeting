@@ -12,8 +12,10 @@ const control =
 
 export function UserFilters({
   ministries,
+  isSuperAdmin = false,
 }: {
   ministries?: { id: string; name: string }[];
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -46,7 +48,7 @@ export function UserFilters({
         className={control}
       >
         <option value="">All roles</option>
-        {ASSIGNABLE_SYSTEM_ROLES.map((r) => (
+        {ASSIGNABLE_SYSTEM_ROLES.filter((r) => isSuperAdmin || r !== "MINISTER").map((r) => (
           <option key={r} value={r}>
             {SYSTEM_ROLE_LABELS[r as SystemRole]}
           </option>
