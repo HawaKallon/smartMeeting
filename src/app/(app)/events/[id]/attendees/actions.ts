@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SYSTEM_ROLES } from "@/lib/roles";
 import { assertRole, requireUser, assertSameMinistry } from "@/lib/guard";
@@ -314,7 +315,12 @@ export async function removeInvite(formData: FormData): Promise<void> {
 // ── Manual check-in (for forms; use with useActionState, wrap with manualCheckInAction) ──
 
 export async function manualCheckInAction(formData: FormData): Promise<void> {
-  await manualCheckIn(undefined, formData);
+  const eventId = String(formData.get("eventId") ?? "");
+  const result = await manualCheckIn(undefined, formData);
+
+  if (result?.ok) {
+    redirect(`/administrative/events/${eventId}/attendees`);
+  }
 }
 
 // ── Staff manually updates an attendee's RSVP status ────────────────────────
