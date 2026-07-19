@@ -275,23 +275,36 @@ export async function updateEvent(
     }
 
     await prisma.$transaction(async (tx) => {
-      for (const u of updates) {
-        await tx.event.update({
-          where: { id: u.id },
-          data: {
-            title,
-            description,
-            type: type as EventType,
-            scope: eventScope as "OFFICIAL" | "TEAM",
-            classification: classification as Classification,
-            roomId,
-            startAt: u.startAt,
-            endAt: u.endAt,
-            // Re-arm the 1h-before reminder for any rescheduled occurrence.
-            ...(u.reschedule ? { reminderSentAt: null } : {}),
-          },
-        });
-      }
+      // Separate updates into rescheduled and non-rescheduled for batch operations
+      const rescheduledIds = updates.filter(u => u.reschedule).map(u => u.id);
+      const nonRescheduledIds = updates.filter(u => !u.reschedule).map(u => u.id);
+      const updateIdsToTimes = new Map(updates.map(u => [u.id, { startAt: u.startAt, endAt: u.endAt }]));
+
+      const commonData = {
+        title,
+        description,
+        type: type as EventType,
+        scope: eventScope as "OFFICIAL" | "TEAM",
+        classification: classification as Classification,
+        roomId,
+      };
+
+      // Batch update all events with common fields (must do individually for per-record startAt/endAt)
+      // Since Prisma doesn't support per-record value updates in updateMany, we need a different approach
+      await Promise.all(
+        updates.map(u =>
+          tx.event.update({
+            where: { id: u.id },
+            data: {
+              ...commonData,
+              startAt: u.startAt,
+              endAt: u.endAt,
+              // Re-arm the 1h-before reminder for any rescheduled occurrence
+              ...(u.reschedule ? { reminderSentAt: null } : {}),
+            },
+          })
+        )
+      );
     });
 
     await audit({
