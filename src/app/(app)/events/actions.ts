@@ -277,23 +277,28 @@ export async function createEvent(
   if (inviteesRaw) {
     let invites: { email: string; name?: string }[] = [];
     try { invites = JSON.parse(String(inviteesRaw)); } catch { /* ignore */ }
-    resolved = await Promise.all(
-      invites.map(async (inv) => {
-        const u = await prisma.user.findUnique({
-          where: { email: inv.email.toLowerCase() },
-          select: { id: true, name: true, emailNotifications: true },
-        });
-        const { token, tokenHash } = createRsvpToken();
-        return {
-          email: inv.email,
-          name: u?.name ?? inv.name ?? inv.email,
-          userId: u?.id ?? null,
-          token,
-          rsvpTokenHash: tokenHash,
-          emailNotifications: u?.emailNotifications,
-        };
-      }),
+
+    // Batch lookup: query all users at once instead of N+1 queries
+    const inviteEmails = invites.map(inv => inv.email.toLowerCase());
+    const usersMap = new Map(
+      (await prisma.user.findMany({
+        where: { email: { in: inviteEmails } },
+        select: { id: true, name: true, email: true, emailNotifications: true },
+      })).map(u => [u.email.toLowerCase(), u])
     );
+
+    resolved = invites.map((inv) => {
+      const u = usersMap.get(inv.email.toLowerCase());
+      const { token, tokenHash } = createRsvpToken();
+      return {
+        email: inv.email,
+        name: u?.name ?? inv.name ?? inv.email,
+        userId: u?.id ?? null,
+        token,
+        rsvpTokenHash: tokenHash,
+        emailNotifications: u?.emailNotifications,
+      };
+    });
   }
 
   let coOrganizerIds: string[] = [];
