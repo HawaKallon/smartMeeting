@@ -8,6 +8,7 @@ import { canManageEvent, canReassignEvent } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import { checkSlotConflicts, materializeOccurrences } from "@/lib/events";
+import { materializeOccurrencesBatch } from "@/lib/events-batch";
 import type { SystemRole } from "@/generated/prisma/enums";
 import { generateOccurrences, MAX_OCCURRENCES } from "@/lib/recurrence";
 import type { Prisma } from "@/generated/prisma/client";
@@ -208,7 +209,15 @@ export async function updateEvent(
         },
       });
       await tx.event.deleteMany({ where: deleteWhere });
-      return materializeOccurrences(tx, { slots, seriesId: anchor.seriesId, base, invitees });
+      // OPTIMIZATION: Use batch function for enterprise-scale performance
+      // Instead of 156 queries (52 events × 3), this uses 4 queries
+      return materializeOccurrencesBatch(tx, {
+        slots,
+        seriesId: anchor.seriesId,
+        base,
+        invitees,
+        coOrganizerIds: anchor.coOrganizers.map(c => c.id),
+      });
     });
 
     await audit({
