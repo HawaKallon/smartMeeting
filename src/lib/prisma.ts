@@ -51,20 +51,20 @@ function createClient(): PrismaClient {
   // All pooling is transparent to the application code
   const adapter = new PrismaPg({
     connectionString,
-    // The schema parameter tells Prisma which schema to use
-    // Usually "public" for standard PostgreSQL setups
-    schema: "public",
   });
 
   // Create the PrismaClient with optimized settings
-  const client = new PrismaClient({
+  const options = getPrismaClientOptions();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config: any = {
     adapter,
-    ...getPrismaClientOptions(),
-  });
+    ...options,
+  };
+  const client: any = new PrismaClient(config);
 
   // Query event listener for monitoring and debugging
   // This logs slow queries which indicates performance issues or N+1 queries
-  client.$on("query", (e) => {
+  client.$on("query", (e: any) => {
     // Only log queries exceeding 500ms
     // This threshold balances visibility with noise
     // Adjust based on your application's performance SLA
@@ -76,12 +76,12 @@ function createClient(): PrismaClient {
   });
 
   // Warn listener for debugging connection issues
-  client.$on("warn", (e) => {
+  client.$on("warn", (e: any) => {
     console.warn(`[PRISMA WARN] ${e.message}`);
   });
 
   // Error listener for debugging critical issues
-  client.$on("error", (e) => {
+  client.$on("error", (e: any) => {
     console.error(`[PRISMA ERROR] ${e.message}`);
   });
 

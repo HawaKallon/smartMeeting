@@ -332,7 +332,7 @@ export async function createEvent(
     roomId: data.roomId || null,
     organizerId: user.id,
     ministryId: targetMinistryId,
-  };
+  } as unknown as Omit<Prisma.EventCreateInput, "startAt" | "endAt" | "seriesId">;
 
   // Create the series record and all occurrences atomically using optimized batch function.
   // PERFORMANCE IMPROVEMENT:

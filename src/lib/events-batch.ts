@@ -58,7 +58,7 @@ export async function materializeOccurrencesBatch(
     startAt: slot.startAt,
     endAt: slot.endAt,
     seriesId: opts.seriesId,
-  } as Prisma.EventCreateInput));
+  } as any));
 
   // createMany returns count, not the created records
   // So we need to fetch them afterward to get IDs

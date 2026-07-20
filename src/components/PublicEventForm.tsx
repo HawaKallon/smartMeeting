@@ -20,7 +20,7 @@ export function PublicEventForm({ event, ministries = [], userMinistryId }: Publ
   const saveAction = updatePublicEvent.bind(null, event.id);
   const [state, action, isPending] = useActionState<ActionState, FormData>(
     saveAction,
-    undefined,
+    {},
   );
   const [preview, setPreview] = useState<string | null>(event?.bannerImage || null);
   const [selectedMinistries, setSelectedMinistries] = useState<string[]>(

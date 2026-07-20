@@ -38,7 +38,7 @@ function isServerlessEnvironment(): boolean {
  * - Connections can't be reused across invocations
  * - Need to minimize connections per invocation
  */
-export const getPrismaClientOptions = (): Prisma.PrismaClientOptions => {
+export const getPrismaClientOptions = (): any => {
   const serverless = isServerlessEnvironment();
 
   return {
@@ -61,9 +61,8 @@ export const getPrismaClientOptions = (): Prisma.PrismaClientOptions => {
       },
     ],
 
-    // Error format: "pretty" only for development
-    // Production: JSON format for structured logging
-    errorFormat: isProduction ? "json" : "pretty",
+    // Error format: skip in production since we're using event listeners
+    // Development: use pretty for console readability
 
     // RejectOnNotFound is deprecated in Prisma v4+
     // Use try/catch or explicit null checks instead

@@ -49,7 +49,7 @@ export async function getMinistryListWithCache() {
         select: {
           id: true,
           name: true,
-          abbreviation: true,
+          code: true,
         },
         orderBy: { name: 'asc' },
       });
@@ -67,11 +67,10 @@ export async function getMinistryUsersWithCache(ministryId: string) {
         select: {
           id: true,
           email: true,
-          firstName: true,
-          lastName: true,
+          name: true,
           systemRole: true,
         },
-        orderBy: { firstName: 'asc' },
+        orderBy: { name: 'asc' },
       });
     },
     { ttl: CACHE_TTL.MINISTRIES }
@@ -116,17 +115,17 @@ export async function getUpcomingEventsWithCache(ministryId: string) {
       return prisma.event.findMany({
         where: {
           ministryId,
-          startTime: { gte: now },
+          startAt: { gte: now },
         },
         select: {
           id: true,
           title: true,
-          startTime: true,
-          endTime: true,
+          startAt: true,
+          endAt: true,
           roomId: true,
           organizerId: true,
         },
-        orderBy: { startTime: 'asc' },
+        orderBy: { startAt: 'asc' },
         take: 10,
       });
     },
@@ -145,8 +144,7 @@ export async function getEventAttendeesWithCache(eventId: string) {
             select: {
               id: true,
               email: true,
-              firstName: true,
-              lastName: true,
+              name: true,
             },
           },
         },
@@ -243,7 +241,6 @@ export async function getDashboardStatsWithCache(ministryId: string, userId?: st
         totalEvents,
         upcomingEvents,
         totalAttendance,
-        averageAttendance,
         recentActivity,
       ] = await Promise.all([
         prisma.event.count({
@@ -252,19 +249,13 @@ export async function getDashboardStatsWithCache(ministryId: string, userId?: st
         prisma.event.count({
           where: {
             ministryId,
-            startTime: { gte: now },
+            startAt: { gte: now },
           },
         }),
         prisma.attendance.count({
           where: {
             event: { ministryId },
             createdAt: { gte: thirtyDaysAgo },
-          },
-        }),
-        prisma.event.aggregate({
-          where: { ministryId },
-          _avg: {
-            expectedAttendance: true,
           },
         }),
         prisma.auditLog.findMany({
@@ -275,10 +266,9 @@ export async function getDashboardStatsWithCache(ministryId: string, userId?: st
             id: true,
             action: true,
             createdAt: true,
-            user: {
+            actor: {
               select: {
-                firstName: true,
-                lastName: true,
+                name: true,
               },
             },
           },
@@ -289,7 +279,6 @@ export async function getDashboardStatsWithCache(ministryId: string, userId?: st
         totalEvents,
         upcomingEvents,
         totalAttendance,
-        averageAttendance: averageAttendance._avg?.expectedAttendance ?? 0,
         recentActivity,
       };
     },

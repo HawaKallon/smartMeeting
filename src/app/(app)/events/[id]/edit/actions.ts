@@ -181,6 +181,7 @@ export async function updateEvent(
       title,
       description,
       type: type as EventType,
+      scope: eventScope as "OFFICIAL" | "TEAM",
       classification: classification as Classification,
       roomId,
       venueName: anchor.venueName,
@@ -190,7 +191,7 @@ export async function updateEvent(
       colorCategory: anchor.colorCategory,
       organizerId: anchor.organizerId,
       ministryId: anchor.ministryId,
-    };
+    } as unknown as Omit<Prisma.EventCreateInput, "startAt" | "endAt" | "seriesId">;
 
     const deleteWhere =
       patternScope === "ALL"
