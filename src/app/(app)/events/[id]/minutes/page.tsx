@@ -13,6 +13,17 @@ import { isMinistryAdminLevel } from "@/lib/roles";
 
 type Segment = { speaker: string; start: number; end: number; text: string };
 
+// OPTIMIZATION: Extract common minutes include pattern to avoid duplication
+// Used in both findUnique and upsert queries
+const minutesInclude = {
+  drafted: { select: { name: true, email: true } },
+  approver: { select: { name: true, email: true } },
+  actionItems: {
+    include: { owner: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" as const },
+  },
+};
+
 export default async function MinutesPage({
   params,
 }: {
@@ -46,19 +57,19 @@ export default async function MinutesPage({
   // Lazy-init minutes from transcript text if no record yet.
   const minutesFromDb = await prisma.minutes.findUnique({
     where: { eventId: id },
-    include: {
-      drafted: { select: { name: true, email: true } },
-      approver: { select: { name: true, email: true } },
-      actionItems: {
-        include: { owner: { select: { id: true, name: true, email: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-    },
+    include: minutesInclude,
   });
 
   const attendees = await prisma.eventAttendee.findMany({
     where: { eventId: id, status: { in: ["INVITED", "CONFIRMED"] } },
-    include: { user: { select: { id: true, name: true, email: true } } },
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+      externalEmail: true,
+      externalName: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
 
@@ -70,14 +81,7 @@ export default async function MinutesPage({
       where: { eventId: id },
       update: {},
       create: { eventId: id, body, draftedById: user.id, draftedAt: new Date() },
-      include: {
-        drafted: { select: { name: true, email: true } },
-        approver: { select: { name: true, email: true } },
-        actionItems: {
-          include: { owner: { select: { id: true, name: true, email: true } } },
-          orderBy: { createdAt: "asc" },
-        },
-      },
+      include: minutesInclude,
     });
   } else {
     minutes = minutesFromDb;

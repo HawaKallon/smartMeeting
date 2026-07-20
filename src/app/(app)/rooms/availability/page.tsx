@@ -7,9 +7,20 @@ import { RoomSelect } from "./RoomSelect";
 import type { Prisma } from "@/generated/prisma/client";
 
 type SelectedRoom = Prisma.RoomGetPayload<{
-  include: {
+  select: {
+    id: true;
+    name: true;
+    location: true;
+    capacity: true;
     bookings: {
-      include: { user: { select: { name: true; email: true } } };
+      select: {
+        id: true;
+        purpose: true;
+        startTime: true;
+        endTime: true;
+        status: true;
+        user: { select: { name: true; email: true } };
+      };
     };
     events: {
       select: {
@@ -56,7 +67,11 @@ export default async function RoomAvailabilityPage({
 
     selectedRoom = await prisma.room.findUnique({
       where: { id: sp.roomId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        location: true,
+        capacity: true,
         bookings: {
           where: {
             status: "CONFIRMED",
@@ -64,7 +79,14 @@ export default async function RoomAvailabilityPage({
             endTime: { lte: endOfDay },
           },
           orderBy: { startTime: "asc" },
-          include: { user: { select: { name: true, email: true } } },
+          select: {
+            id: true,
+            purpose: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            user: { select: { name: true, email: true } },
+          },
         },
         events: {
           where: {
