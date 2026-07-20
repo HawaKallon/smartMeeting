@@ -246,6 +246,7 @@ model Event {
   @@index([ministryId, endAt])
   @@index([organizerId, startAt])
   @@index([isPublic, status, startAt])
+  @@index([scope, ministryId]) // analytics: filter events by scope + ministry
 }
 
 // PRD §6 — a recurring meeting series. Each occurrence is a full Event row
@@ -266,6 +267,7 @@ model EventSeries {
   events Event[]
 
   @@index([ministryId])
+  @@index([organizerId]) // for filtering series by organizer
 }
 
 model EventAttendee {
@@ -312,6 +314,9 @@ model Attendance {
   @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
+  @@index([eventId, withinGeofence]) // analytics: count geofence violations per event
+  @@index([eventId, mockLocationFlag]) // analytics: count mock location flags per event
+  @@index([eventId, method]) // analytics: group attendance by check-in method
 }
 
 model Recording {
@@ -381,6 +386,8 @@ model ActionItem {
   @@index([ownerId])
   @@index([assignedById])
   @@index([reminderSentAt])
+  @@index([ownerId, dueDate]) // for "my action items due soon" queries
+  @@index([status, dueDate]) // for action item reminder queue
 }
 
 /// Append-only audit trail (PRD §7).
@@ -479,6 +486,7 @@ model RoomBooking {
   @@index([roomId])
   @@index([startTime])
   @@index([ministryId])
+  @@index([roomId, startTime]) // for booking conflict detection
 }
 
 // ── Auth.js (NextAuth) models ───────────────────────────────────────────────
