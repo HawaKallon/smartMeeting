@@ -79,17 +79,14 @@ export async function generateMinutesSummary(
   });
   if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
 
-  const existing = await prisma.minutes.findFirst({
-    where: { eventId },
-  });
-  if (existing?.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
-
-  // Pull the meeting notes (body) from the minutes record.
+  // OPTIMIZATION: Combine two queries into one (was: 2 separate findFirst calls)
+  // Fetches both status (for validation) and body (for processing) in single query
   const minutes = await prisma.minutes.findFirst({
     where: { eventId },
-    select: { body: true },
+    select: { status: true, body: true },
   });
   if (!minutes) return { error: "No meeting notes found to summarize." };
+  if (minutes.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
   if (!minutes.body || minutes.body.trim().length === 0) {
     return { error: "Meeting notes are empty. Please add notes before generating a summary." };
   }
@@ -342,13 +339,17 @@ export async function addActionItem(
   const timeline = parseFutureTimeline(dueDate, timezoneOffset);
   if ("error" in timeline) return { error: timeline.error };
 
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
-  });
-  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
+  // OPTIMIZATION: Parallelize event + minutes lookup (was: 2 sequential queries)
+  // Now both queries run concurrently with Promise.all()
+  const [event, minutes] = await Promise.all([
+    prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, ministryId: true, organizerId: true, coOrganizers: { select: { id: true } } },
+    }),
+    prisma.minutes.findUnique({ where: { id: minutesId } }),
+  ]);
 
-  const minutes = await prisma.minutes.findUnique({ where: { id: minutesId } });
+  if (!event || !canManageExistingEvent(user, event)) return { error: "Event not found or you don't have access." };
   if (!minutes) return { error: "Minutes not found." };
   if (minutes.status !== "DRAFT") return { error: "Minutes are locked for review or already published." };
 
