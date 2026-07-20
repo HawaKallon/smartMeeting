@@ -192,20 +192,31 @@ export async function createEvent(
   if (!targetMinistryId) {
     return { error: "Choose a ministry for this event." };
   }
+
+  // OPTIMIZATION: Look up ministry with both id and name in single query (used for validation and email)
+  let ministry: { id: string; name: string } | null = null;
   if (isSuperAdmin(user.systemRole)) {
-    const ministry = await prisma.ministry.findFirst({
+    ministry = await prisma.ministry.findFirst({
       where: { id: targetMinistryId, active: true },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!ministry) return { error: "Ministry not found or inactive." };
+  } else {
+    // Non-super-admin: assume their ministry exists (they're part of it)
+    ministry = await prisma.ministry.findUnique({
+      where: { id: targetMinistryId },
+      select: { id: true, name: true },
+    });
+    if (!ministry) return { error: "Ministry not found." };
   }
 
   // Validate room access (used for room-conflict checks, not geofence derivation).
-  let room: { id: string } | null = null;
+  // OPTIMIZATION: Look up room with both id and name in single query (used for validation and email)
+  let room: { id: string; name: string } | null = null;
   if (data.roomId) {
     room = await prisma.room.findFirst({
       where: { id: data.roomId, ministryId: targetMinistryId } as Prisma.RoomWhereInput,
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!room) {
       return { error: "Room not found or you don't have access" };
@@ -323,19 +334,6 @@ export async function createEvent(
     ministryId: targetMinistryId,
   };
 
-  // OPTIMIZATION: Cache room and ministry lookups for reuse after transaction
-  // This avoids duplicate database queries when building invitation emails
-  const cachedRoom = data.roomId
-    ? await prisma.room.findFirst({
-        where: { id: data.roomId, ministryId: targetMinistryId } as Prisma.RoomWhereInput,
-        select: { name: true },
-      })
-    : null;
-  const cachedMinistry = await prisma.ministry.findUnique({
-    where: { id: targetMinistryId },
-    select: { name: true },
-  });
-
   // Create the series record and all occurrences atomically using optimized batch function.
   // PERFORMANCE IMPROVEMENT:
   // - Old approach: 156 queries (52 × 3)
@@ -377,10 +375,9 @@ export async function createEvent(
   });
 
   // One invite email per invitee (not one per occurrence).
-  // OPTIMIZATION: Use cached room and ministry lookups from before transaction
-  // This avoids 2 duplicate database queries
+  // OPTIMIZATION: Use room and ministry already loaded before transaction (0 additional queries)
   if (resolved.length) {
-    const roomName = cachedRoom?.name ?? null;
+    const roomName = room?.name ?? null;
     const organizerName = user.name ?? user.email;
     const recurrenceText = recurring
       ? describeRecurrence({
@@ -407,7 +404,7 @@ export async function createEvent(
           roomName,
           organizerName,
           organizerEmail: user.email,
-          ministryName: cachedMinistry?.name ?? "Government Ministry",
+          ministryName: ministry?.name ?? "Government Ministry",
           recurrenceText,
           acceptUrl: rsvpUrl(r.token, "CONFIRMED"),
           declineUrl: rsvpUrl(r.token, "DECLINED"),
