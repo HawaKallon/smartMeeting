@@ -37,7 +37,7 @@ async function testRedis() {
     const testValue = { message: 'Hello Redis!', timestamp: new Date().toISOString() };
 
     await cache.set(testKey, testValue, { ttl: 60 });
-    const retrieved = await cache.get(testValue);
+    const retrieved = await cache.get<typeof testValue>(testKey);
 
     if (retrieved) {
       console.log(`✅ Set/Get working: ${JSON.stringify(retrieved)}\n`);
