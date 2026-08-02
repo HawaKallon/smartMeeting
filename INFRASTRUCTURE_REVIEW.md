@@ -226,13 +226,13 @@ Recovery: Point-in-time recovery available
 **Current State:**
 ```bash
 # File: .env (CHECKED INTO GIT? NO - but visible in working directory)
-DATABASE_URL="postgresql://neondb_owner:***REMOVED***@ep-cool-glade-apjalodk-pooler.c-7.us-east-1.aws.neon.tech/neondb?..."
-AUTH_SECRET="***REMOVED***"
-OPENAI_API_KEY="***REMOVED***"
-RESEND_API_KEY="***REMOVED***"
-CLOUDINARY_API_KEY="***REMOVED***"
-CLOUDINARY_API_SECRET="***REMOVED***"
-CRON_SECRET="***REMOVED***"
+DATABASE_URL="postgresql://<user>:<REDACTED>@<host>.neon.tech/neondb?..."
+AUTH_SECRET="<REDACTED>"
+OPENAI_API_KEY="<REDACTED>"
+RESEND_API_KEY="<REDACTED>"
+CLOUDINARY_API_KEY="<REDACTED>"
+CLOUDINARY_API_SECRET="<REDACTED>"
+CRON_SECRET="<REDACTED>"
 ```
 
 **Issues:**
