@@ -61,7 +61,7 @@ export async function updateRoom(roomId: string, formData: FormData) {
     where: { id: roomId },
     data: { name }
   });
-
+99999
   revalidatePath('/rooms');
 }
 ```
