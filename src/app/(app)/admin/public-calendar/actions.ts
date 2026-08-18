@@ -33,7 +33,7 @@ function getInvitedMinistryIds(formData: FormData): string[] {
   return formData.getAll("invitedMinistryIds").map(String).filter(Boolean);
 }
 
-export type ActionState = { error?: string } | undefined;
+export type ActionState = { error?: string };
 
 export async function createPublicEvent(
   _prev: ActionState,
@@ -185,7 +185,7 @@ export async function updatePublicEvent(
 
     revalidatePath("/public-calendar");
     revalidatePath("/administrative/admin/public-calendar");
-    return { error: undefined };
+    return {};
   } catch (err) {
     console.error("Failed to update public event:", err);
     return { error: "Failed to update event" };
@@ -297,7 +297,7 @@ export async function publishPublicEvent(eventId: string): Promise<ActionState> 
 
     revalidatePath("/public-calendar");
     revalidatePath("/administrative/admin/public-calendar");
-    return undefined;
+    return {};
   } catch (err) {
     console.error("Failed to publish public event:", err);
     return { error: "Failed to publish event" };
@@ -338,7 +338,7 @@ export async function unpublishPublicEvent(eventId: string): Promise<ActionState
 
     revalidatePath("/public-calendar");
     revalidatePath("/administrative/admin/public-calendar");
-    return undefined;
+    return {};
   } catch (err) {
     console.error("Failed to unpublish public event:", err);
     return { error: "Failed to unpublish event" };

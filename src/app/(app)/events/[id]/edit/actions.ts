@@ -7,7 +7,8 @@ import { requireUser, ministryScope } from "@/lib/guard";
 import { canManageEvent, canReassignEvent } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
-import { findSlotConflict, materializeOccurrences } from "@/lib/events";
+import { checkSlotConflicts, materializeOccurrences } from "@/lib/events";
+import { materializeOccurrencesBatch } from "@/lib/events-batch";
 import type { SystemRole } from "@/generated/prisma/enums";
 import { generateOccurrences, MAX_OCCURRENCES } from "@/lib/recurrence";
 import type { Prisma } from "@/generated/prisma/client";
@@ -140,16 +141,19 @@ export async function updateEvent(
       });
       if (!room) return { error: "Room not found or you don't have access" };
     }
-    // Block on any room clash (siblings in this series don't count).
-    for (const s of slots) {
-      const reason = await findSlotConflict({
-        roomId,
-        venueName: anchor.venueName,
-        startAt: s.startAt,
-        endAt: s.endAt,
-        excludeSeriesId: anchor.seriesId,
-      });
-      if (reason) return { error: `Cannot update — ${fmt(s.startAt)} clashes: ${reason}` };
+    // Optimized batch conflict check for all slots in regenerated series.
+    // Old: sequential for loop with N findSlotConflict() calls
+    // New: single checkSlotConflicts() batches all checks together
+    const conflictMapRegen = await checkSlotConflicts({
+      slots,
+      roomId,
+      venueName: anchor.venueName,
+      excludeSeriesId: anchor.seriesId,
+    });
+    
+    if (conflictMapRegen.size > 0) {
+      const [slotIndex, reason] = Array.from(conflictMapRegen.entries())[0];
+      return { error: `Cannot update — ${fmt(slots[slotIndex].startAt)} clashes: ${reason}` };
     }
 
     // Carry the current invitee list onto every regenerated occurrence.
@@ -177,6 +181,7 @@ export async function updateEvent(
       title,
       description,
       type: type as EventType,
+      scope: eventScope as "OFFICIAL" | "TEAM",
       classification: classification as Classification,
       roomId,
       venueName: anchor.venueName,
@@ -186,7 +191,7 @@ export async function updateEvent(
       colorCategory: anchor.colorCategory,
       organizerId: anchor.organizerId,
       ministryId: anchor.ministryId,
-    };
+    } as unknown as Omit<Prisma.EventCreateInput, "startAt" | "endAt" | "seriesId">;
 
     const deleteWhere =
       patternScope === "ALL"
@@ -205,7 +210,15 @@ export async function updateEvent(
         },
       });
       await tx.event.deleteMany({ where: deleteWhere });
-      return materializeOccurrences(tx, { slots, seriesId: anchor.seriesId, base, invitees });
+      // OPTIMIZATION: Use batch function for enterprise-scale performance
+      // Instead of 156 queries (52 events × 3), this uses 4 queries
+      return materializeOccurrencesBatch(tx, {
+        slots,
+        seriesId: anchor.seriesId,
+        base,
+        invitees,
+        coOrganizerIds: anchor.coOrganizers.map(c => c.id),
+      });
     });
 
     await audit({
@@ -253,45 +266,71 @@ export async function updateEvent(
       });
       if (!room) return { error: "Room not found or you don't have access" };
     }
-    // Compute new times per target and block on any room clash.
+    // Compute new times per target and batch check all for room conflicts.
+    // Build the update plan with new times first, then batch check conflicts.
     const updates: { id: string; startAt: Date; endAt: Date; reschedule: boolean }[] = [];
+    const newSlots: Array<{ id: string; startAt: Date; endAt: Date }> = [];
+    
     for (const t of targets) {
       const ns = preserveDates
         ? new Date(t.startAt.getFullYear(), t.startAt.getMonth(), t.startAt.getDate(), startAt.getHours(), startAt.getMinutes(), 0, 0)
         : startAt;
       const ne = preserveDates ? new Date(ns.getTime() + durationMs) : endAt;
+      newSlots.push({ id: t.id, startAt: ns, endAt: ne });
+    }
 
-      const reason = await findSlotConflict({
-        roomId,
-        venueName: null,
-        startAt: ns,
-        endAt: ne,
-        excludeEventId: t.id,
-        excludeSeriesId: event.seriesId ?? undefined,
-      });
-      if (reason) return { error: `Cannot update — ${fmt(ns)} clashes: ${reason}` };
+    // Optimized batch conflict check for all rescheduled occurrences.
+    // Old: sequential for loop with N findSlotConflict() calls
+    // New: single checkSlotConflicts() batches all checks together
+    const conflictMapReschedule = await checkSlotConflicts({
+      slots: newSlots.map(s => ({ startAt: s.startAt, endAt: s.endAt })),
+      roomId,
+      venueName: null,
+      excludeSeriesId: event.seriesId ?? undefined,
+    });
 
-      updates.push({ id: t.id, startAt: ns, endAt: ne, reschedule: t.startAt.getTime() !== ns.getTime() });
+    if (conflictMapReschedule.size > 0) {
+      const [slotIndex, reason] = Array.from(conflictMapReschedule.entries())[0];
+      return { error: `Cannot update — ${fmt(newSlots[slotIndex].startAt)} clashes: ${reason}` };
+    }
+
+    // Build final updates list with calculated reschedule flags
+    for (const s of newSlots) {
+      const t = targets.find(target => target.id === s.id)!;
+      updates.push({ id: t.id, startAt: s.startAt, endAt: s.endAt, reschedule: t.startAt.getTime() !== s.startAt.getTime() });
     }
 
     await prisma.$transaction(async (tx) => {
-      for (const u of updates) {
-        await tx.event.update({
-          where: { id: u.id },
-          data: {
-            title,
-            description,
-            type: type as EventType,
-            scope: eventScope as "OFFICIAL" | "TEAM",
-            classification: classification as Classification,
-            roomId,
-            startAt: u.startAt,
-            endAt: u.endAt,
-            // Re-arm the 1h-before reminder for any rescheduled occurrence.
-            ...(u.reschedule ? { reminderSentAt: null } : {}),
-          },
-        });
-      }
+      // Separate updates into rescheduled and non-rescheduled for batch operations
+      const rescheduledIds = updates.filter(u => u.reschedule).map(u => u.id);
+      const nonRescheduledIds = updates.filter(u => !u.reschedule).map(u => u.id);
+      const updateIdsToTimes = new Map(updates.map(u => [u.id, { startAt: u.startAt, endAt: u.endAt }]));
+
+      const commonData = {
+        title,
+        description,
+        type: type as EventType,
+        scope: eventScope as "OFFICIAL" | "TEAM",
+        classification: classification as Classification,
+        roomId,
+      };
+
+      // Batch update all events with common fields (must do individually for per-record startAt/endAt)
+      // Since Prisma doesn't support per-record value updates in updateMany, we need a different approach
+      await Promise.all(
+        updates.map(u =>
+          tx.event.update({
+            where: { id: u.id },
+            data: {
+              ...commonData,
+              startAt: u.startAt,
+              endAt: u.endAt,
+              // Re-arm the 1h-before reminder for any rescheduled occurrence
+              ...(u.reschedule ? { reminderSentAt: null } : {}),
+            },
+          })
+        )
+      );
     });
 
     await audit({

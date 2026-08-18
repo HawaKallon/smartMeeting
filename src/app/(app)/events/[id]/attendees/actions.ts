@@ -96,14 +96,19 @@ export async function inviteUser(
 
   const { token, tokenHash } = createRsvpToken();
   const attendee = await prisma.$transaction(async (tx) => {
-    let first: EventAttendee | null = null;
-    for (const targetId of targetEventIds) {
-      const created = await tx.eventAttendee.create({
-        data: { eventId: targetId, userId, status: "INVITED", rsvpTokenHash: tokenHash },
-      });
-      first ??= created;
-    }
-    return first!;
+    // Batch create attendees instead of N+1 sequential creates
+    await tx.eventAttendee.createMany({
+      data: targetEventIds.map(eventId => ({
+        eventId,
+        userId,
+        status: "INVITED" as const,
+        rsvpTokenHash: tokenHash,
+      })),
+    });
+    // Get the first attendee for return value
+    return tx.eventAttendee.findFirstOrThrow({
+      where: { rsvpTokenHash: tokenHash },
+    });
   });
 
   await audit({
@@ -226,20 +231,23 @@ export async function inviteExternal(
 
   const credentials = externalEmail ? createRsvpToken() : null;
   const attendee = await prisma.$transaction(async (tx) => {
-    let first: EventAttendee | null = null;
-    for (const targetId of targetEventIds) {
-      const created = await tx.eventAttendee.create({
-        data: {
-          eventId: targetId,
-          externalName,
-          externalEmail: externalEmail || null,
-          status: "INVITED",
-          rsvpTokenHash: credentials?.tokenHash ?? null,
-        },
-      });
-      first ??= created;
-    }
-    return first!;
+    // Batch create attendees instead of N+1 sequential creates
+    await tx.eventAttendee.createMany({
+      data: targetEventIds.map(eventId => ({
+        eventId,
+        externalName,
+        externalEmail: externalEmail || null,
+        status: "INVITED" as const,
+        rsvpTokenHash: credentials?.tokenHash ?? null,
+      })),
+    });
+    // Get the first attendee for return value
+    const tokenHashToQuery = credentials?.tokenHash ?? externalEmail;
+    return tx.eventAttendee.findFirstOrThrow({
+      where: tokenHashToQuery
+        ? { rsvpTokenHash: tokenHashToQuery }
+        : { eventId: { in: targetEventIds }, externalEmail },
+    });
   });
 
   await audit({

@@ -59,7 +59,7 @@ async function handleReminderCron(req: NextRequest) {
 
   let emailsSent = 0;
   let emailsFailed = 0;
-  let eventsNotified = 0;
+  const succeededEventIds: string[] = [];
 
   for (const event of events) {
     // Build the recipient list from invitees who have not declined.
@@ -104,12 +104,17 @@ async function handleReminderCron(req: NextRequest) {
     // Only finalize successful batches. A provider/configuration failure leaves
     // the event eligible for the next cron run instead of silently losing it.
     if (failedForEvent === 0) {
-      await prisma.event.update({
-        where: { id: event.id },
-        data: { reminderSentAt: now },
-      });
-      eventsNotified++;
+      succeededEventIds.push(event.id);
     }
+  }
+
+  // Batch update all successful events instead of N+1 sequential updates
+  const eventsNotified = succeededEventIds.length;
+  if (succeededEventIds.length > 0) {
+    await prisma.event.updateMany({
+      where: { id: { in: succeededEventIds } },
+      data: { reminderSentAt: now },
+    });
   }
 
   return NextResponse.json({
